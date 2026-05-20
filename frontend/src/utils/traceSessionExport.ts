@@ -273,11 +273,15 @@ function eventMetadataHtml(data: unknown): string {
   const rows: string[] = []
   const keys = Object.keys(meta)
   for (let i = 0; i < keys.length; i++) {
-    const val = meta[keys[i]]
-    if (isLargeBlob(val)) {
-      rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(keys[i]) + '</td><td style="font-size:13px;color:#9ca3af;font-style:italic">[large data omitted]</td></tr>')
+    const key = keys[i]
+    const val = meta[key]
+    if (key === 'event_context' && isLargeBlob(val) && typeof val === 'string') {
+      const src = val.startsWith('data:') ? val : 'data:image/png;base64,' + val
+      rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px;vertical-align:top">' + escapeHtml(key) + '</td><td><img src="' + src + '" style="max-width:100%;max-height:300px;border-radius:4px;margin-top:4px" alt="event context image"></td></tr>')
+    } else if (isLargeBlob(val)) {
+      rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(key) + '</td><td style="font-size:13px;color:#9ca3af;font-style:italic">[large data omitted]</td></tr>')
     } else {
-      rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(keys[i]) + '</td><td style="font-size:13px">' + escapeHtml(safeValue(val)) + '</td></tr>')
+      rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(key) + '</td><td style="font-size:13px">' + escapeHtml(safeValue(val)) + '</td></tr>')
     }
   }
   return '<table style="margin:4px 0 0 16px">' + rows.join('') + '</table>'
@@ -508,6 +512,21 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
     avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null
   }
 
+  // Build HTML summary before replacing event_context so the image is preserved in the HTML
+  const summaryHtml = buildHtmlSummary(session, endedAt, structured, kpis)
+
+  // Replace base64 event_context in metadata with a placeholder for the JSON export
+  for (let i = 0; i < structured.length; i++) {
+    const t = structured[i]
+    if (t.step === 'EVENT') {
+      const d = t.data as Record<string, unknown> | undefined
+      const meta = d?.metadata as Record<string, unknown> | undefined
+      if (meta && typeof meta.event_context === 'string' && isLargeBlob(meta.event_context)) {
+        meta.event_context = 'base64 image, refer to the html file'
+      }
+    }
+  }
+
   const json = JSON.stringify(
     {
       sessionId: session.sessionId,
@@ -523,7 +542,6 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))
 
   // Open HTML summary in a new tab (use <a target="_blank"> to avoid popup blocker)
-  const summaryHtml = buildHtmlSummary(session, endedAt, structured, kpis)
   const summaryBlob = new Blob([summaryHtml], { type: 'text/html;charset=utf-8' })
   const summaryUrl = URL.createObjectURL(summaryBlob)
   const summaryAnchor = document.createElement('a')

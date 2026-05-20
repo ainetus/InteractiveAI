@@ -1,11 +1,12 @@
 import json
 import os
 
+import requests
 from api.manager.base_manager import BaseRecommendationManager
 from owlready2 import get_ontology
 from settings import logger
 
-from .PowerGridgrid2op_poc_simulator.assistant_manager import AgentManager, AgentType
+from .PowerGridgrid2op_poc_simulator.assistant_manager import AgentType
 
 
 class PowerGridManager(BaseRecommendationManager):
@@ -20,7 +21,7 @@ class PowerGridManager(BaseRecommendationManager):
         self.owl_file_path = os.path.join(
             script_dir, "ontology/Grid2onto_v2_3_1.owl"
         )
-        self.rl_agent_manager = AgentManager()
+        self.rl_agent_api_url = "http://192.168.208.61:5000/api/v1/recommendation"
         super().__init__()
 
     def get_recommendation(self, request_data):
@@ -32,12 +33,8 @@ class PowerGridManager(BaseRecommendationManager):
         Returns:
             list[dict]: List of recomendations
         """
-        self.rl_agent_manager.create_recommendation(
-            request_data.get("context", {}).get("observation")
-        )
-
-        logger.info("Getting parades")
-        parades = self.rl_agent_manager.get_list_of_parade_info()
+        logger.info("Getting RL agent recommendations from external API")
+        parades = self._get_rl_parades(request_data)
 
         onto_recommendation = []
         event_data = request_data.get("event", {})
@@ -49,6 +46,27 @@ class PowerGridManager(BaseRecommendationManager):
             print(onto_recommendation)
         # both parades & onto_recommendation should be lists on the same format
         return parades + onto_recommendation
+
+    def _get_rl_parades(self, request_data):
+        """Call the external RL agent API to get parade recommendations.
+
+        Args:
+            request_data (dict): Full request payload with keys "event" and "context"
+
+        Returns:
+            list[dict]: List of parade recommendations, empty on failure
+        """
+        try:
+            response = requests.post(
+                self.rl_agent_api_url,
+                json=request_data,
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to get RL recommendations from external API: {e}")
+            return []
 
     def get_onto_recommendation(self, event_line):
         """Get Ontology recomendations
