@@ -8,18 +8,13 @@
  *
  * Hardcoded values (event_id = 885, first agent from the list) are used
  * until the dynamic event → cognitive-event mapping is in place.
- *
- * NOTE: The JWT token below expires on 2026-05-29 — replace it when it does.
  */
 
 // Routed through nginx /cognitive-api/ → https://wesenss.inesctec.pt/api/v1/
 const COGNITIVE_BASE_URL = '/cognitive-api'
 
-// Replace when the token expires
-const COGNITIVE_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
-  '.eyJzdWIiOiI2NjVmY2Y4OWEzOTRiNzZiMGI0NTRmNjYiLCJhdWQiOlsiZmFzdGFwaS11c2VyczphdXRoIl0sImV4cCI6MTc4ODE4Mjc5MH0' +
-  '.-LI10Tkay4QYlcwD7Jpm_otdM3yFY0SYtW4peIK5LM4'
+// Injected at build time via VITE_COGNITIVE_TOKEN env var (never commit the token)
+const COGNITIVE_TOKEN = import.meta.env.VITE_COGNITIVE_TOKEN ?? ''
 
 // Hardcoded until dynamic event_id resolution is implemented
 const DEFAULT_EVENT_ID = 885
