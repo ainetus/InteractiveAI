@@ -1,12 +1,16 @@
 import json
 import os
+import warnings
 
 import requests
+import urllib3
 from api.manager.base_manager import BaseRecommendationManager
 from owlready2 import get_ontology
 from settings import logger
 
 from .PowerGridgrid2op_poc_simulator.assistant_manager import AgentType
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class PowerGridManager(BaseRecommendationManager):
@@ -23,7 +27,7 @@ class PowerGridManager(BaseRecommendationManager):
         )
         self.rl_agent_api_url = os.environ.get(
             "RL_AGENT_API_URL",
-            "https://interactiveagent.passerelle.irt-systemx.fr/api/v1/recommendation",
+            "http://frontend:80/rl-api/recommendation",
         )
         self.rl_agent_api_token = os.environ.get("RL_AGENT_API_TOKEN", "")
         super().__init__()
@@ -69,11 +73,26 @@ class PowerGridManager(BaseRecommendationManager):
                 json=request_data,
                 headers=headers,
                 timeout=30,
+                verify=False,  # SSL cert may not be trusted inside the container
             )
             response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to get RL recommendations from external API: {e}")
+            data = response.json()
+            logger.info(f"RL agent returned {len(data)} recommendation(s)")
+            return data
+        except requests.exceptions.SSLError as e:
+            logger.error(f"SSL error calling RL agent API: {e}")
+            return []
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"HTTP error calling RL agent API: {e} — response body: {e.response.text[:500] if e.response is not None else 'N/A'}")
+            return []
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error calling RL agent API ({self.rl_agent_api_url}): {e}")
+            return []
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout calling RL agent API ({self.rl_agent_api_url}) after 30s")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error calling RL agent API: {type(e).__name__}: {e}")
             return []
 
     def get_onto_recommendation(self, event_line):
