@@ -443,3 +443,97 @@ def SNCF_deontic(event_json, context_json, recommendation_catalog, type, thresho
         return [{"error": "type must be 'passengers' or 'delay'"}]
 
     return ordered
+
+
+
+
+
+
+
+
+def SNCF_risk(event_json, context_json, recommendation_catalog, type):
+
+    event = json.loads(event_json)
+    context = json.loads(context_json)
+
+    id_event = event["data"].get("id_event")
+
+    if id_event not in recommendation_catalog:
+        return [{"error": f"No recommendations defined for event_id {id_event}"}]
+
+    recos = recommendation_catalog[id_event]
+
+    #filtered_recos = []
+
+    for reco_json in recos:
+
+        reco = json.loads(reco_json)
+        kpis = reco["data"]["kpis"]
+
+        passengers = int(kpis.get("nb_impacted_passengers", 0))
+        
+        cost = int(kpis.get("cost", 0))
+        
+        total_cost = int(kpis.get("total_cost", 0))
+
+        delay_str = kpis.get("delay", "0min")
+        delay_minutes = parse_delay_to_minutes(delay_str)
+
+        # if type == "passengers":
+
+        #     if passengers <= threshold_value:
+        #         filtered_recos.append(reco_json)
+
+        # elif type == "delay":
+
+        #     threshold_minutes = parse_delay_to_minutes(threshold_value)
+
+        #     if delay_minutes <= threshold_minutes:
+        #         filtered_recos.append(reco_json)
+                
+        # elif type == "cost":
+
+        #     if cost <= threshold_value:
+        #         filtered_recos.append(reco_json)
+
+        # elif type == "total_cost":
+
+        #     if total_cost <= threshold_value:
+        #         filtered_recos.append(reco_json)
+                
+    # ---------- ORDERING ---------- #
+
+    def order_passengers(reco_json):
+        reco = json.loads(reco_json)
+        return int(reco["data"]["kpis"].get("nb_impacted_passengers", 0))
+
+    def order_delay(reco_json):
+        reco = json.loads(reco_json)
+        delay_str = reco["data"]["kpis"].get("delay", "0min")
+        return parse_delay_to_minutes(delay_str)
+    
+    def order_cost(reco_json):
+        reco = json.loads(reco_json)
+        return int(reco["data"]["kpis"].get("cost", 0))
+    
+    def order_totalcost(reco_json):
+        reco = json.loads(reco_json)
+        return int(reco["data"]["kpis"].get("total_cost", 0))
+
+    if type == "passengers":
+        ordered = sorted(recos, key=order_passengers)
+
+    elif type == "delay":
+        ordered = sorted(recos, key=order_delay)
+        
+    elif type == "cost":
+        ordered = sorted(recos, key=order_cost)
+        
+    elif type == "total_cost":
+        ordered = sorted(recos, key=order_totalcost)
+
+
+    else:
+        return [{"error": "type must be 'passengers' or 'delay'"}]
+
+    return ordered
