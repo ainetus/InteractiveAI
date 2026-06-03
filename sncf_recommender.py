@@ -463,7 +463,6 @@ def SNCF_risk(event_json, context_json, recommendation_catalog, type):
 
     recos = recommendation_catalog[id_event]
 
-    #filtered_recos = []
 
     for reco_json in recos:
 
@@ -478,28 +477,6 @@ def SNCF_risk(event_json, context_json, recommendation_catalog, type):
 
         delay_str = kpis.get("delay", "0min")
         delay_minutes = parse_delay_to_minutes(delay_str)
-
-        # if type == "passengers":
-
-        #     if passengers <= threshold_value:
-        #         filtered_recos.append(reco_json)
-
-        # elif type == "delay":
-
-        #     threshold_minutes = parse_delay_to_minutes(threshold_value)
-
-        #     if delay_minutes <= threshold_minutes:
-        #         filtered_recos.append(reco_json)
-                
-        # elif type == "cost":
-
-        #     if cost <= threshold_value:
-        #         filtered_recos.append(reco_json)
-
-        # elif type == "total_cost":
-
-        #     if total_cost <= threshold_value:
-        #         filtered_recos.append(reco_json)
                 
     # ---------- ORDERING ---------- #
 
@@ -535,5 +512,156 @@ def SNCF_risk(event_json, context_json, recommendation_catalog, type):
 
     else:
         return [{"error": "type must be 'passengers' or 'delay'"}]
+
+    return ordered
+
+
+
+def SNCF_risk_tie_break(
+    event_json,
+    context_json,
+    recommendation_catalog,
+    type,
+    tie_breaker=None
+):
+    """
+    Orders recommendations according to a chosen KPI.
+
+    If there is equality between recommendations on the main KPI,
+    a secondary KPI (tie_breaker) is used.
+
+    Parameters
+    ----------
+    type : str
+        Main KPI used for ordering.
+        Possible values:
+            - "passengers"
+            - "delay"
+            - "cost"
+            - "total_cost"
+
+    tie_breaker : str or None
+        Secondary KPI used when equalities occur.
+
+    Output
+    ------
+    Ordered list of recommendations.
+    """
+
+    event = json.loads(event_json)
+    context = json.loads(context_json)
+
+    id_event = event["data"].get("id_event")
+
+    if id_event not in recommendation_catalog:
+
+        return [{
+            "error": f"No recommendations defined for event_id {id_event}"
+        }]
+
+    recos = recommendation_catalog[id_event]
+
+    # ------------------------------------------------ #
+    # KPI EXTRACTION FUNCTIONS
+    # ------------------------------------------------ #
+
+    def get_passengers(reco_json):
+
+        reco = json.loads(reco_json)
+
+        return int(
+            reco["data"]["kpis"].get(
+                "nb_impacted_passengers",
+                0
+            )
+        )
+
+
+    def get_delay(reco_json):
+
+        reco = json.loads(reco_json)
+
+        delay_str = reco["data"]["kpis"].get(
+            "delay",
+            "0min"
+        )
+
+        return parse_delay_to_minutes(delay_str)
+
+
+    def get_cost(reco_json):
+
+        reco = json.loads(reco_json)
+
+        return int(
+            reco["data"]["kpis"].get(
+                "cost",
+                0
+            )
+        )
+
+
+    def get_total_cost(reco_json):
+
+        reco = json.loads(reco_json)
+
+        return int(
+            reco["data"]["kpis"].get(
+                "total_cost",
+                0
+            )
+        )
+
+    # ------------------------------------------------ #
+    # KPI SELECTOR
+    # ------------------------------------------------ #
+
+    KPI_FUNCTIONS = {
+
+        "passengers": get_passengers,
+        "delay": get_delay,
+        "cost": get_cost,
+        "total_cost": get_total_cost
+    }
+
+    if type not in KPI_FUNCTIONS:
+
+        return [{
+            "error": "Invalid type"
+        }]
+
+    primary_function = KPI_FUNCTIONS[type]
+
+    # ------------------------------------------------ #
+    # SORTING
+    # ------------------------------------------------ #
+
+    if tie_breaker is None:
+
+        # Simple ordering
+        ordered = sorted(
+            recos,
+            key=primary_function
+        )
+
+    else:
+
+        if tie_breaker not in KPI_FUNCTIONS:
+
+            return [{
+                "error": "Invalid tie_breaker"
+            }]
+
+        secondary_function = KPI_FUNCTIONS[tie_breaker]
+
+        # Main KPI first
+        # Secondary KPI breaks equalities
+        ordered = sorted(
+            recos,
+            key=lambda reco: (
+                primary_function(reco),
+                secondary_function(reco)
+            )
+        )
 
     return ordered
