@@ -25,6 +25,9 @@ class PowerGridManager(BaseRecommendationManager):
         self.owl_file_path = os.path.join(
             script_dir, "ontology/Grid2onto_v2_3_1.owl"
         )
+        # Runtime value comes from the RL_AGENT_API_URL env var (set via
+        # .secrets -> docker-compose.sh -> .env for local Docker, or extraEnv
+        # for k8s). The fallback is a safe in-cluster default only.
         self.rl_agent_api_url = os.environ.get(
             "RL_AGENT_API_URL",
             "http://frontend:80/rl-api/recommendation",

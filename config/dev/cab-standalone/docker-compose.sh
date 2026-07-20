@@ -50,6 +50,7 @@ if [[ -f .secrets ]]; then
 fi
 echo "RL_AGENT_API_URL=${RL_AGENT_API_URL:-https://interactiveagent.passerelle.irt-systemx.fr/api/v1/recommendation}" >> .env
 echo "RL_AGENT_API_TOKEN=${RL_AGENT_API_TOKEN:-}" >> .env
+echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env
 echo "VITE_COGNITIVE_TOKEN=${VITE_COGNITIVE_TOKEN:-}" >> .env
 
 cat .env
