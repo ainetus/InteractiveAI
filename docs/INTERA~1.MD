@@ -8,7 +8,7 @@ This documentation uses the PowerGrid domain as an example to illustrate how to 
 
 In our enviroment diagram, we are refering to steps 3 and 4.
 
-![Architecture diagram](img/INTERA~1.PNG)
+![Architecture diagram](img/InteractiveAI_AIAgent.png)
 *Figure 1: InteractiveAI general workflow*
 
 ---
