@@ -4,6 +4,8 @@
 
 InteractiveAI is a platform that bridges AI agents with digital environments (simulators) through a web interface. It provides operators with real-time event monitoring, contextual recommendations, and the ability to apply AI-generated actions directly to their environment.
 
+This documentation uses the PowerGrid domain as an example to illustrate how to integrate an AI agent (ExpertAgent RL) with InteractiveAI.
+
 In our enviroment diagram, we are refering to steps 3 and 4.
 
 ![Architecture diagram](img/INTERA~1.PNG)
