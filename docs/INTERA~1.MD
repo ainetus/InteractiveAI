@@ -6,7 +6,7 @@ InteractiveAI is a platform that bridges AI agents with digital environments (si
 
 In our enviroment diagram, we are refering to steps 3 and 4.
 
-![Architecture diagram](docs/images/envArchiAI.png)
+![Architecture diagram](docs/images/INTERA~1.PNG)
 
 ---
 
