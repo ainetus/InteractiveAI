@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import * as auth from '@/api/auth'
 import type { LoginResponse, UserResponse } from '@/types/auth'
 import { ENTITIES, type Entity } from '@/types/entities'
+import { clearCognitiveConsent } from '@/utils/consent'
 import { clearTraceSession, exportTraceSession, startTraceSession } from '@/utils/traceSessionExport'
 
 export const useAuthStore = defineStore(
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore(
         console.warn('Unable to export trace session:', error)
       } finally {
         clearTraceSession()
+        clearCognitiveConsent()
         token.value = undefined
         user.value = undefined
         localStorage.removeItem('context')
