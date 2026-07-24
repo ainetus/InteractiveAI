@@ -1,3 +1,4 @@
+import type { CognitiveSnapshot } from '@/api/cognitive'
 import http from '@/plugins/http'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
@@ -11,6 +12,7 @@ import { recordTraceForSession } from '@/utils/traceSessionExport'
 export function getRecommendation<E extends Entity = Entity>(payload: {
   event: Card<E>['data']['metadata']
   context: Context<E>
+  cognitive_snapshot?: CognitiveSnapshot
 }) {
   return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
 }

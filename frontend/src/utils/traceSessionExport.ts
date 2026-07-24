@@ -1,6 +1,7 @@
 import { fetchCognitiveSnapshot } from '@/api/cognitive'
 import type { CognitiveSnapshot } from '@/api/cognitive'
 import type { Trace } from '@/types/services'
+import { hasCognitiveConsent } from '@/utils/consent'
 
 type ExportFormat = 'json' | 'csv'
 type SessionStep = Trace['step'] | 'FEEDBACK'
@@ -511,29 +512,32 @@ export async function recordTraceForSession(
     }
   }
 
-  // Enrich trace data with the latest cognitive snapshot.
-  // Always attached — on API failure the snapshot contains an `error` field.
+  // Enrich trace data with the latest cognitive snapshot — but only when the
+  // operator has consented. Without consent, nothing is fetched or recorded.
+  // On API failure the snapshot contains an `error` field.
   let enrichedData: unknown = trace.data
-  try {
-    const cognitiveSnapshot = await fetchCognitiveSnapshot()
-    const base = (trace.data !== null && typeof trace.data === 'object')
-      ? (trace.data as Record<string, unknown>)
-      : {}
-    enrichedData = { ...base, cognitive_snapshot: cognitiveSnapshot }
-  } catch (err: unknown) {
-    // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
-    const message = err instanceof Error ? err.message : String(err)
-    const base = (trace.data !== null && typeof trace.data === 'object')
-      ? (trace.data as Record<string, unknown>)
-      : {}
-    enrichedData = {
-      ...base,
-      cognitive_snapshot: {
-        cognitive_performance: null,
-        stress_state: null,
-        cognitive_performance_explainability: null,
-        stress_explainability: null,
-        error: `Failed to get cognitive factors: ${message}`
+  if (hasCognitiveConsent()) {
+    try {
+      const cognitiveSnapshot = await fetchCognitiveSnapshot()
+      const base = (trace.data !== null && typeof trace.data === 'object')
+        ? (trace.data as Record<string, unknown>)
+        : {}
+      enrichedData = { ...base, cognitive_snapshot: cognitiveSnapshot }
+    } catch (err: unknown) {
+      // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
+      const message = err instanceof Error ? err.message : String(err)
+      const base = (trace.data !== null && typeof trace.data === 'object')
+        ? (trace.data as Record<string, unknown>)
+        : {}
+      enrichedData = {
+        ...base,
+        cognitive_snapshot: {
+          cognitive_performance: null,
+          stress_state: null,
+          cognitive_performance_explainability: null,
+          stress_explainability: null,
+          error: `Failed to get cognitive factors: ${message}`
+        }
       }
     }
   }
