@@ -65,6 +65,24 @@ The `data` field is a free-form object used to pass domain-specific information.
   }
 }
 ```
+> `event_type` can be `PASSENGER`, `INFRASTRUCTURE`, `IMPACT`, or `HARDWARE`.
+> 
+**Example — ATM use case:**
+```json
+{
+  "use_case": "ATM",
+  "criticality": "HIGH",
+  "title": "Plane in unauthorized sector",
+  "description": "Aircraft AF1234 has entered sector TMA-NW without clearance. The aircraft is currently at FL320, deviating from its assigned route. Immediate coordination required with adjacent sector control.",
+  "start_date": "2024-03-15T10:00:00",
+  "end_date": "2024-03-15T10:30:00",
+  "data": {
+    "system": "none",
+    "event_type": "sectorization",
+    "id_plane": "1"
+  }
+}
+```
 
 ### Response
 
