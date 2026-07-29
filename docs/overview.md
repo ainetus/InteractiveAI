@@ -48,5 +48,5 @@ You must implement this endpoint in your simulator to receive the selected actio
 
 ## Source Code
 
-- Platform repository: [IRT-SystemX/InteractiveAI](https://github.com/IRT-SystemX/InteractiveAI)
+- Platform repository: [AINETUS/InteractiveAI](https://github.com/ainetus/InteractiveAI)
 - Postman collections: [`docs/postman_collections/`](https://github.com/IRT-SystemX/InteractiveAI/tree/main/docs/postman_collections)
