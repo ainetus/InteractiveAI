@@ -4,6 +4,7 @@ The Event Service receives incoming messages, categorizes them, prioritizes task
 
 **Base path:** `/cab_event/api/v1`
 
+> **Authentication required** — All requests must include a bearer token in the `Authorization` header. See [Authentication](./authentication.md) for how to obtain one.
 ---
 
 ## Send an event
@@ -20,7 +21,7 @@ Content-Type: application/json
 | `use_case` | string | ✅ | Identifier for the application domain / use case (PowerGrid, Railway, ATM) |
 | `title` | string | ✅ | Short title of the event |
 | `description` | string | ✅ | Human-readable description of the event |
-| `criticality` | string/int | ✅ | Severity level of the event (HIGH, MEDIUM, LOW|
+| `criticality` | string/int | ✅ | Severity level of the event (HIGH, MEDIUM, LOW) |
 | `start_date` | datetime | ✅ | When the event started (ISO 8601) |
 | `end_date` | datetime | ❌ | When the event ended — omit if unknown |
 | `parent_event_id` | string | ❌ | ID of the parent event, if this event is a consequence of another |
@@ -30,7 +31,7 @@ Content-Type: application/json
 
 The `data` field is a free-form object used to pass domain-specific information. This data can be consumed by use-case-specific HMI components.
 
-**Example — power grid use case:**
+**Example — Power grid use case:**
 ```json
 {
   "use_case": "power_grid",
@@ -46,19 +47,21 @@ The `data` field is a free-form object used to pass domain-specific information.
 }
 ```
 
-**Example — rail network use case:**
+**Example — Railway  use case:**
 ```json
 {
-  "use_case": "railway",
-  "title": "Signal failure",
-  "description": "Signal S18 is unresponsive at junction J3.",
-  "criticality": "MEDIUM",
-  "start_date": "2024-03-15T08:45:00Z",
-  "parent_event_id": "evt_00234",
+  "use_case": "Railway",
+  "criticality": "HIGH",
+  "title": "Passenger taken ill in Poitiers",
+  "description": "Passenger taken ill in TGV AB001. Emergency services intervention in the Poitiers station. Impossible to access the Poitiers station. Estimated time of service traffic resumption: 12:00.",
+  "start_date": "2024-03-15T10:00:00",
+  "end_date": "2024-03-15T12:00:00",
   "data": {
-    "signal_id": "S18",
-    "junction": "J3",
-    "affected_lines": ["R2", "R5"]
+    "id_event": "1",
+    "event_type": "PASSENGER",
+    "id_train": "AB001",
+    "agent_id": "1",
+    "delay": 0
   }
 }
 ```
