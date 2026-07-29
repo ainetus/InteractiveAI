@@ -7,6 +7,25 @@ This guide explains how to connect an external system (e.g. a simulator or data 
 - A running instance of the InteractiveAI platform. Replace `{Platform_Server}` in all API calls with your server's host and port (e.g. `localhost:8080`).
 - HTTP client of your choice (curl, Postman, your application's HTTP library).
 
+## Authentication
+
+All API calls require a bearer token. Obtain one first, then include it in every request:
+
+```http
+POST http://{Platform_Server}:3200/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=publisher_test&password=test&grant_type=password&clientId=opfab-client
+```
+
+Then add the token to all subsequent requests:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+See [Authentication](./api/authentication.md) for the full details and a Python example.
+
 ## What you need to implement
 
 ### 1. Send events to the platform
