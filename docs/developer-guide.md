@@ -57,9 +57,8 @@ cd backend/recommendation-service
 pip install -r requirements.txt
 ```
 
-3. If you usecase uses Owlready2, Install Java
 
-4. Start the web service
+3. Start the web service
    * Option 1:
       Update envirement variables as felow:
          FLASK_APP="app:create_app('test')"

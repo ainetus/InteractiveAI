@@ -84,6 +84,12 @@ export VITE_ATM_SIMU=http://[Service url]:[Service port]
 > **_NOTE:_** For this step, you should already have a running simulator. If not, you can use the simulator we provided as an example. For this, please follow the tutorial provided in InteractiveAI/usecases_examples/PowerGrid/ then set the VITE_POWERGRID_SIMU variable to http://YOUR_SERVER_ADDRESS:5100/
 >
 > 
+
+`RL_AGENT_API_URL` is the link to the AI agent ... #TODO
+```sh 
+export RL_AGENT_API_URL=http://[Service url]:[Service port]
+```
+
 2. **Run InteractiveAI assistant**
 ```sh
 cd config/dev/cab-standalone
