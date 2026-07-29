@@ -17,10 +17,10 @@ Content-Type: application/json
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `use_case` | string | ✅ | Identifier for the application domain / use case |
+| `use_case` | string | ✅ | Identifier for the application domain / use case (PowerGrid, Railway, ATM) |
 | `title` | string | ✅ | Short title of the event |
 | `description` | string | ✅ | Human-readable description of the event |
-| `criticality` | string/int | ✅ | Severity level of the event |
+| `criticality` | string/int | ✅ | Severity level of the event (HIGH, MEDIUM, LOW|
 | `start_date` | datetime | ✅ | When the event started (ISO 8601) |
 | `end_date` | datetime | ❌ | When the event ended — omit if unknown |
 | `parent_event_id` | string | ❌ | ID of the parent event, if this event is a consequence of another |
