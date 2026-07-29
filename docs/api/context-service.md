@@ -42,7 +42,7 @@ As with events, the `data` field carries domain-specific context that the HMI us
 **Example — rail network use case:**
 ```json
 {
-  "use_case": "rail",
+  "use_case": "railway",
   "date": "2024-03-15T08:45:00Z",
   "data": {
     "trains_in_service": 42,
