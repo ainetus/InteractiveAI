@@ -58,7 +58,24 @@ As with events, the `data` field carries domain-specific context that the HMI us
   }
 }
 ```
+> The `trains` array accepts multiple train objects. Optional fields include `nb_passengers_connection`, `latitude`, `longitude`, and `speed` — omit them if not available.
 
+**Example — ATM use case:**
+```json
+{
+  "use_case": "ATM",
+  "date": "2024-03-15T10:00:00",
+  "data": {
+    "ApDest": "LFBO",
+    "Current_airspeed": 450,
+    "Latitude": 43.6295,
+    "Longitude": 1.3637,
+    "wpList": ["TOU", "LESDO", "LFBO"]
+  }
+}
+```
+
+> `wpList` is the list of remaining waypoints for the aircraft. `ApDest` is the destination airport (ICAO code).
 ---
 
 ## Retrieve current context
