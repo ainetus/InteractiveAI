@@ -4,6 +4,7 @@ The Context Service collects and analyzes data related to the current operating 
 
 **Base path:** `/cab_context/api/v1`
 
+> **Authentication required** — All requests must include a bearer token in the `Authorization` header. See [Authentication](./authentication.md) for how to obtain one.
 ---
 
 ## Send a context update
@@ -25,10 +26,10 @@ Content-Type: application/json
 
 As with events, the `data` field carries domain-specific context that the HMI uses to render its context view.
 
-**Example — power grid use case:**
+**Example — Power grid use case:**
 ```json
 {
-  "use_case": "power_grid",
+  "use_case": "Powergrid",
   "date": "2024-03-15T10:23:00Z",
   "data": {
     "grid_load_percent": 87.3,
@@ -39,16 +40,21 @@ As with events, the `data` field carries domain-specific context that the HMI us
 }
 ```
 
-**Example — rail network use case:**
+**Example — Railway use case:**
 ```json
 {
-  "use_case": "railway",
-  "date": "2024-03-15T08:45:00Z",
+  "use_case": "Railway",
+  "date": "2024-03-15T10:00:00",
   "data": {
-    "trains_in_service": 42,
-    "delayed_trains": 3,
-    "weather": "fog",
-    "operator_cognitive_load": "high"
+    "trains": [
+      {
+        "id_train": "AB001",
+        "nb_passengers_onboard": "459",
+        "trip": "Paris/Bordeaux",
+        "stops": "Angoulême/Bordeaux",
+        "failure": false
+      }
+    ]
   }
 }
 ```
