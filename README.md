@@ -33,4 +33,4 @@ See [Getting Started](./getting-started.md) for full details, including the simu
 
 ## Source
 
-Based on the [IRT-SystemX/InteractiveAI](https://github.com/IRT-SystemX/InteractiveAI) platform.
+Based on the [IRT-SystemX/InteractiveAI](https://github.com/ainetus/InteractiveAI) platform.
