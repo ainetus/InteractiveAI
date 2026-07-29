@@ -36,7 +36,7 @@ The `data` field is a free-form object used to pass domain-specific information.
   "use_case": "power_grid",
   "title": "Line overload detected",
   "description": "Transmission line L42 is operating above rated capacity.",
-  "criticality": "high",
+  "criticality": "HIGH",
   "start_date": "2024-03-15T10:23:00Z",
   "data": {
     "line_id": "L42",
@@ -49,10 +49,10 @@ The `data` field is a free-form object used to pass domain-specific information.
 **Example — rail network use case:**
 ```json
 {
-  "use_case": "rail",
+  "use_case": "railway",
   "title": "Signal failure",
   "description": "Signal S18 is unresponsive at junction J3.",
-  "criticality": "critical",
+  "criticality": "MEDIUM",
   "start_date": "2024-03-15T08:45:00Z",
   "parent_event_id": "evt_00234",
   "data": {
