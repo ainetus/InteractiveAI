@@ -155,6 +155,34 @@ Some examples of credentials:
 
 By default, the system allows the user to be connected only from a single machine. Which means if you try to connect using the same credentials from another machine, you will be disconnected on the first machine. 
 
+### Connecting a local RL agent (T2.1 deep-expert)
+
+By default, PowerGrid recommendations use the external RL agent API. To run and
+connect a local agent instead:
+
+```bash
+git clone -b docker https://github.com/ainetus/T2.1_deep_expert.git
+cd T2.1_deep_expert
+docker build -t t2-1-deep-expert .
+docker run -d --name t2-1-deep-expert -p 8000:8000 t2-1-deep-expert
+```
+
+Then point `cabrecommendation` at it:
+1. In `config/dev/cab-standalone/docker-compose.yml`, add to the `cabrecommendation` service:
+   ```yaml
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   ```
+2. In `config/dev/cab-standalone/.secrets` (copy from `.secrets.example` if needed), set:
+   ```bash
+   export RL_AGENT_API_URL=http://host.docker.internal:8000/api/v1/recommendation
+   ```
+3. Re-run `./docker-compose.sh` from that directory to regenerate `.env` and recreate `cabrecommendation`.
+
+To disconnect, remove the `extra_hosts` block and `.secrets` (or its
+`RL_AGENT_API_URL` line) and re-run `./docker-compose.sh` again — this restores
+the default external RL agent URL.
+
 # Development
 
 Contributions to the InteractiveAI Assistant Platform are welcome! To contribute, please make sure to use [developer guide](docs/developer-guide.md)

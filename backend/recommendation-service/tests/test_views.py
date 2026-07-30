@@ -12,7 +12,7 @@ RAILWAY_BEARER_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSbXFO
 def test_PowerGrid_get_recommendation(client, create_usecases, PowerGrid_auth_mocker):
     recommendation_data = {}
     # Opening JSON file
-    with open("tests/tests_resources/PowerGrid_recommendation.json") as json_file:
+    with open("tests/tests_resources/rte_recommendation.json") as json_file:
         recommendation_data = json.load(json_file)
     headers = {"Authorization": f"Bearer {POWERGRID_BEARER_TOKEN}"}
     response = client.post(

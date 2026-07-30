@@ -1,6 +1,9 @@
 # Sonarqube
 .scannerwork
 
+# Externally cloned service (T2.1 deep expert agent), not part of this repo
+/T2.1_deep_expert/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

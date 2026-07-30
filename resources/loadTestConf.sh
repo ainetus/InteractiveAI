@@ -34,4 +34,14 @@ fi
 	./loadContextServicesUseCase.sh $url
 	cd ../cabUsecasesRecommendation
 	./loadRecommendationServicesUseCase.sh $url
+
+	# Assign entities to publisher_test so the UI shows entity selection cards
+	# (cwd here is resources/cabUsecasesRecommendation, so getToken.sh is one level up)
+	source ../getToken.sh "admin" $url
+	echo "Assigning entities to publisher_test"
+	curl -s -X PUT $url:3200/users/users/publisher_test \
+	  -H "Content-Type: application/json" \
+	  -H "Authorization: Bearer $token" \
+	  -d '{"login":"publisher_test","entities":["PowerGrid","ATM","Railway"],"groups":["Dispatcher","ReadOnly","Supervisor"]}'
+	echo ""
 )

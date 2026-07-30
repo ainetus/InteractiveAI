@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>PowerGrid Simulator</title>
@@ -145,16 +145,16 @@
       {% endif %}
     {% endwith %}
     
-    <h1 class="center-text">Welcom to PowerGrid Simulator based on Grid2Op platform !</h1>
-    <!-- Début du formulaire de connexion -->
+    <h1 class="center-text">Welcome to PowerGrid Simulator based on Grid2Op platform !</h1>
+    <!-- Start of login form -->
     <div class="login-container">
-        <h2 class="center-text">Connexion</h2>
+        <h2 class="center-text">Login</h2>
         <form action="/login" method="post" id="login_form">
             <div class="server-selection-container">
                 <div class="server-list-container">
-                    <label for="server_url">Choisir un serveur:</label>
+                    <label for="server_url">Choose a server:</label>
                     <div class="custom-select">
-                        <div class="select-selected" id="selected_server">Sélectionnez un serveur</div>
+                        <div class="select-selected" id="selected_server">Select a server</div>
                         <div class="select-items select-hide" id="server_list">
                             {% for key, url in urls.items() %}
                                 <div data-value="{{ url }}" data-key="{{ key }}" data-preexisting="true">
@@ -168,24 +168,24 @@
                     </div>
                     <input type="hidden" id="server_url" name="server_url" required>
                 </div>
-                <button type="button" id="edit_servers_btn">Autre</button>
+                <button type="button" id="edit_servers_btn">Other</button>
             </div>
-            
+
             <div id="add_server_form" class="hidden">
-                <input type="url" id="new_server_url" name="new_server_url" placeholder="Nouvelle adresse de serveur">
-                <button type="button" id="add_server_btn">Ajouter</button>
+                <input type="url" id="new_server_url" name="new_server_url" placeholder="New server address">
+                <button type="button" id="add_server_btn">Add</button>
             </div>
-            
-            <label for="username">Nom d'utilisateur:</label>
+
+            <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
-            
-            <label for="password">Mot de passe:</label>
+
+            <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
-            
-            <button type="submit">Connexion</button>
+
+            <button type="submit">Login</button>
         </form>
     </div>
-    <!-- Fin du formulaire de connexion -->
+    <!-- End of login form -->
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -243,7 +243,7 @@
                         selectItems.appendChild(newOption);
                         document.getElementById('new_server_url').value = '';
                     } else {
-                        alert('Erreur lors de l\'ajout du serveur');
+                        alert('Error adding server');
                     }
                 });
             }
@@ -265,16 +265,16 @@
             if (data.success) {
                 event.target.closest('div').remove();
                 if (document.querySelector('.select-selected').textContent.trim() === data.deletedUrl) {
-                    document.querySelector('.select-selected').textContent = 'Sélectionnez un serveur';
+                    document.querySelector('.select-selected').textContent = 'Select a server';
                     document.getElementById('server_url').value = '';
                 }
             } else {
-                alert('Erreur lors de la suppression du serveur');
+                alert('Error deleting server');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erreur lors de la suppression du serveur');
+            alert('Error deleting server');
         });
     }
     

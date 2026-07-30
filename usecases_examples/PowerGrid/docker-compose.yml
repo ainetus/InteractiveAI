@@ -10,6 +10,12 @@ services:
       - "5100:5000"
     volumes:
       - .:/code
+    # the simulator runs in Docker but must reach the InteractiveAI backend on
+    # the host (port 3200). `localhost` inside the container is the container
+    # itself, so this maps host.docker.internal -> the host gateway on Linux.
+    # Used by config/API_POWERGRID_CAB.toml (cab_server_url_0).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   api:
     build:
