@@ -20,10 +20,9 @@ export function getRecommendation<E extends Entity = Entity>(
   // and no use_case is given. Pass the entity so the right use-case manager is picked.
   use_case?: string
 ) {
-  const url = use_case
-    ? `/cab_recommendation/api/v1/recommendation?use_case=${encodeURIComponent(use_case)}`
-    : '/cab_recommendation/api/v1/recommendation'
-  return http.post<Recommendation<E>[]>(url, payload)
+  return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload, {
+    params: { use_case }
+  })
 }
 
 export function getContext<E extends Entity = Entity>() {

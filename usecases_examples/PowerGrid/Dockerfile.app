@@ -12,9 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # copy requirements and install BEFORE copying the source, so the (slow)
 # dependency layer stays cached and is only rebuilt when requirements change,
-# not on every code edit. --no-cache-dir avoids bundling pip's cache in the image.
+# not on every code edit. The pip cache mount keeps downloaded wheels out of
+# the final image while still persisting them across builds (so a retry
+# after a network blip, or a real requirements change, doesn't have to
+# re-download unchanged packages).
 COPY requirements-app.txt /code/requirements-app.txt
-RUN pip3 install --no-cache-dir -r requirements-app.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements-app.txt
 
 COPY . /code/
 

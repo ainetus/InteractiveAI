@@ -21,29 +21,23 @@ log() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 ok()  { printf '\033[1;32m    ✓ %s\033[0m\n' "$*"; }
 die() { printf '\033[1;31m    ✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
-MODE="down"   # down | wipe | pause
 case "${1:-}" in
-  "")               MODE="down" ;;
-  --wipe|--volumes) MODE="wipe" ;;
-  --pause|--stop)   MODE="pause" ;;
+  "")               MSG="Stopping everything (containers removed, data volumes kept)"
+                    COMPOSE_CMD="down" ;;
+  --wipe|--volumes) MSG="Stopping everything and DELETING data volumes (fresh start next time)"
+                    COMPOSE_CMD="down -v" ;;
+  --pause|--stop)   MSG="Pausing everything (containers kept, resume later)"
+                    COMPOSE_CMD="stop" ;;
   -h|--help)        sed -n '3,13p' "${BASH_SOURCE[0]}"; exit 0 ;;
   *)                die "unknown argument: ${1} (see --help)" ;;
 esac
 
 # Run the chosen teardown command in a compose project directory.
 run() {
-  case "$MODE" in
-    down)  ( cd "$1" && docker compose down 2>/dev/null )    || true ;;
-    wipe)  ( cd "$1" && docker compose down -v 2>/dev/null ) || true ;;
-    pause) ( cd "$1" && docker compose stop 2>/dev/null )    || true ;;
-  esac
+  ( cd "$1" && docker compose $COMPOSE_CMD 2>/dev/null ) || true
 }
 
-case "$MODE" in
-  down)  log "Stopping everything (containers removed, data volumes kept)" ;;
-  wipe)  log "Stopping everything and DELETING data volumes (fresh start next time)" ;;
-  pause) log "Pausing everything (containers kept, resume later)" ;;
-esac
+log "$MSG"
 
 # Simulator first, then backend it depends on.
 run "$SIM_DIR"

@@ -8,19 +8,21 @@ RUN apt-get update && apt-get install -y default-jre
 RUN mkdir /my_app
 RUN mkdir /cab_common
 
-# Install recommendation-service modules
-COPY ./recommendation-service/ /my_app/
-COPY ./cab_common/ /cab_common/
-
+# Install the (large: torch/tensorflow/grid2op/lightsim2grid) Python deps
+# before copying the rest of the source, so this slow layer is cached and
+# only rebuilt when requirements.txt actually changes, not on every source
+# edit. The pip cache mount persists downloaded wheels across builds too,
+# so even a real requirements.txt change or a retry after a network blip
+# doesn't have to re-download unchanged packages.
 WORKDIR /my_app
-
-RUN pip3 install -r requirements.txt
+COPY ./recommendation-service/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r requirements.txt
 
 WORKDIR /cab_common
-
-RUN pip3 install .
-
+COPY ./cab_common/ .
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install .
 
 WORKDIR /my_app
+COPY ./recommendation-service/ .
 
 CMD ["./entrypoint.sh"]

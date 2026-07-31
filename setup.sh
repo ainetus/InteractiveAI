@@ -220,8 +220,7 @@ main() {
   # unchanged sources hit the layer cache and return instantly) so a stale
   # image from a different branch/checkout can't leak its baked-in code.
   log "Rebuilding frontend + recommendation-service from this repo's source"
-  ( cd "$BACKEND_DIR" && docker compose build frontend cabrecommendation \
-      && docker compose up -d frontend cabrecommendation )
+  ( cd "$BACKEND_DIR" && docker compose up -d --build frontend cabrecommendation )
   ok "frontend and recommendation-service rebuilt from source"
 
   log "Step 2/5 — Waiting for Keycloak"
@@ -240,10 +239,13 @@ main() {
 
   log "Step 4/5 — Loading resources and registering use cases"
   # Wait until auth actually works end-to-end before loading (avoids 401s).
+  # Reuses resources/getToken.sh (the same helper loadTestConf.sh's own
+  # sub-scripts use) instead of re-implementing the token request/parse here.
   local i=1
-  until curl -s --max-time 5 -X POST \
-      -d "username=admin&password=test&grant_type=password&client_id=$KC_CLIENT" \
-      "$FRONTEND_URL/auth/token" | grep -q access_token; do
+  while true; do
+    unset token
+    source "$RESOURCES_DIR/getToken.sh" admin "${FRONTEND_URL%:*}" >/dev/null 2>&1 || true
+    [[ -n "${token:-}" ]] && break
     (( i > 24 )) && die "auth never became ready ($FRONTEND_URL/auth/token)"
     printf '    waiting for auth to be ready (%s/24)\r' "$i"; sleep 5; (( i++ ))
   done

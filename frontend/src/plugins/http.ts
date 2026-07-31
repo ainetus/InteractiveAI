@@ -96,3 +96,10 @@ http.interceptors.response.use(
   }
 )
 export default http
+
+// Shared by the per-entity `applyRecommendation` calls (ATM, Railway, …),
+// which all post an action to `<simulator base URL><path>` and expect the
+// same `{ message: string }` shape back.
+export function postSimulatorAction<T>(baseUrl: string, path: string, data: T) {
+  return http.post<{ message: string }>(baseUrl + path, data)
+}
