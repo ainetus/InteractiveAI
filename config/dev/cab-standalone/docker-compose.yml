@@ -19,7 +19,9 @@ services:
     restart: unless-stopped
     command: sh -c "./entrypoint.sh"
     ports:
-      - 5100:5000
+      # was 5100:5000, which collides with the PowerGrid simulator app (also
+      # published on host port 5100) — see usecases_examples/PowerGrid/docker-compose.yml
+      - 5101:5000
     volumes:
       - ../../../backend/context-service:/code
     depends_on:
@@ -149,6 +151,11 @@ services:
       - './nginx-cors-permissive.conf:/etc/nginx/conf.d/default.conf'
     ports:
       - '3200:80'
+    # nginx proxies /powergrid-simu/ to the PowerGrid simulator running on the
+    # host (see nginx-cors-permissive.conf); host.docker.internal resolves to
+    # the host gateway on Linux only if mapped explicitly.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - cabrecommendation
       - cabevent

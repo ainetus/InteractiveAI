@@ -2,6 +2,10 @@ titre = "API PowerGrid - InteractiveAI"
 
 [Connexion]
 login_port = "auth/token"
+# points at the local InteractiveAI backend. From inside the simulator
+# container, host.docker.internal resolves to the host (see extra_hosts in
+# docker-compose.yml); localhost would be the container itself.
+cab_server_url_0 = "http://host.docker.internal:3200/"
 cab_server_url_1 = "http://192.168.210.100:3200/"
 cab_server_url_2 = "http://192.168.211.95:3200/"
 cab_server_url_3 = "http://192.168.209.192:3200/"

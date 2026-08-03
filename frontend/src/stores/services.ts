@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { fetchCognitiveSnapshot } from '@/api/cognitive'
 import type { CognitiveSnapshot } from '@/api/cognitive'
+import { fetchCognitiveSnapshot } from '@/api/cognitive'
 import * as servicesApi from '@/api/services'
 import i18n from '@/plugins/i18n'
 import type { Card } from '@/types/cards'
@@ -123,7 +123,9 @@ export const useServicesStore = defineStore('services', () => {
     if (hasCognitiveConsent()) {
       payload.cognitive_snapshot = await fetchCognitiveSnapshot()
     }
-    const { data } = await servicesApi.getRecommendation<E>(payload)
+    // FIX: pass the card's entity as use_case so the recommendation-service
+    // can select the right use-case manager (avoids 400 for multi-entity tokens).
+    const { data } = await servicesApi.getRecommendation<E>(payload, event.entityRecipients[0])
     _recommendations.value = data
   }
 

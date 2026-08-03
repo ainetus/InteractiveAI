@@ -9,12 +9,20 @@ import type { Procedure } from '@/types/procedure'
 import type { FullContext, Recommendation, Trace } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
-export function getRecommendation<E extends Entity = Entity>(payload: {
-  event: Card<E>['data']['metadata']
-  context: Context<E>
-  cognitive_snapshot?: CognitiveSnapshot
-}) {
-  return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
+export function getRecommendation<E extends Entity = Entity>(
+  payload: {
+    event: Card<E>['data']['metadata']
+    context: Context<E>
+    cognitive_snapshot?: CognitiveSnapshot
+  },
+  // FIX: the recommendation-service returns 400 ("specify use_case") when the
+  // user's token is registered for more than one entity (here Railway;ATM;PowerGrid)
+  // and no use_case is given. Pass the entity so the right use-case manager is picked.
+  use_case?: string
+) {
+  return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload, {
+    params: { use_case }
+  })
 }
 
 export function getContext<E extends Entity = Entity>() {
@@ -51,13 +59,8 @@ export function sendTrace(payload: Trace) {
   return http.post<Required<Trace>>('/cabhistoric/api/v1/traces', tracePayload)
 }
 
-// TODO: TEMP HACK (eval-demo) — MUST BE REMOVED before next release
-// The real API call is disabled and replaced with a fake success response for demo purposes.
 export function applyRecommendation<E extends Entity = Entity>(data: Action<E>) {
-  // [DISABLED] Simulator API is inactive — returning fake success for demo
-  // To restore: uncomment the http.post and remove the Promise.resolve
-  // return http.post<{ message: string }>('/api/v1/recommendations', data)
-  return Promise.resolve({ data: { message: 'ok (simulated)' } }) // TEMP HACK: remove this line
+  return http.post<{ message: string }>('/api/v1/recommendations', data)
 }
 
 export function getProcedure(event_type: string) {

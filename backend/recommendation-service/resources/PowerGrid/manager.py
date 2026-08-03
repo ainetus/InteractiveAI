@@ -1,6 +1,7 @@
 import json
 import os
 import warnings
+from enum import Enum
 
 import requests
 import urllib3
@@ -8,9 +9,14 @@ from api.manager.base_manager import BaseRecommendationManager
 from owlready2 import get_ontology
 from settings import logger
 
-from .PowerGridgrid2op_poc_simulator.assistant_manager import AgentType
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class AgentType(Enum):
+    """Recommendations' agent type: "onto" (ontology) or "IA" (RL agent)."""
+
+    onto = 1
+    IA = 2
 
 
 class PowerGridManager(BaseRecommendationManager):

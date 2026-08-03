@@ -21,6 +21,7 @@ _Backend_
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
+        <li><a href="#quick-start-local-install-on-a-single-machine">Quick Start: Local Install on a Single Machine</a></li>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#setting-up-the-environment">Setting Up the Environment</a></li>
       </ul>
@@ -45,6 +46,20 @@ The platform uses the project **OperatorFabric** for notification management.
 
 <!-- GETTING STARTED -->
 ## Getting Started
+
+### Quick Start: Local Install on a Single Machine
+
+If you just want everything running on one machine, you don't need to follow the
+manual steps below — the repo ships two helper scripts that do it all:
+
+```sh
+./local_setup.sh     # start the whole stack (backend, frontend, Keycloak, PowerGrid simulator)
+./local_stop.sh      # tear it down again
+```
+
+`./local_setup.sh --help` and `./local_stop.sh --help` list the available options
+(e.g. `--clean` / `--wipe` for a fresh start, `--pause` to keep containers around).
+The rest of this section describes the manual/multi-machine setup.
 
 ### Prerequisites
 
@@ -154,6 +169,34 @@ Some examples of credentials:
 
 
 By default, the system allows the user to be connected only from a single machine. Which means if you try to connect using the same credentials from another machine, you will be disconnected on the first machine. 
+
+### OPTIONAL: connecting a local RL agent (T2.1 deep-expert)
+
+By default, PowerGrid recommendations use the external RL agent API. To run and
+connect a local agent instead:
+
+```bash
+git clone -b docker https://github.com/ainetus/T2.1_deep_expert.git
+cd T2.1_deep_expert
+docker build -t t2-1-deep-expert .
+docker run -d --name t2-1-deep-expert -p 8000:8000 t2-1-deep-expert
+```
+
+Then point `cabrecommendation` at it:
+1. In `config/dev/cab-standalone/docker-compose.yml`, add to the `cabrecommendation` service:
+   ```yaml
+   extra_hosts:
+     - "host.docker.internal:host-gateway"
+   ```
+2. In `config/dev/cab-standalone/.secrets` (copy from `.secrets.example` if needed), set:
+   ```bash
+   export RL_AGENT_API_URL=http://host.docker.internal:8000/api/v1/recommendation
+   ```
+3. Re-run `./docker-compose.sh` from that directory to regenerate `.env` and recreate `cabrecommendation`.
+
+To disconnect, remove the `extra_hosts` block and `.secrets` (or its
+`RL_AGENT_API_URL` line) and re-run `./docker-compose.sh` again — this restores
+the default external RL agent URL.
 
 # Development
 
