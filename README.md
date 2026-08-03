@@ -170,7 +170,7 @@ Some examples of credentials:
 
 By default, the system allows the user to be connected only from a single machine. Which means if you try to connect using the same credentials from another machine, you will be disconnected on the first machine. 
 
-### Connecting a local RL agent (T2.1 deep-expert)
+### OPTIONAL: connecting a local RL agent (T2.1 deep-expert)
 
 By default, PowerGrid recommendations use the external RL agent API. To run and
 connect a local agent instead:
