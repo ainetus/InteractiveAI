@@ -1,8 +1,6 @@
 """End-to-end smoke test of the PowerGrid recommendation pipeline.
 
-Ported from interactiveai-a3s-integration/backend/a3s-service/tests/test_smoke_pipeline.py
-and adapted to this repo's current architecture: there is no local RL agent
-(a3s-service / agent_as_a_service) here anymore — PowerGrid recommendations
+There is no local RL agent service in this repo — PowerGrid recommendations
 combine an *external* RL agent API (best-effort, network-dependent) with the
 ontology recommender that ships in this service. This test isolates the part
 that must always work offline: post a context/event exactly as the simulator

@@ -2,11 +2,11 @@
 #
 # local_setup.sh — one-shot local setup for the InteractiveAI backend + PowerGrid simulator.
 #
-# Ported from interactiveai-a3s-integration/setup.sh and adapted to this repo's
-# current architecture:
-#   - no a3s-service / local RL agent: PowerGrid recommendations combine the
-#     external RL agent API (RL_AGENT_API_URL, proxied same-origin via
-#     /rl-api/) with the ontology recommender in recommendation-service.
+# Assumptions about the stack this brings up:
+#   - there is no local RL agent service in this repo: PowerGrid
+#     recommendations combine the external RL agent API (RL_AGENT_API_URL,
+#     proxied same-origin via /rl-api/) with the ontology recommender that
+#     ships in recommendation-service.
 #   - the PowerGrid simulator's mailbox is reached same-origin through the
 #     frontend gateway at /powergrid-simu/, not a separate host:5100 URL.
 #

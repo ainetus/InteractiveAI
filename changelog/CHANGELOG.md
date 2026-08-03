@@ -6,13 +6,13 @@ and what changed.
 
 ---
 
-## 1. Added `setup.sh` / `stop.sh`
+## 1. Added `local_setup.sh` / `local_stop.sh`
 
 One-shot scripts to bring the local stack up and down: start the
 `cab-standalone` backend, wait for Keycloak and configure it via the admin
 REST API, rebuild `frontend`/`cabrecommendation` from source, load
 OperatorFabric resources and register use cases, and build/start the
-PowerGrid simulator. `stop.sh` supports `--pause` (stop, keep containers),
+PowerGrid simulator. `local_stop.sh` supports `--pause` (stop, keep containers),
 default (remove containers, keep data volumes), and `--wipe` (remove
 volumes too). Verified with a full live `docker compose` bring-up and both
 teardown modes.
