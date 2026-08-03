@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# stop.sh — tear down the local InteractiveAI backend + PowerGrid simulator.
+# local_stop.sh — tear down the local InteractiveAI backend + PowerGrid simulator.
 #
 # Usage:
-#   ./stop.sh            # stop & remove containers, KEEP data volumes (default)
-#   ./stop.sh --wipe     # also delete data volumes (Postgres/Mongo/Keycloak) — fresh start next time
-#   ./stop.sh --pause    # just stop containers, keep them (fastest; `./setup.sh` or `docker compose start` to resume)
-#   ./stop.sh --help
+#   ./local_stop.sh            # stop & remove containers, KEEP data volumes (default)
+#   ./local_stop.sh --wipe     # also delete data volumes (Postgres/Mongo/Keycloak) — fresh start next time
+#   ./local_stop.sh --pause    # just stop containers, keep them (fastest; `./local_setup.sh` or `docker compose start` to resume)
+#   ./local_stop.sh --help
 #
 # Both Docker Compose projects are handled: the backend (config/dev/cab-standalone)
 # and the PowerGrid simulator (usecases_examples/PowerGrid).

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# setup.sh — one-shot local setup for the InteractiveAI backend + PowerGrid simulator.
+# local_setup.sh — one-shot local setup for the InteractiveAI backend + PowerGrid simulator.
 #
 # Ported from interactiveai-a3s-integration/setup.sh and adapted to this repo's
 # current architecture:
@@ -20,9 +20,9 @@
 #   5. Build and start the PowerGrid simulator
 #
 # Usage:
-#   ./setup.sh                   # full setup (prompts if containers already run)
-#   ./setup.sh --clean           # tear down existing containers first, no prompt
-#   ./setup.sh --wipe            # tear down existing containers AND volumes, no prompt
+#   ./local_setup.sh                   # full setup (prompts if containers already run)
+#   ./local_setup.sh --clean           # tear down existing containers first, no prompt
+#   ./local_setup.sh --wipe            # tear down existing containers AND volumes, no prompt
 #
 # Overridable via environment:
 #   KC_ADMIN (admin)  KC_PW (admin)  FRONTEND_URL (http://localhost:3200)

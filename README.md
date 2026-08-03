@@ -21,6 +21,7 @@ _Backend_
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
+        <li><a href="#quick-start-local-install-on-a-single-machine">Quick Start: Local Install on a Single Machine</a></li>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#setting-up-the-environment">Setting Up the Environment</a></li>
       </ul>
@@ -45,6 +46,20 @@ The platform uses the project **OperatorFabric** for notification management.
 
 <!-- GETTING STARTED -->
 ## Getting Started
+
+### Quick Start: Local Install on a Single Machine
+
+If you just want everything running on one machine, you don't need to follow the
+manual steps below — the repo ships two helper scripts that do it all:
+
+```sh
+./local_setup.sh     # start the whole stack (backend, frontend, Keycloak, PowerGrid simulator)
+./local_stop.sh      # tear it down again
+```
+
+`./local_setup.sh --help` and `./local_stop.sh --help` list the available options
+(e.g. `--clean` / `--wipe` for a fresh start, `--pause` to keep containers around).
+The rest of this section describes the manual/multi-machine setup.
 
 ### Prerequisites
 
