@@ -7,6 +7,8 @@ cab_server_url_2 = "http://localhost:3200/"
 cab_server_url_3 = "http://host.docker.internal:3200/"
 cab_server_url_4 = "http://172.19.0.1:3200/"
 cab_server_url_5 = "https://demo.interactiveai.irt-systemx.fr/"
+cab_server_url_6 = "http://127.0.0.1/"
+cab_server_url_7 = "http://192.168.208.118:3200/"
 
 [Outputs]
 activate = "yes"
