@@ -15,29 +15,33 @@ Content-Type: application/json
 
 ### Payload
 
-| Field | Type | Description |
-|---|---|---|
-| `trace_type` | string | Type of trace (see values below) |
-| `data` | object | Data associated with the trace |
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `step` | string | Type of trace (see values below) | YES |
+| `use_case` | string | The corresponding use case  | YES |
+| `data` | object | Data associated with the trace | NO |
+| `date` | ISO_Date | The date/time od the interaction | NO |
+
 
 ### Trace types
 
-| `trace_type` | Triggered when |
+| `step` | Triggered when |
 |---|---|
 | `EVENT` | An event is received by the platform |
 | `ASKFORHELP` | The operator requests assistance from the AI assistant |
-| `ACTION` | The operator resolves the problem independently (without AI help) |
+| `SOLUTION` | The operator resolves the problem independently (without AI help) |
 | `AWARD` | The operator selects one of the AI recommendations |
 
 ### Example
 
 ```json
 {
-  "trace_type": "AWARD",
+  "step": "AWARD",
+  "use_case": "PowerGrid"
   "data": {
     "event_id": "evt_00312",
     "recommendation_id": "rec_00089",
-    "operator_id": "op_42"
+    "context_id": "1234"
   }
 }
 ```
