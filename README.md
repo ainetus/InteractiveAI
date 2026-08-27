@@ -88,7 +88,14 @@ Key variables (see `.secrets.example` for all options and per-environment values
   only value that changes per environment:
   - Local dev : `http://host.docker.internal:5122/` (simulator container on the host)
   - LAN       : `http://192.168.208.61:5100/`
-  - Public/k8s: handled by `nginx-kubernetes.conf` via the helm chart (not this variable)
+  - Public/k8s: same variable, but set as an env var on the **frontend pod** (see
+    `deploy-chart/values.ovh.yaml`). `start-webui.sh` substitutes it into the
+    `__POWERGRID_SIMU_UPSTREAM__` placeholder of the nginx config at container start.
+    Beware: in k8s the config comes from the `cab-assistant-platform-config` ConfigMap
+    mounted over `/etc/nginx/conf.d`, which **overrides** the `default.conf` baked into
+    the image — the `/powergrid-simu/` location must be present in that ConfigMap or the
+    apply POST falls through to the static `location /` and nginx answers 405.
+    nginx only reads `conf.d` at startup, so restart the frontend after changing it.
 - `RL_AGENT_API_URL` / `RL_AGENT_API_TOKEN` — the deep expert agent that powers PowerGrid
   recommendations (see [The PowerGrid expert agent API](#the-powergrid-expert-agent-api) below to
   install it). A token is required in every mode:
