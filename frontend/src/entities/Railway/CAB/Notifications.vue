@@ -1,12 +1,9 @@
 <template>
   <Notifications entity="Railway">
     <template #severity="{ card }">
-      {{
-        $t(`card.event_type.${card.data.metadata.event_type}`) !==
-        `card.event_type.${card.data.metadata.event_type}`
-          ? $t(`card.event_type.${card.data.metadata.event_type}`)
-          : card.data.metadata.event_type
-      }}
+      {{ card.data.metadata.id_train }}
+      —
+      {{ card.data.metadata.event_type }}
     </template>
     <template #actions="{ card, deletion, hasBeenAcknowledged }">
       <Tooltip>
@@ -29,7 +26,6 @@
 </template>
 <script setup lang="ts">
 import { Inbox, MoveRight, User } from 'lucide-vue-next'
-
 import Button from '@/components/atoms/Button.vue'
 import Tooltip from '@/components/atoms/Tooltip.vue'
 import Notifications from '@/components/organisms/CAB/Notifications.vue'

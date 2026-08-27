@@ -1,0 +1,264 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.controller {
+  display: flex;
+  gap: 8px;
+}
+
+.map {
+  position: relative;
+  display: inline-block;
+
+  .error {
+    background-color: salmon;
+  }
+
+  .environment {
+    z-index: 5;
+
+    .row {
+      display: flex;
+      flex-direction: row;
+      .cell {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: center;
+
+        &.track {
+          &.rotation_90 {
+            transform: rotate(90deg);
+          }
+          &.rotation_180 {
+            transform: rotate(180deg);
+          }
+          &.rotation_270 {
+            transform: rotate(270deg);
+          }
+
+          &.transition_we {
+            background-image: url('/svg/Gleis_Deadend.svg');
+          }
+
+          &.transition_ww_ee_nn_ss {
+            background-image: url('/svg/Gleis_Diamond_Crossing.svg');
+          }
+
+          &.transition_ww_ee {
+            background-image: url('/svg/Gleis_horizontal.svg');
+          }
+
+          &.transition_en_sw {
+            background-image: url('/svg/Gleis_Kurve_oben_links.svg');
+          }
+
+          &.transition_wn_se {
+            background-image: url('/svg/Gleis_Kurve_oben_rechts.svg');
+          }
+
+          &.transition_es_nw {
+            background-image: url('/svg/Gleis_Kurve_unten_links.svg');
+          }
+
+          &.transition_ne_ws {
+            background-image: url('/svg/Gleis_Kurve_unten_rechts.svg');
+          }
+
+          &.transition_nn_ss {
+            background-image: url('/svg/Gleis_vertikal.svg');
+          }
+
+          &.transition_nn_ss_ee_ww_es_nw_se_wn {
+            background-image: url('/svg/Weiche_Double_Slip.svg');
+          }
+
+          &.transition_ee_ww_en_sw {
+            background-image: url('/svg/Weiche_horizontal_oben_links.svg');
+          }
+
+          &.transition_ee_ww_se_wn {
+            background-image: url('/svg/Weiche_horizontal_oben_rechts.svg');
+          }
+
+          &.transition_ee_ww_es_nw {
+            background-image: url('/svg/Weiche_horizontal_unten_links.svg');
+          }
+
+          &.transition_ee_ww_ne_ws {
+            background-image: url('/svg/Weiche_horizontal_unten_rechts.svg');
+          }
+
+          &.transition_nn_ss_ee_ww_nw_es {
+            background-image: url('/svg/Weiche_Single_Slip.svg');
+          }
+
+          &.transition_ne_nw_es_ws {
+            background-image: url('/svg/Weiche_Symetrical.svg');
+          }
+
+          &.transition_nn_ss_en_sw {
+            background-image: url('/svg/Weiche_vertikal_oben_links.svg');
+          }
+
+          &.transition_nn_ss_se_wn {
+            background-image: url('/svg/Weiche_vertikal_oben_rechts.svg');
+          }
+
+          &.transition_nn_ss_nw_es {
+            background-image: url('/svg/Weiche_vertikal_unten_links.svg');
+          }
+
+          &.transition_nn_ss_ne_ws {
+            background-image: url('/svg/Weiche_vertikal_unten_rechts.svg');
+          }
+        }
+
+        .target {
+          width: 100%;
+          height: 100%;
+          background-image: url('/svg/Bahnhof.svg');
+          background-size: cover;
+          background-repeat: no-repeat;
+          background-position: center;
+
+          &.rotation_90 {
+            transform: rotate(-90deg);
+          }
+          &.rotation_180 {
+            transform: rotate(-180deg);
+          }
+          &.rotation_270 {
+            transform: rotate(-270deg);
+          }
+        }
+      }
+    }
+  }
+
+  .agents {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    position: absolute;
+    z-index: 10;
+
+    .agent {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background-image: url('/svg/Zug_Gleis.svg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+
+      &.direction_1 {
+        transform: rotate(90deg);
+      }
+      &.direction_2 {
+        transform: rotate(180deg);
+      }
+      &.direction_3 {
+        transform: rotate(270deg);
+      }
+
+      &.malfunction {
+        background-color: rgba(150, 150, 150, 0.5);
+      }
+    }
+
+    .agent-label {
+      position: absolute;
+      font-size: 9px;
+      font-weight: bold;
+      color: #fff;
+      background: rgba(0,0,0,0.65);
+      border-radius: 3px;
+      padding: 1px 3px;
+      white-space: nowrap;
+      pointer-events: none;
+      transform: translate(22px, 2px);
+      z-index: 11;
+      letter-spacing: 0.3px;
+    }
+  }
+}
+
+.plans {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  height: 120px;
+  width: 100%;
+  opacity: 0.5;
+  border-radius: 5px;
+  border: 2px solid #ccc;
+
+  &.interrupted {
+    opacity: 1;
+    border-color: #007bff;
+    .plan {
+      background-color: #007bff;
+    }
+  }
+
+  .plan {
+    border-radius: 3px;
+    background-color: lightgrey;
+    padding: 10px;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    width: 200px;
+    cursor: pointer;
+    &:hover {
+      background-color: #0056b3;
+    }
+    &.selected {
+      background-color: #0056b3;
+    }
+  }
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+}
+
+.station-markers {
+  left: 0; right: 0; top: 0; bottom: 0;
+  position: absolute;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.station-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-image: url('/svg/Bahnhof.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}

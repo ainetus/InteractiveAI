@@ -1,0 +1,46 @@
+<div class="map">
+  <div class="environment">
+    @for (row of mapClasses; track $index) {
+      <div class="row">
+        @for (col of row; track $index) {
+          <div class="cell" [class]="col.ground">
+            @if (col.objects) {
+              <div class="target" [class]="col.objects"></div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <div class="agents">
+    @for (agent of agents; let i = $index; track $index) {
+      @if (agent.position) {
+        <div
+          class="agent"
+          [class]="rendererService.getAgentClasses(agent)"
+          [style.left]="agent.position[1] * 20 + 'px'"
+          [style.top]="agent.position[0] * 20 + 'px'"
+          [style.filter]="'hue-rotate(' + (i / agents.length) * 360 + 'deg)'"
+
+        ></div>
+        <div
+          class="agent-label"
+          [style.left]="(agent.position[1] * 20 + 22) + 'px'"
+          [style.top]="(agent.position[0] * 20 + 2) + 'px'"
+        >{{ agentNames[i] || 'Train_' + i }}</div>
+      }
+    }
+  </div>
+  <!-- Station markers -->
+  <div class="station-markers">
+    @for (st of stations; let si = $index; track si) {
+      <div
+        class="station-marker"
+        [class.station-start]="st.type === 'start'"
+        [style.left]="(st.c * 20) + 'px'"
+        [style.top]="(st.r * 20) + 'px'"
+        [title]="st.name"
+      ></div>
+    }
+  </div>
+</div>

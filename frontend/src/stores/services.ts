@@ -9,29 +9,15 @@ import type { Card } from '@/types/cards'
 import type { Context, Entity } from '@/types/entities'
 import type { FullContext, Recommendation } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
-import { isHandlingSessionExpiry } from '@/utils/session'
 import { getRootCard } from '@/utils/utils'
 
 import { useAppStore } from './app'
-import { useAuthStore } from './auth'
 
 const { t } = i18n.global
 
 export const useServicesStore = defineStore('services', () => {
   const _context = ref<FullContext>()
   const _recommendations = ref<Recommendation[]>([])
-  /**
-   * Live context-polling interval. Owned by the store so that a poll restarted
-   * from the retry modal is still cancellable - components only ever saw the
-   * id of the *first* interval, leaking every restarted one.
-   */
-  const _contextPID = ref(0)
-
-  /** Stops context polling, whichever interval is currently live. */
-  function stopContext() {
-    clearInterval(_contextPID.value)
-    _contextPID.value = 0
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function context<E extends Entity>(entity: E) {
@@ -48,6 +34,8 @@ export const useServicesStore = defineStore('services', () => {
     callback: (context: FullContext<E>) => void = () => {},
     delay = 5000
   ) {
+    // Catch context error and reset interval
+    let contextPID = 0
     // Handler
     const handler = async () => {
       const appStore = useAppStore()
@@ -78,17 +66,14 @@ export const useServicesStore = defineStore('services', () => {
         appStore.status.context.last = Date.now()
       } catch (err) {
         appStore.status.context.state = 'OFFLINE'
-        stopContext()
-        // On session expiry the user is already being asked to log in again;
-        // once logged out there is nobody to ask about retrying either
-        if (isHandlingSessionExpiry() || !useAuthStore().token?.access_token) return
+        clearInterval(contextPID)
         useAppStore().addModal({
           data: t('modal.error.CONTEXT_FAILED'),
           type: 'choice',
           callback: (success) => {
             if (success) {
               handler()
-              _contextPID.value = window.setInterval(handler, delay)
+              contextPID = window.setInterval(handler, delay)
             }
           }
         })
@@ -97,9 +82,8 @@ export const useServicesStore = defineStore('services', () => {
     // Start context handler immediatly
     handler()
     // Start interval handler
-    stopContext()
-    _contextPID.value = window.setInterval(handler, delay)
-    return _contextPID.value
+    contextPID = window.setInterval(handler, delay)
+    return contextPID
   }
 
   async function getRecommendation<E extends Entity>(event: Card<E>, context = _context.value) {
@@ -147,7 +131,6 @@ export const useServicesStore = defineStore('services', () => {
     context,
     recommendations,
     getContext,
-    stopContext,
     getRecommendation
   }
 })

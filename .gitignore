@@ -198,3 +198,8 @@ go.sh
 !frontend/.vscode
 !frontend/env/
 !frontend/env/.env
+# Railway use case — runtime data (not for version control)
+usecases_examples/Railway/experiment_logs/
+usecases_examples/Railway/sessions.db
+frontend/env/.env
+frontend/env/.env.local

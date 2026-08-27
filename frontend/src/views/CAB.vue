@@ -9,12 +9,8 @@
       </div>
       <div
         class="cab-handle left"
-        draggable="true"
         :class="{ active: active === 'left' }"
-        @drag="resize($event, 'left')"
-        @dragstart="dragStart($event, 'left')"
-        @dragend="dragEnd"
-        @click="appStore.panels.left = !appStore.panels.left"
+        @mousedown="startResize($event, 'left')"
         @mousedown.middle="reset('left')"
         @contextmenu.prevent="reset('left')">
         <GripVertical width="16" />
@@ -34,7 +30,7 @@
         @contextmenu.prevent="reset('right')">
         <GripVertical width="16" />
       </div>
-      <div v-if="appStore.panels.right" ref="rightPanel" style="width: 320px; max-width: 40vw">
+      <div v-if="appStore.panels.right" ref="rightPanel" style="width: 480px; max-width: 50vw">
         <Assistant class="cab-assistant" />
       </div>
       <div v-else class="cab-assistant cab-panel cab-section-placeholder">
@@ -53,7 +49,7 @@
       @contextmenu.prevent="reset('bottom')">
       <GripHorizontal height="16" />
     </div>
-    <div v-if="appStore.panels.bottom" ref="bottomPanel" style="height: 240px; max-height: 60vh">
+    <div v-if="appStore.panels.bottom" ref="bottomPanel" style="height: 216px; max-height: 45vh">
       <Timeline class="cab-timelines" />
     </div>
     <div v-else class="cab-timelines cab-panel cab-section-placeholder">
@@ -110,6 +106,26 @@ const rightPanel = ref<HTMLDivElement>()
 const bottomPanel = ref<HTMLDivElement>()
 const active = ref('')
 
+function startResize(ev: MouseEvent, panel: 'left' | 'right' | 'bottom') {
+  active.value = panel
+  ev.preventDefault()
+  const onMove = (e: MouseEvent) => {
+    window.requestAnimationFrame(() => {
+      if (panel === 'left') {
+        appStore.panels.left = e.clientX > 120
+        if (leftPanel.value) leftPanel.value.style.width = Math.max(e.clientX - 8, 120) + 'px'
+      }
+    })
+  }
+  const onUp = () => {
+    active.value = ''
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
 function dragStart(ev: DragEvent, value: 'left' | 'right' | 'bottom') {
   active.value = value
   const img = new Image()
@@ -140,8 +156,9 @@ function resize(ev: DragEvent, panel: 'left' | 'right' | 'bottom') {
 
       case 'bottom':
         window.requestAnimationFrame(() => {
-          appStore.panels.bottom = height - ev.clientY - 16 > 96
-          if (bottomPanel.value) bottomPanel.value.style.height = height - ev.clientY - 16 + 'px'
+          const newH = Math.max(height - ev.clientY - 16, 80)
+          appStore.panels.bottom = true  // never hide on drag — enforce min instead
+          if (bottomPanel.value) bottomPanel.value.style.height = newH + 'px'
         })
         break
     }
@@ -156,11 +173,11 @@ function reset(panel: 'left' | 'right' | 'bottom') {
       break
     case 'right':
       appStore.panels.right = true
-      rightPanel.value!.style.width = 320 + 'px'
+      rightPanel.value!.style.width = 480 + 'px'
       break
     case 'bottom':
       appStore.panels.bottom = true
-      bottomPanel.value!.style.height = 240 + 'px'
+      bottomPanel.value!.style.height = 216 + 'px'
       break
   }
 }
@@ -168,9 +185,7 @@ function reset(panel: 'left' | 'right' | 'bottom') {
 setup(route.params.entity as Entity)
 
 function setup(entity: Entity) {
-  // Failures are already reported by the http interceptor (or handled as a
-  // session expiry); swallow the rejection so it does not leak to the console.
-  cardsStore.subscribe(entity).catch(() => {})
+  cardsStore.subscribe(entity)
   locale.value = `${locale.value.slice(0, 2)}-${entity}`
   toggleMode(entity)
 

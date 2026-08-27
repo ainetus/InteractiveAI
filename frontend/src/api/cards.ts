@@ -3,7 +3,6 @@ import i18n from '@/plugins/i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import type { Card, CardEvent } from '@/types/cards'
-import { handleSessionExpired } from '@/utils/session'
 
 let controller: AbortController = new AbortController()
 
@@ -16,19 +15,18 @@ export async function subscribe(
     rangeStart?: string
     notification?: 'true' | 'false'
   },
-  handler: (card: CardEvent) => void,
-  retried = false
+  handler: (card: CardEvent) => void
 ) {
   const authStore = useAuthStore()
   const appStore = useAppStore()
   controller = new AbortController()
   const response = await fetch(
     import.meta.env.VITE_API +
-      '/cards/cardSubscription?' +
-      new URLSearchParams({
-        ...config,
-        version: 'SNAPSHOT'
-      }),
+    '/cards/cardSubscription?' +
+    new URLSearchParams({
+      ...config,
+      version: '3.11.0.RELEASE'
+    }),
     {
       headers: {
         Authorization: `Bearer ${authStore.token?.access_token}`
@@ -37,13 +35,6 @@ export async function subscribe(
       signal: controller.signal
     }
   )
-  // This request bypasses the axios interceptors, so the token dance lives here
-  if (response.status === 401) {
-    if (!retried && (await authStore.refresh())) return subscribe(config, handler, true)
-    appStore.status.notifications.state = 'OFFLINE'
-    handleSessionExpired()
-    return response
-  }
   const reader = response.body!.getReader()
   const decoder = new TextDecoder('utf-8')
   // eslint-disable-next-line no-constant-condition
@@ -75,7 +66,7 @@ export async function subscribe(
           default:
             try {
               handler(JSON.parse(data) as CardEvent)
-            } catch (err) {}
+            } catch (err) { }
         }
       }
   }
