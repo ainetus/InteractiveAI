@@ -165,16 +165,22 @@ watch(
   }
 )
 
-function onSelection(recommendation: any) {
+async function onSelection(recommendation: any) {
   sendTrace({
     data: recommendation,
     use_case: route.params.entity as Entity,
     step: 'AWARD'
   })
-  applyRecommendation({
-    ...recommendation.actions[0],
-    event_id: getRootCard(appStore.card('Railway')!).processInstanceId
-  })
+  try {
+    await applyRecommendation({
+      ...recommendation.actions[0],
+      event_id: getRootCard(appStore.card('Railway')!).processInstanceId
+    })
+  } catch {
+    // http plugin already shows an error modal — leave the card open so the user can retry
+    console.error('[Railway][apply] failed — leaving card open for retry')
+    return
+  }
   const activeCard = appStore.card('Railway')
   if (activeCard) cardsStore.resolveCriticality(activeCard)
   appStore.tab.assistant = 0

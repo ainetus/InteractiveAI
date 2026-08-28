@@ -19,9 +19,28 @@ command -v kubectl >/dev/null || { echo "kubectl not found" >&2; exit 1; }
 
 # Repo -> JSON merge patch carrying just the one key.
 PATCH=$(python3 - "$SRC" <<'PY'
-import json, sys, yaml
-conf = yaml.safe_load(open(sys.argv[1]))['data']['nginx.conf']
-assert '/powergrid-simu/' in conf, 'repo nginx.conf is missing the /powergrid-simu/ location'
+import json, sys
+try:
+    import yaml
+except ImportError:
+    sys.exit('PyYAML missing on this machine: pip install pyyaml')
+
+path = sys.argv[1]
+doc = yaml.safe_load(open(path))
+if not isinstance(doc, dict) or not isinstance(doc.get('data'), dict):
+    sys.exit(
+        f'{path} is not a ConfigMap manifest with a data: mapping '
+        f'(parsed as {type(doc).__name__}). Is this file up to date? '
+        'It must be the version carrying the /powergrid-simu/ block.'
+    )
+conf = doc['data'].get('nginx.conf')
+if not conf:
+    sys.exit(f'{path} has no data."nginx.conf" key; found: {sorted(doc["data"])}')
+if '/powergrid-simu/' not in conf:
+    sys.exit(
+        f'{path} nginx.conf has no /powergrid-simu/ location - this copy predates the fix. '
+        'Pull the latest revision of the repo.'
+    )
 print(json.dumps({'data': {'nginx.conf': conf}}))
 PY
 )
@@ -32,7 +51,10 @@ python3 -c "import json,sys;sys.stdout.write(json.loads(sys.argv[1])['data']['ng
 diff -u /tmp/nginx.conf.live /tmp/nginx.conf.repo || true
 
 read -r -p "Apply to $NS/$CM and restart $DEPLOY? [y/N] " ans
-[ "$ans" = y ] || { echo "aborted"; exit 0; }
+case "$ans" in
+  y|Y|yes|YES|Yes) ;;
+  *) echo "ABORTED - nothing was applied."; exit 0 ;;
+esac
 
 kubectl -n "$NS" patch cm "$CM" --type merge -p "$PATCH"
 kubectl -n "$NS" rollout restart "deploy/$DEPLOY"
@@ -45,6 +67,19 @@ echo "--- frontend POWERGRID_SIMU_UPSTREAM:"
 kubectl -n "$NS" get "deploy/$DEPLOY" \
   -o jsonpath='{range .spec.template.spec.containers[*].env[?(@.name=="POWERGRID_SIMU_UPSTREAM")]}{.value}{"\n"}{end}'
 
-echo "--- verify: must NOT be text/html (SPA fallback) any more"
-kubectl -n "$NS" exec "deploy/$DEPLOY" -- \
-  sh -c 'grep -c powergrid-simu /personal-conf/conf.d/default.conf' || true
+# Verify against the config nginx actually loaded, not against the ConfigMap.
+echo "--- verify: /powergrid-simu/ in the running nginx config"
+if kubectl -n "$NS" exec "deploy/$DEPLOY" -- nginx -T 2>/dev/null | grep -q "location /powergrid-simu/"; then
+  echo "OK - the location is live."
+  kubectl -n "$NS" exec "deploy/$DEPLOY" -- nginx -T 2>/dev/null |
+    grep -A6 "location /powergrid-simu/"
+else
+  echo "FAILED - the running nginx still has no /powergrid-simu/ location." >&2
+  echo "  ConfigMap key currently in the cluster:" >&2
+  kubectl -n "$NS" get cm "$CM" -o jsonpath='{.data.nginx\.conf}' |
+    grep -c powergrid-simu >&2 || true
+  echo "  (0 above = the patch did not stick, e.g. ArgoCD self-heal reverted it)" >&2
+  echo "  Pods (a crashlooping new pod leaves the OLD one serving):" >&2
+  kubectl -n "$NS" get pods -l app.kubernetes.io/name=frontend >&2
+  exit 1
+fi
