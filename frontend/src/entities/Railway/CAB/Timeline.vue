@@ -17,7 +17,7 @@
         <select
           v-model="selectedScenario"
           class="scenario-select"
-          :disabled="sessionActive"
+          :disabled="sessionActive || experimentActive"
           @change="previewScenarioMap(selectedScenario)"
         >
           <option value="" disabled>— Auswählen —</option>
@@ -44,19 +44,19 @@
             class="mode-btn"
             :class="{ 'mode-btn-active': mode === 'recommendation' }"
             @click="mode = 'recommendation'"
-            :disabled="sessionActive"
+            :disabled="sessionActive || experimentActive"
           >Recommendation</button>
           <button
             class="mode-btn"
             :class="{ 'mode-btn-active': mode === 'colearning' }"
             @click="mode = 'colearning'"
-            :disabled="sessionActive"
+            :disabled="sessionActive || experimentActive"
           >Co-Learning</button>
         </div>
         <div class="tl-start-row">
           <button
             class="scenario-btn scenario-btn-load"
-            :disabled="!selectedScenario || sessionActive || sessionLoading"
+            :disabled="!selectedScenario || sessionActive || sessionLoading || experimentActive"
             @click="loadScenario"
             style="width: auto; align-self: flex-start; white-space: nowrap;"
           >▶ Laden &amp; Starten</button>
@@ -78,11 +78,15 @@
           <button class="module-btn module-btn-login" @click="openLogin">
             <span class="module-label">Nutzerkennung</span>
           </button>
-          <button class="module-btn module-btn-reflection" @click="openReflection">
+          <button class="module-btn module-btn-reflection" @click="openReflection" :disabled="experimentActive">
             <span class="module-label">Reflexionsmodul</span>
           </button>
-          <button class="module-btn module-btn-test" @click="startTestProtocol" :disabled="sessionActive">
+          <button class="module-btn module-btn-test" @click="startTestProtocol" :disabled="sessionActive || experimentActive">
             <span class="module-label">Testprotokoll</span>
+          </button>
+          <button class="module-btn module-btn-test" @click="showExperiment = true" :disabled="sessionActive || experimentActive"
+            :class="{ active: experimentActive }">
+            <span class="module-label">Experiment</span>
           </button>
         </div>
         <div v-if="acronymSaved" class="acronym-badge">
@@ -123,6 +127,75 @@
       Führe das Szenario durch und triff eine Entscheidung im Assistenten-Tab.
     </span>
     <button class="test-banner-cancel" @click="closeTestProtocol">✕</button>
+  </div>
+
+  <!-- ── Experiment login modal ── -->
+  <div v-if="showExperiment && !experimentActive" class="reflection-overlay">
+    <div class="reflection-modal" style="max-width:420px; width:90vw;">
+      <div class="reflection-title">🧪 Experiment — Anmeldung</div>
+      <div class="reflection-subtitle" style="margin-top:8px;">Bitte gib dein Kürzel ein. Das Experiment startet automatisch mit 6 Szenarien (3 pro Modus) in zufälliger Reihenfolge.</div>
+      <div class="kl-section-label" style="margin-top:12px;">Nutzerkennung:</div>
+      <input v-model="experimentAcronym" class="login-input" placeholder="Kürzel" style="width:100%;box-sizing:border-box;" @keyup.enter="launchExperiment" />
+      <div class="reflection-actions" style="margin-top:16px;">
+        <button class="scenario-btn scenario-btn-end" @click="showExperiment = false">Abbrechen</button>
+        <button class="scenario-btn scenario-btn-load" :disabled="!experimentAcronym.trim()" @click="launchExperiment">Starten ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Experiment scenario intro ── -->
+  <div v-if="showExperimentIntro" class="reflection-overlay">
+    <div class="reflection-modal" style="max-width:640px; width:90vw;">
+      <div class="reflection-title">📋 Szenario-Einführung — Run {{ experimentRunIndex + 1 }}/6</div>
+      <div class="reflection-subtitle" style="white-space:pre-line; line-height:1.7; margin-top:8px; font-size:15px;">
+        {{ SCENARIO_INTROS[experimentRuns[experimentRunIndex]?.scenario] }}
+      </div>
+      <div class="reflection-actions" style="margin-top:20px;">
+        <button class="scenario-btn scenario-btn-load" @click="showExperimentIntro = false; runNextExperimentSession()">
+          Szenario starten ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Experiment running banner ── -->
+  <div v-if="experimentActive && experimentStep === 2" class="test-banner">
+    <div class="test-banner-info">
+      <span style="font-weight:600;">Experiment {{ experimentRunIndex + 1 }}/6</span>
+      <span style="margin-left:12px;">{{ experimentRuns[experimentRunIndex]?.name }}</span>
+      <span class="test-badge" :style="experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'background:#4a90d9' : 'background:#7b5ea7'">
+        {{ experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'Co-Learning' : 'Recommendation' }}
+      </span>
+      <span style="margin-left:12px; opacity:0.7;">Schritt {{ sessionStep }}</span>
+    </div>
+    <button class="test-banner-cancel" @click="closeExperiment" title="Experiment abbrechen">✕</button>
+  </div>
+
+  <!-- ── Experiment reflection (co-learning runs only) ── -->
+  <div v-if="experimentActive && experimentStep === 3" class="reflection-overlay">
+    <div class="reflection-modal">
+      <div class="reflection-title">📋 Reflexionsfragen — Run {{ Math.min(experimentRunIndex + 1, 6) }}/6</div>
+      <div v-for="(q, i) in experimentQuestions" :key="i" class="reflection-question">
+        <div class="reflection-q-text">{{ q.text }}</div>
+        <textarea v-model="experimentQuestions[i].answer" class="reflection-textarea" rows="3" placeholder="Ihre Antwort..."></textarea>
+      </div>
+      <div class="reflection-actions" style="margin-top:16px;">
+        <button class="scenario-btn scenario-btn-load" :disabled="experimentQuestions.some(q => !q.answer.trim())" @click="submitExperimentReflection">
+          Weiter ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Experiment complete ── -->
+  <div v-if="experimentActive && experimentStep === 4" class="reflection-overlay">
+    <div class="reflection-modal" style="max-width:420px;">
+      <div class="reflection-title">✅ Experiment abgeschlossen</div>
+      <div class="reflection-subtitle" style="margin-top:8px;">Alle 6 Szenarien wurden erfolgreich durchgeführt und protokolliert. Vielen Dank für Ihre Teilnahme!</div>
+      <div class="reflection-actions" style="margin-top:16px;">
+        <button class="scenario-btn scenario-btn-load" @click="closeExperiment">Schliessen</button>
+      </div>
+    </div>
   </div>
 
   <!-- Scenario intro popup (testprotokoll only) — same style as testprotokoll modal -->
@@ -274,11 +347,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useCardsStore } from '@/stores/cards'
 
 const BRAIN_URL  = import.meta.env.VITE_RAILWAY_SIMU || 'http://localhost:5001'
 const cardsStore = useCardsStore()
+
+async function forceMapRefresh() {
+  // Signal Angular to re-fetch transitions
+  try {
+    await fetch(`${BRAIN_URL}/control`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: 'reset' }),
+    })
+  } catch {}
+}
 
 function clearRailwayNotifications() {
   // Remove all Railway entity cards from the notification panel
@@ -309,8 +392,27 @@ const testMode           = ref<string>('')
 const testScenario       = ref<string>('')
 const showTestIntro      = ref<boolean>(false)
 
+// ── Experiment mode ──────────────────────────────────────────────────────────
+const showExperiment        = ref<boolean>(false)
+const experimentActive      = ref<boolean>(false)
+const experimentStep        = ref<number>(0)   // 0=idle 1=login 2=running 3=reflect 4=done
+const experimentAcronym     = ref<string>('')
+const experimentRunIndex    = ref<number>(0)   // 0–5
+const experimentRuns        = ref<Array<{scenario: string, mode: string, name: string}>>([])
+const experimentQuestions   = ref<Array<{text: string, answer: string}>>([])
+let   experimentPollTimer   = null as any
+const showExperimentIntro   = ref<boolean>(false)
+
+const EXPERIMENT_SCENARIOS = [
+  { id: 'scenario1', name: 'Szenario 1 — Kreuzungskonflikt' },
+  { id: 'scenario2', name: 'Szenario 2 — Fahrt auf Sichtweite' },
+  { id: 'scenario3', name: 'Szenario 3 — Zugreihenfolge' },
+]
+
 const SCENARIO_INTROS: Record<string, string> = {
   scenario1: `Durch die Verspätung des Zuges IC 301 kann die geplante Zugkreuzung mit der S 420 nicht stattfinden, da nun zwei Züge zur gleichen Zeit zur Einbahnpassage kommen. Nun muss entschieden werden, welcher Zug Priorität bekommt.`,
+  scenario3: `Durch technische Störungen bei den Zügen S 17 und S 18 hat sich die ursprünglich geplante Zugreihenfolge auf dem gemeinsamen Streckenabschnitt verschoben. S 17 musste wegen eines Hindernisses auf der Strecke anhalten, und S 18 war von einer Signalstörung betroffen.\n\nDurch diese Verzögerungen kommt es nun zu einem Dispositionskonflikt: Alle drei Züge — S 17, S 18 und IC 3 — treffen annähernd gleichzeitig im Kreuzungsbereich ein, sodass die Reihenfolge neu festgelegt werden muss. Beurteilen Sie die Situation und entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.`,
+
   scenario2: `Im Bereich Rüthi wurde eine Unregelmässigkeit der Fahrbahn festgestellt. Für den betroffenen Abschnitt gilt bis auf Weiteres eine Geschwindigkeitsbegrenzung von 40 km/h.
 
 Dadurch verspätet sich P 205, wodurch ein Konflikt mit P 312 und dem Güterzug G 501 auf dem Einspurabschnitt entsteht. Beurteilen Sie die Situation und formulieren Sie Ihre Dispositionshypothese. Welche Zugreihenfolge bzw. Massnahme würden Sie wählen?`,
@@ -552,6 +654,7 @@ async function loadScenario() {
     const data = await res.json()
     if (data.session_id) {
       sessionActive.value      = true
+      forceMapRefresh()
       activeScenarioName.value = data.scenario_name || selectedScenario.value
       // Reset Angular ZWL map so it reloads grid for the new scenario
       try {
@@ -573,10 +676,16 @@ async function loadScenario() {
 }
 
 async function endSession() {
+  // If in experiment mode, close it entirely
+  if (experimentActive.value) {
+    closeExperiment()
+    return
+  }
   clearRailwayNotifications()
   try {
     await fetch(`${BRAIN_URL}/session/stop`, { method: 'POST' })
   } catch {}
+  forceMapRefresh()
   sessionActive.value = false
   sessionState.value  = 'idle'
   sessionStep.value   = 0
@@ -606,8 +715,136 @@ function stopPolling() {
   }
 }
 
-onMounted(() => { fetchScenarios() })
+onMounted(() => {
+  fetchScenarios()
+  // Restore experiment state after page refresh
+  try {
+    const saved = sessionStorage.getItem('experiment_state')
+    if (saved) {
+      const s = JSON.parse(saved)
+      if (s.experimentActive && s.experimentStep < 4) {
+        experimentActive.value   = s.experimentActive
+        experimentStep.value     = s.experimentStep
+        experimentRunIndex.value = s.experimentRunIndex
+        experimentRuns.value     = s.experimentRuns
+        experimentAcronym.value  = s.experimentAcronym
+        // Resume polling if was running
+        if (s.experimentStep === 2) runNextExperimentSession()
+      }
+    }
+  } catch {}
+})
 onUnmounted(() => { stopPolling() })
+
+// Persist experiment state across refreshes
+watch([experimentActive, experimentStep, experimentRunIndex], () => {
+  if (experimentActive.value) {
+    sessionStorage.setItem('experiment_state', JSON.stringify({
+      experimentActive:   experimentActive.value,
+      experimentStep:     experimentStep.value,
+      experimentRunIndex: experimentRunIndex.value,
+      experimentRuns:     experimentRuns.value,
+      experimentAcronym:  experimentAcronym.value,
+    }))
+  } else {
+    sessionStorage.removeItem('experiment_state')
+  }
+})
+
+// ── Experiment mode functions ─────────────────────────────────────────────
+
+function buildExperimentRuns(firstMode: string) {
+  const other = firstMode === 'colearning' ? 'recommendation' : 'colearning'
+  const shuffle = (arr: typeof EXPERIMENT_SCENARIOS) => [...arr].sort(() => Math.random() - 0.5)
+  return [
+    ...shuffle(EXPERIMENT_SCENARIOS).map(s => ({ scenario: s.id, mode: firstMode, name: s.name })),
+    ...shuffle(EXPERIMENT_SCENARIOS).map(s => ({ scenario: s.id, mode: other,     name: s.name })),
+  ]
+}
+
+async function launchExperiment() {
+  if (!experimentAcronym.value.trim()) return
+  const firstMode = Math.random() < 0.5 ? 'colearning' : 'recommendation'
+  experimentRuns.value     = buildExperimentRuns(firstMode)
+  experimentRunIndex.value = 0
+  experimentActive.value   = true
+  showExperiment.value     = false
+  sessionActive.value      = false
+  experimentStep.value     = 2
+  const firstRun = experimentRuns.value[0]
+  if (firstRun && SCENARIO_INTROS[firstRun.scenario]) {
+    showExperimentIntro.value = true
+  } else {
+    await runNextExperimentSession()
+  }
+}
+
+async function runNextExperimentSession() {
+  if (experimentRunIndex.value >= 6) { experimentStep.value = 4; return }
+  const run = experimentRuns.value[experimentRunIndex.value]
+  clearRailwayNotifications()
+  try {
+    const res = await fetch(`${BRAIN_URL}/session/start`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario_ids: [run.scenario], mode: run.mode, acronym: experimentAcronym.value }),
+    })
+    const data = await res.json()
+    if (!data.session_id) { error.value = 'Experiment: Sitzung konnte nicht gestartet werden.'; return }
+    sessionActive.value = true
+    try {
+      await fetch(`${BRAIN_URL}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'speed', value: 0.5 }) })
+    } catch {}
+    if (experimentPollTimer) clearInterval(experimentPollTimer)
+    experimentPollTimer = setInterval(async () => {
+      if (experimentStep.value !== 2) { clearInterval(experimentPollTimer); return }
+      try {
+        const sr = await fetch(`${BRAIN_URL}/session/status`)
+        const sd = await sr.json()
+        sessionStep.value = sd.step ?? 0
+        if (sd.state === 'complete') {
+          clearInterval(experimentPollTimer)
+          clearRailwayNotifications()
+          sessionActive.value = false
+          if (run.mode === 'colearning') {
+            const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5)
+            experimentQuestions.value = shuffled.slice(0, 2).map((t: string) => ({ text: t, answer: '' }))
+            experimentStep.value = 3
+          } else {
+            experimentRunIndex.value++
+            experimentStep.value = 2
+            const nextRun = experimentRuns.value[experimentRunIndex.value]
+            if (nextRun && SCENARIO_INTROS[nextRun.scenario]) {
+              showExperimentIntro.value = true
+            } else {
+              await runNextExperimentSession()
+            }
+          }
+        }
+      } catch {}
+    }, 2000)
+  } catch { error.value = 'Experiment: Verbindungsfehler.' }
+}
+
+async function submitExperimentReflection() {
+  experimentRunIndex.value++
+  experimentStep.value = 2
+  const nextRun = experimentRuns.value[experimentRunIndex.value]
+  if (nextRun && SCENARIO_INTROS[nextRun.scenario]) {
+    showExperimentIntro.value = true
+  } else {
+    await runNextExperimentSession()
+  }
+}
+
+function closeExperiment() {
+  if (experimentPollTimer) clearInterval(experimentPollTimer)
+  experimentActive.value = false
+  experimentStep.value   = 0
+  showExperiment.value   = false
+  sessionActive.value    = false
+  clearRailwayNotifications()
+}
 </script>
 
 <style scoped>

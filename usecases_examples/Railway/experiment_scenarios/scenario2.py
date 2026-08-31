@@ -28,6 +28,9 @@ SCENARIO_2 = {
         "invalid_actions": ["warten"],
     },
 
+    # Marey link: start=Station3 (S18 start, right end), end=Station5 (left end)
+    "marey_link": {"start": [15, 22], "end": [1, 6]},
+
     "events": [
         {
             "timestep":         5,

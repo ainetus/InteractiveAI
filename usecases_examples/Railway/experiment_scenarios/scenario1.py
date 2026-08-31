@@ -34,6 +34,9 @@ SCENARIO_1 = {
         "invalid_actions": ["umleiten"],
     },
 
+    # Marey link: bottom station (S trains start) → top station (S trains target)
+    "marey_link": {"start": [14, 5], "end": [0, 8]},
+
     "events": [
         {
             "timestep":         15,

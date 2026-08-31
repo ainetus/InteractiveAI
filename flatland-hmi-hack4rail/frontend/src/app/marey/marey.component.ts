@@ -25,6 +25,8 @@ const BACKEND_URL = 'http://localhost:5001'
 
 // Trains with active events — polled from Flask brain
 let affectedTrains: Set<string> = new Set()
+// Position mapping: "r,c" -> x_distance (linearized route position)
+let positionMapping: Record<string, number> = {}
 // Event step ranges for the ZWL band (step ranges where events occurred)
 let eventBandRanges: EventBand[] = []
 
@@ -75,7 +77,11 @@ export class MareyComponent implements OnInit {
     })
 
     this.stateService.getTransitions().subscribe((transitions) => {
-      this.maxDistance = transitions[0].length - 1
+      // Use mapping max distance if available, else fall back to grid width
+      const mappingValues = Object.values(positionMapping)
+      this.maxDistance = mappingValues.length > 0
+        ? Math.max(...mappingValues)
+        : transitions[0].length - 1
     })
 
     this.stateService.getHistory().subscribe((history) => {
@@ -93,10 +99,13 @@ export class MareyComponent implements OnInit {
       this.trainRuns = Object.entries(agentHistories).map(([name, coordinates]) => ({
         name,
         coordinates: coordinates
-          .map(({ position }, index) => ({
-            x: position?.[1] ?? undefined,
-            y: index,
-          }))
+          .map(({ position }, index) => {
+            if (!position) return { x: undefined as unknown as number, y: index }
+            const key = `${position[0]},${position[1]}`
+            const mappedX = positionMapping[key]
+            const x = mappedX !== undefined ? mappedX : position[1]
+            return { x, y: index }
+          })
           .filter((coord): coord is { x: number; y: number } => coord.x !== undefined),
       }))
 
@@ -118,10 +127,13 @@ export class MareyComponent implements OnInit {
         return Object.entries(agentHistories).map(([name, coordinates]) => ({
           name,
           coordinates: coordinates
-            .map(({ position }, index) => ({
-              x: position?.[1] ?? undefined,
-              y: this.timestep + index,
-            }))
+            .map(({ position }, index) => {
+              if (!position) return { x: undefined as unknown as number, y: this.timestep + index }
+              const key = `${position[0]},${position[1]}`
+              const mappedX = positionMapping[key]
+              const x = mappedX !== undefined ? mappedX : position[1]
+              return { x, y: this.timestep + index }
+            })
             .filter((coord, index): coord is { x: number; y: number } =>
               coord.x !== undefined && index < PLAN_CUTOFF
             ),
@@ -129,7 +141,16 @@ export class MareyComponent implements OnInit {
       })
     })
 
-    // Poll session status for affected trains
+    // Poll session status and mapping
+    const fetchMapping = async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/mapping`)
+        const d = await r.json()
+        if (d && Object.keys(d).length > 0) positionMapping = d
+        else positionMapping = {}
+      } catch {}
+    }
+    fetchMapping()
     setInterval(async () => {
       try {
         const res = await fetch(`${BACKEND_URL}/session/status`)
@@ -139,6 +160,7 @@ export class MareyComponent implements OnInit {
         ))
       } catch {}
     }, 2000)
+    setInterval(fetchMapping, 4000)
 
     this.controllerService.observeReset().subscribe(() => {
       this.trainRuns = []

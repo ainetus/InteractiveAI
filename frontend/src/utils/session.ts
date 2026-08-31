@@ -59,7 +59,7 @@ export function handleSessionExpired(options: { redirect?: boolean } = {}) {
   // so a stale token does not trigger a surprise file download on page load.
   // Leaving the CAB route unsubscribes from the card stream (CAB.vue
   // `onBeforeRouteLeave`), so nothing else needs tearing down here.
-  authStore.logout('json', { force: false })
+  authStore.logout('json')
 
   appStore.addModal({
     data: t('modal.error.SESSION_EXPIRED'),

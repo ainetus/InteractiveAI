@@ -75,7 +75,7 @@ export class MapComponent implements OnInit {
         if (!res.ok) return
         const grid: number[][] = await res.json()
         if (!Array.isArray(grid) || grid.length === 0) return
-        const key = `${grid.length}x${grid[0]?.length ?? 0}`
+        const key = `${grid.length}x${grid[0]?.length ?? 0}_${(grid[0]?.[0] ?? 0)}_${(grid[Math.floor(grid.length/2)]?.[Math.floor((grid[0]?.length??0)/2)] ?? 0)}`
         if (key === lastGridKey) return
         lastGridKey = key
 

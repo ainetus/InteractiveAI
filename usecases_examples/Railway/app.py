@@ -715,6 +715,52 @@ def _extract_target(agent):
     return None
 
 
+def _compute_marey_mapping(map_path, start_rc, end_rc):
+    """BFS through grid from start to end, returns {r,c: distance} mapping."""
+    import json as _json
+    from collections import deque
+    try:
+        with open(map_path, "r") as f:
+            raw = _json.load(f)
+        grid = raw["grid"]
+    except Exception:
+        return {}
+    rows, cols = len(grid), len(grid[0])
+    dist = {start_rc: 0}
+    queue = deque([start_rc])
+    directions = [(-1,0),(0,1),(1,0),(0,-1)]
+    while queue:
+        r, c = queue.popleft()
+        for dr, dc in directions:
+            nr, nc = r+dr, c+dc
+            if 0 <= nr < rows and 0 <= nc < cols                and grid[nr][nc] != 0                and (nr, nc) not in dist:
+                dist[(nr, nc)] = dist[(r,c)] + 1
+                queue.append((nr, nc))
+    return {f"{r},{c}": d for (r,c), d in dist.items()}
+
+
+@app.route("/mapping")
+def get_mapping():
+    """Return linearized position mapping for Marey diagram."""
+    sc = None
+    if scenario_player is not None:
+        sc = scenario_player.scenario
+    elif preview_scenario_id:
+        sc = ALL_SCENARIOS.get(preview_scenario_id)
+    if sc is None:
+        return jsonify({})
+    link = sc.get("marey_link")
+    if not link:
+        return jsonify({})
+    map_path = sc.get("map", "")
+    if not map_path.endswith(".json"):
+        return jsonify({})
+    start = tuple(link["start"])
+    end   = tuple(link["end"])
+    mapping = _compute_marey_mapping(map_path, start, end)
+    return jsonify(mapping)
+
+
 @app.route("/stations")
 def get_stations():
     """Return station positions for the current or preview scenario map."""
