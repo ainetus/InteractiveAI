@@ -64,6 +64,29 @@
           >🔀 Umleiten</button>
         </div>
 
+        <!-- KPI preview for selected train+action -->
+        <div v-if="klTrain && klAction && previewKpis()" class="kl-kpi-preview">
+          <div class="kl-kpi-preview-title">Vorschau: Auswirkungen</div>
+          <table class="kpi-table" style="margin-top:6px;">
+            <tr>
+              <td class="kpi-label">Lok. Verspätung</td>
+              <td><span :class="delayClass(previewKpis().local_delay)">{{ previewKpis().local_delay }} min</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-label">Glob. Verspätung</td>
+              <td><span :class="delayClass(previewKpis().global_delay)">{{ previewKpis().global_delay }} min</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-label">Energieeffizienz</td>
+              <td><span :class="scoreClass(previewKpis().energy)">{{ previewKpis().energy }} %</span></td>
+            </tr>
+            <tr>
+              <td class="kpi-label">Anschlüsse</td>
+              <td><span :class="connectionClass(previewKpis().anschluss)">{{ previewKpis().anschluss }} gefährdet</span></td>
+            </tr>
+          </table>
+        </div>
+
         <div v-if="klError" class="kl-error">{{ klError }}</div>
         <div v-if="klApplied" class="kl-success">✓ Lösung angewendet.</div>
 
@@ -474,6 +497,35 @@ function connectionClass(count: number): string {
   if (count <= 1) return 'score-good'
   if (count <= 3) return 'score-medium'
   return 'score-poor'
+}
+
+// -- Co-Learning KPI preview ───────────────────────────────────────────────────
+
+function previewKpis() {
+  if (!klTrain.value || !klAction.value || !activeDecision.value) return null
+  const train  = klTrain.value
+  const action = klAction.value
+  const opts   = activeDecision.value.options || []
+
+  for (const opt of opts) {
+    const outcome = opt.outcome || {}
+    const holds   = Object.keys(outcome.holds || {})
+    const holdTrain  = outcome.hold_train
+    const holdTrains = outcome.hold_trains || []
+
+    if (action === 'warten') {
+      if (holdTrain === train || holdTrains.includes(train) || holds.includes(train)) {
+        return opt.kpis
+      }
+    } else if (action === 'vorfahrt') {
+      const allHeld = [...holdTrains, ...holds, ...(holdTrain ? [holdTrain] : [])]
+      if (!allHeld.includes(train)) return opt.kpis
+    } else if (action === 'umleiten') {
+      const sa = outcome.scripted_actions || {}
+      if (sa[train]) return opt.kpis
+    }
+  }
+  return null
 }
 
 // -- Lifecycle ─────────────────────────────────────────────────────────────────
