@@ -7,7 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_POWERGRID_SIMU: string
   readonly VITE_RAILWAY_SIMU: string
   readonly VITE_ATM_SIMU: string
-  readonly VITE_COGNITIVE_TOKEN: string
 }
 
 interface ImportMeta {

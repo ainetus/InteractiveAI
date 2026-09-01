@@ -41,6 +41,12 @@ if '/powergrid-simu/' not in conf:
         f'{path} nginx.conf has no /powergrid-simu/ location - this copy predates the fix. '
         'Pull the latest revision of the repo.'
     )
+if '__COGNITIVE_TOKEN__' not in conf:
+    sys.exit(
+        f'{path} nginx.conf does not inject __COGNITIVE_TOKEN__ into /cognitive-api/ - this '
+        'copy predates the move of the token out of the frontend bundle. Pull the latest '
+        'revision of the repo.'
+    )
 print(json.dumps({'data': {'nginx.conf': conf}}))
 PY
 )
@@ -60,12 +66,19 @@ kubectl -n "$NS" patch cm "$CM" --type merge -p "$PATCH"
 kubectl -n "$NS" rollout restart "deploy/$DEPLOY"
 kubectl -n "$NS" rollout status "deploy/$DEPLOY" --timeout=180s
 
-# The frontend pod must carry POWERGRID_SIMU_UPSTREAM: start-webui.sh substitutes it into
-# the __POWERGRID_SIMU_UPSTREAM__ placeholder. Without it nginx gets the local-dev default
-# (host.docker.internal) and refuses to start.
+# The frontend pod must carry the env vars that start-webui.sh substitutes into the conf's
+# __NAME__ placeholders. Without POWERGRID_SIMU_UPSTREAM nginx gets the local-dev default
+# (host.docker.internal) and refuses to start; without COGNITIVE_TOKEN the /cognitive-api/
+# proxy sends an empty bearer token and the cognitive panel 401s.
 echo "--- frontend POWERGRID_SIMU_UPSTREAM:"
 kubectl -n "$NS" get "deploy/$DEPLOY" \
   -o jsonpath='{range .spec.template.spec.containers[*].env[?(@.name=="POWERGRID_SIMU_UPSTREAM")]}{.value}{"\n"}{end}'
+
+# Only that the var is wired to a secret - never the value itself.
+echo "--- frontend COGNITIVE_TOKEN source:"
+kubectl -n "$NS" get "deploy/$DEPLOY" \
+  -o jsonpath='{range .spec.template.spec.containers[*].env[?(@.name=="COGNITIVE_TOKEN")]}{.valueFrom.secretKeyRef.name}/{.valueFrom.secretKeyRef.key}{"\n"}{end}' \
+  | grep . || echo "MISSING - add it to values.ovh.yaml (secret cab-frontend, key cognitive-token)"
 
 # Verify against the config nginx actually loaded, not against the ConfigMap.
 echo "--- verify: /powergrid-simu/ in the running nginx config"

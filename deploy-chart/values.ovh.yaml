@@ -46,8 +46,12 @@ frontend:
       value: "/powergrid-simu"
     - name: POWERGRID_SIMU_UPSTREAM
       value: "https://interactivepowergrid.passerelle.irt-systemx.fr/"
-    - name: VITE_COGNITIVE_TOKEN
+    # Read at container start by start-webui.sh and injected into the nginx
+    # /cognitive-api/ proxy. Rotating it is: update the secret, then
+    # `kubectl -n cab rollout restart deploy/cab-frontend` (nginx reads conf.d once,
+    # at startup). No image rebuild - it is no longer a build-time VITE_* value.
+    - name: COGNITIVE_TOKEN
       valueFrom:
         secretKeyRef:
           name: cab-frontend
-          key: vite-cognitive-token
+          key: cognitive-token

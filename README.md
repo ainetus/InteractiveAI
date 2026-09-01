@@ -84,18 +84,15 @@ Key variables (see `.secrets.example` for all options and per-environment values
 - `VITE_POWERGRID_SIMU` — the frontend's simulator endpoint. Use the same-origin proxy
   value `/powergrid-simu` (avoids CORS); set it to `false` to disable the PowerGrid UI.
   `VITE_RAILWAY_SIMU` / `VITE_ATM_SIMU` are the equivalents for the other use cases.
-- `POWERGRID_SIMU_UPSTREAM` — where nginx actually forwards `/powergrid-simu/`. This is the
-  only value that changes per environment:
+- `POWERGRID_SIMU_UPSTREAM` — where nginx actually forwards `/powergrid-simu/`:
   - Local dev : `http://host.docker.internal:5122/` (simulator container on the host)
   - LAN       : `http://192.168.208.61:5100/`
-  - Public/k8s: same variable, but set as an env var on the **frontend pod** (see
-    `deploy-chart/values.ovh.yaml`). `start-webui.sh` substitutes it into the
-    `__POWERGRID_SIMU_UPSTREAM__` placeholder of the nginx config at container start.
-    Beware: in k8s the config comes from the `cab-assistant-platform-config` ConfigMap
-    mounted over `/etc/nginx/conf.d`, which **overrides** the `default.conf` baked into
-    the image — the `/powergrid-simu/` location must be present in that ConfigMap or the
-    apply POST falls through to the static `location /` and nginx answers 405.
-    nginx only reads `conf.d` at startup, so restart the frontend after changing it.
+  - Public/k8s: same variable, set as an env var on the **frontend pod** (see
+    `deploy-chart/values.ovh.yaml`).
+- `COGNITIVE_TOKEN` — bearer token for the INESCTEC cognitive API. nginx attaches it to
+  every `/cognitive-api/` request, so the frontend never sees it. It used to be
+  `VITE_COGNITIVE_TOKEN`, a build-time value inlined into the public JS bundle; that meant
+  any visitor could read it and rotating it required a full image rebuild.
 - `RL_AGENT_API_URL` / `RL_AGENT_API_TOKEN` — the deep expert agent that powers PowerGrid
   recommendations (see [The PowerGrid expert agent API](#the-powergrid-expert-agent-api) below to
   install it). A token is required in every mode:
@@ -111,6 +108,31 @@ Key variables (see `.secrets.example` for all options and per-environment values
 > in [InteractiveAI/usecases_examples/PowerGrid/](/usecases_examples/PowerGrid/README.md).
 >
 > 
+### How runtime nginx configuration works
+
+`POWERGRID_SIMU_UPSTREAM` and `COGNITIVE_TOKEN` are **runtime** values, not
+build-time ones. They appear in the nginx config as `__NAME__` placeholders, and
+`frontend/start-webui.sh` substitutes them from the matching env var when the container
+starts. Changing one is: update the env var (or the k8s secret) and restart the
+frontend — no image rebuild.
+
+To add another: give it a default in `start-webui.sh`, append its name to `SUBST_VARS`, and
+use `__NAME__` in the config. If a placeholder survives substitution the container exits
+with the name of the missing variable, and the generated config is checked with `nginx -t`
+before the daemon starts — so a misconfiguration fails loudly at startup instead of
+producing a silently broken proxy.
+
+Two things to keep in mind:
+
+- **In k8s the config does not come from the image.** The `cab-assistant-platform-config`
+  ConfigMap is mounted over `/etc/nginx/conf.d` and **overrides** the `default.conf` baked
+  into the image, so every placeholder and every `location` must be present in the ConfigMap
+  too (`deploy-chart/apply-nginx-conf.sh` pushes just that key). A missing
+  `/powergrid-simu/` location, for instance, lets the apply POST fall through to the static
+  `location /`, and nginx answers 405.
+- **nginx reads `conf.d` only at startup**, so restart the frontend after any change:
+  `kubectl -n cab rollout restart deploy/cab-frontend`.
+
 2. **Run InteractiveAI assistant**
 ```sh
 cd config/dev/cab-standalone

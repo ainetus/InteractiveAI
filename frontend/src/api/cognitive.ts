@@ -3,18 +3,19 @@
  * Fetches per-event, per-agent cognitive state factors and returns a
  * structured snapshot that is attached to every session-trace entry.
  *
- * Requests are routed through the nginx proxy at /cognitive-api/ to avoid
- * browser CORS restrictions when calling https://wesenss.inesctec.pt directly.
+ * Requests are routed through the nginx proxy at /cognitive-api/, which both avoids
+ * browser CORS restrictions when calling https://wesenss.inesctec.pt directly and
+ * attaches the bearer token server-side (see frontend/default.conf). The token is
+ * deliberately absent from this bundle: anything inlined here is readable by every
+ * visitor and can only be rotated by rebuilding the image.
  *
  * Hardcoded values (event_id = 885, first agent from the list) are used
  * until the dynamic event → cognitive-event mapping is in place.
  */
 
-// Routed through nginx /cognitive-api/ → https://wesenss.inesctec.pt/api/v1/
+// Routed through nginx /cognitive-api/ → https://wesenss.inesctec.pt/api/v1/,
+// which injects the Authorization header from the COGNITIVE_TOKEN env var.
 const COGNITIVE_BASE_URL = '/cognitive-api'
-
-// Injected at build time via VITE_COGNITIVE_TOKEN env var (never commit the token)
-const COGNITIVE_TOKEN = import.meta.env.VITE_COGNITIVE_TOKEN ?? ''
 
 // Hardcoded until dynamic event_id resolution is implemented
 const DEFAULT_EVENT_ID = 885
@@ -61,9 +62,8 @@ type LatestDataItem = {
 }
 
 async function cognitiveGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${COGNITIVE_BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${COGNITIVE_TOKEN}` }
-  })
+  // No Authorization header: the nginx /cognitive-api/ proxy adds it.
+  const response = await fetch(`${COGNITIVE_BASE_URL}${path}`)
   if (!response.ok) throw new Error(`Cognitive API ${response.status}: ${path}`)
   return response.json() as Promise<T>
 }

@@ -138,7 +138,6 @@ services:
         VITE_POWERGRID_SIMU: ${VITE_POWERGRID_SIMU}
         VITE_ATM_SIMU: ${VITE_ATM_SIMU}
         VITE_RAILWAY_SIMU: ${VITE_RAILWAY_SIMU}
-        VITE_COGNITIVE_TOKEN: ${VITE_COGNITIVE_TOKEN}
     restart: unless-stopped
     # Lets nginx proxy /powergrid-simu/ to a simulator running on the host (local dev).
     extra_hosts:
@@ -150,6 +149,9 @@ services:
       # PowerGrid simulator upstream for the /powergrid-simu/ nginx proxy:
       #   local -> http://host.docker.internal:5122/   LAN -> http://192.168.208.61:5100/
       - POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM}
+      # Injected into the nginx /cognitive-api/ proxy at container start, so the token
+      # is never baked into the public JS bundle. Restart the container to change it.
+      - COGNITIVE_TOKEN=${COGNITIVE_TOKEN}
     volumes:
       - './ui-config:/usr/share/nginx/html/opfab'
       - './nginx-cors-permissive.conf:/etc/nginx/conf.d/default.conf'
