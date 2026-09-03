@@ -1,70 +1,162 @@
 <template>
   <section class="cab-panel">
     <Default>
-      <template #title>Railway Assistant</template>
-
-      <div style="padding: 16px;">
-        <!-- Always-visible event card -->
-        <div style="background: rgba(220,50,50,0.15); border: 1px solid #dc3232; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-          <div style="color: #ff6b6b; font-weight: bold; font-size: 13px; margin-bottom: 6px;">⚠ ACTIVE EVENT — HIGH</div>
-          <div style="font-weight: bold; margin-bottom: 4px;">Heavy snowfall on route City_1 → City_0</div>
-          <div style="font-size: 12px; opacity: 0.8;">Severe weather conditions affecting train services on this corridor.</div>
-        </div>
-
-        <!-- Resolution options -->
-        <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px;">Available resolutions:</div>
-
-        <div
-          v-for="opt in options"
-          :key="opt.index"
-          @click="applyOption(opt)"
-          style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: background 0.15s;"
-          onmouseover="this.style.background='rgba(255,255,255,0.1)'"
-          onmouseout="this.style.background='rgba(255,255,255,0.05)'"
-        >
-          <div style="font-size: 13px;">{{ opt.description }}</div>
-        </div>
-
-        <div v-if="applied" style="color: #4caf50; margin-top: 12px; font-weight: bold;">
-          ✓ Resolution applied successfully
-        </div>
-      </div>
+      <template #title>
+        <template v-if="appStore.tab.assistant === 2">
+          {{ $t('cab.assistant.recommendations') }}
+        </template>
+      </template>
+      <Event
+        v-if="appStore.tab.assistant === 1 && appStore.card('PowerGrid')"
+        :card="appStore.card('PowerGrid')!"
+        :primary-action="primaryAction"
+        :secondary-action="() => {}">
+        {{ appStore.card('PowerGrid')!.titleTranslated }}
+      </Event>
+      <Recommendations
+        v-if="appStore.tab.assistant === 2 && appStore.card('PowerGrid')"
+        v-model:recommendations="recommendations"
+        :buttons="[$t('recommendations.button1'), $t('recommendations.button2')]"
+        @selected="onSelection">
+        <template #default="{ recommendation, index }">
+          <div class="flex">
+            <main>
+              <h2>R{{ index }}: {{ recommendation.title }}</h2>
+            </main>
+          </div>
+        </template>
+        <template #button>
+          <Button color="secondary">{{ $t('recommendations.button.secondary') }}</Button>
+        </template>
+        <template #footer="{ selected }">
+          <div style="flex: none; overflow: auto">
+            <table v-if="recommendations.length">
+              <thead>
+                <tr>
+                  <th>KPI</th>
+                  <th
+                    v-for="(recommendation, index) of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    R{{ index }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="key of ['efficiency_of_the_reco', 'type_of_the_reco']" :key="key">
+                  <td>{{ $t(`PowerGrid.kpis.${key}`) }}</td>
+                  <td
+                    v-for="recommendation of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    {{
+                      isFinite(recommendation.kpis?.[key])
+                        ? recommendation.kpis?.[key].toFixed(4)
+                        : recommendation.kpis?.[key]
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </Recommendations>
     </Default>
   </section>
 </template>
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+import { sendTrace } from '@/api/services'
+import Button from '@/components/atoms/Button.vue'
 import Default from '@/components/organisms/CAB/Assistant.vue'
+import Event from '@/components/organisms/CAB/Assistant/Event.vue'
+import Recommendations from '@/components/organisms/CAB/Assistant/Recommendations.vue'
+import { applyRecommendation } from '@/entities/PowerGrid/api'
+import { useAppStore } from '@/stores/app'
+import { useCardsStore } from '@/stores/cards'
+import { useServicesStore } from '@/stores/services'
+import type { Entity } from '@/types/entities'
+import type { Recommendation } from '@/types/services'
 
-const BRAIN_URL = import.meta.env.VITE_RAILWAY_SIMU || 'http://localhost:5001'
+const route = useRoute()
+const servicesStore = useServicesStore()
+const appStore = useAppStore()
+const cardsStore = useCardsStore()
 
-const options = ref<any[]>([])
-const applied = ref(false)
+const recommendations = ref<Recommendation<'PowerGrid'>[]>([])
 
-async function loadOptions() {
+watch(
+  () => appStore._card,
+  () => {
+    appStore.tab.assistant = 1
+  }
+)
+watch(
+  () => appStore.tab.assistant,
+  async (index) => {
+    switch (index) {
+      case 2:
+        if (!appStore.card('PowerGrid')) break
+        recommendations.value = []
+        await servicesStore.getRecommendation(appStore.card('PowerGrid')!)
+        recommendations.value = servicesStore.recommendations('PowerGrid')
+    }
+  }
+)
+
+async function onSelection(selected: any) {
+  console.info(
+    '[PowerGrid][apply] Apply pressed — recommendation:',
+    selected?.title,
+    '| agent_type:',
+    selected?.agent_type
+  )
+  console.info('[PowerGrid][apply] action to send (selected.actions[0]):', selected?.actions?.[0])
+  console.info('[PowerGrid][apply] active card id:', appStore.card('PowerGrid')?.id)
+  sendTrace({
+    data: selected,
+    use_case: route.params.entity as Entity,
+    step: 'AWARD'
+  })
   try {
-    const res = await fetch(`${BRAIN_URL}/conflicts`)
-    const data = await res.json()
-    options.value = data.options || []
-  } catch (e) {
-    console.error('Failed to load options:', e)
+    await applyRecommendation(selected.actions[0])
+    console.info(
+      '[PowerGrid][apply] success — marking card resolved (criticality → ND) and closing assistant'
+    )
+    const activeCard = appStore.card('PowerGrid')
+    if (activeCard) cardsStore.resolveCriticality(activeCard)
+    appStore.tab.assistant = 0
+  } catch {
+    console.error('[PowerGrid][apply] failed — leaving card open for retry (error modal shown by http plugin)')
+    // http plugin already shows an error modal — leave the card open so the user can retry
   }
 }
 
-async function applyOption(opt: any) {
-  try {
-    await fetch(`${BRAIN_URL}/resolve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ option_index: opt.index }),
-    })
-    applied.value = true
-    setTimeout(() => { applied.value = false }, 3000)
-  } catch (e) {
-    console.error('Failed to apply resolution:', e)
-  }
+function primaryAction() {
+  sendTrace({
+    data: { id: appStore.card('PowerGrid')!.id },
+    use_case: route.params.entity as Entity,
+    step: 'ASKFORHELP'
+  })
+  appStore.tab.assistant = 2
 }
-
-onMounted(() => loadOptions())
 </script>
+<style scoped lang="scss">
+table {
+  border-collapse: collapse;
+  tr > * {
+    border-right: 2px solid var(--color-background);
+    text-align: center;
+  }
+  thead tr,
+  tbody tr:nth-child(even) {
+    background-color: var(--color-grey-200);
+  }
+
+  .active {
+    background-color: var(--color-grey-300);
+  }
+}
+</style>
