@@ -31,7 +31,7 @@ export const useServicesStore = defineStore('services', () => {
 
   async function getContext<E extends Entity>(
     entity?: E,
-    callback: (context: FullContext<E>) => void = () => {},
+    callback: (context: FullContext<E>) => void = () => { },
     delay = 5000
   ) {
     // Catch context error and reset interval
@@ -131,6 +131,7 @@ export const useServicesStore = defineStore('services', () => {
     context,
     recommendations,
     getContext,
-    getRecommendation
+    getRecommendation,
+    stopContext: () => { }
   }
 })

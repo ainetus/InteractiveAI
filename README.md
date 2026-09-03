@@ -2,163 +2,172 @@
 **An interactive AI Assistant Platform for Real Time operations**
 
 _Frontend_ 
-​ [![Node](https://img.shields.io/badge/Node-339933?style=plastic&logo=nodedotjs&logoColor=fff)](https://nodejs.org) [![Vue](https://img.shields.io/badge/Vue-35495E?style=plastic&logo=vuedotjs&logoColor=fff)](https://vuejs.org) [![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?style=plastic&logo=vite&logoColor=fff)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/Typescript-%23007ACC.svg?style=plastic&logo=typescript&logoColor=fff)](https://www.typescriptlang.org) [![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=plastic&logo=Leaflet&logoColor=fff)](https://leafletjs.com) [![Axios](https://img.shields.io/badge/Axios-671ddf?&style=plastic&logo=axios&logoColor=fff)](https://axios-http.com)
+​ [![Node](https://img.shields.io/badge/Node-339933?style=plastic&logo=nodedotjs&logoColor=fff)](https://nodejs.org) [![Vue](https://img.shields.io/badge/Vue-35495E?style=plastic&logo=vuedotjs&logoColor=fff)](https://vuejs.org) [![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?style=plastic&logo=vite&logoColor=fff)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/Typescript-%23007ACC.svg?style=plastic&logo=typescript&logoColor=fff)](https://www.typescriptlang.org)
 
 _Backend_ 
 ![Python](https://img.shields.io/badge/python-3670A0?style=plastic&logo=python&logoColor=ffdd54)
 ![Flask](https://img.shields.io/badge/flask-%23000.svg?style=plastic&logo=flask&logoColor=white)
-![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=plastic&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=plastic&logo=docker&logoColor=white)
-![Postman](https://img.shields.io/badge/Postman-FF6C37?style=plastic&logo=postman&logoColor=white)
 
-<!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#setting-up-the-environment">Setting Up the Environment</a></li>
-      </ul>
-    </li>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#usage">Usage</a></li>
+    <li><a href="#railway-use-case">Railway Use Case</a></li>
     <li><a href="#development">Development</a></li>
-    <li><a href="#docs">Docs</a></li>
-
   </ol>
 </details>
 
-<!-- ABOUT THE PROJECT -->
 ## About The Project
 
-InteractiveAI platform provides support in augmented decision-making for complex steering systems.
-It is a prototype of a bi-directional virtual assistant, open in terms of industrial applications, in which it will be possible to evaluate the forms of exchange between the expert and an AI that learns continuously, both from the information flows received and the decisions made by the human. The platform will help and assist the operator of a complex operation to resolve incidents/faults in his industrial environment.
+InteractiveAI platform provides support in augmented decision-making for complex steering systems. It is a prototype of a bi-directional virtual assistant, open in terms of industrial applications, in which it will be possible to evaluate the forms of exchange between the expert and an AI that learns continuously.
 
-As it is designed, the platform is generic, it can be used for different use cases. As an example, the use case of managing **power line** overloads at **PowerGrid** (Réseau de Transport d'Electricité français) is provided. To install and run the PowerGrid simulator, please refer to the detailed guide available in the file PowerGrid simulator's [README](/usecases_examples/PowerGrid/README.md). This guide provides specific instructions for setting up and running the PowerGrid use case.
+The platform uses **OperatorFabric** for notification management and is generic — it supports multiple use cases including **PowerGrid**, **ATM**, and **Railway**.
 
-The platform uses the project **OperatorFabric** for notification management.
-
-
-<!-- GETTING STARTED -->
 ## Getting Started
 
 ### Prerequisites
 
-- [Git (version 2.40.1)](https://git-scm.com/)
-- [Docker Engine (version 27)](https://www.docker.com/)
-- [Docker Compose V2](https://www.docker.com/) 
+- [Git](https://git-scm.com/)
+- [Docker Engine 27+](https://www.docker.com/)
+- [Docker Compose V2](https://www.docker.com/)
+- **Railway use case only:** Python 3.10, Node.js 18+ (see [Railway Use Case](#railway-use-case))
 
-
-### Setting Up the Environment
-
-Clone the repo of the assistant
+### Setup
 
 ```sh
 git clone [repo-url]
+cd InteractiveAI
+git checkout FHNWtec-version   # Railway use case branch
+
+cp config/dev/cab-standalone/.env.example config/dev/cab-standalone/.env
+```
+
+Edit `.env` and set simulator URLs:
+```sh
+VITE_RAILWAY_SIMU=http://localhost:5001    # or server IP for deployment
+VITE_POWERGRID_SIMU=
+VITE_ATM_SIMU=
 ```
 
 ## Usage
 
-InteractiveAI offers versatile deployment options, leveraging either Docker or Kubernetes. The primary method entails initiating InteractiveAI via Docker to launch all services concurrently. However, recognizing potential resource strain in this mode, we've introduced alternative configurations. These configurations enable selective startup of essential services with minimal dependencies, catering to streamlined versions of certain APIs.
-Below are the steps to start all services. For other methods, please consult the developer guide.
-
 ### Running All Services (Dev Mode)
 
-1. **Set-up environement variables**
-   
-
-`VITE_POWERGRID_SIMU`, `VITE_RAILWAY_SIMU` , `VITE_ATM_SIMU` are the simulators' endpoints.
-Put for each UC the corresponding IP address.
-
-Examples: 
-
 ```sh
-export VITE_POWERGRID_SIMU=http://[Service url]:[Service port]
-export VITE_RAILWAY_SIMU=http://[Service url]:[Service port]
-export VITE_ATM_SIMU=http://[Service url]:[Service port]
-```
-> **_NOTE:_** For this step, you should already have a running simulator. If not, you can use the simulator we provided as an example. For this, please follow the tutorial provided in InteractiveAI/usecases_examples/PowerGrid/ then set the VITE_POWERGRID_SIMU variable to http://YOUR_SERVER_ADDRESS:5100/
->
-> 
-2. **Run InteractiveAI assistant**
-```sh
-cd config/dev/cab-standalone
-./docker-compose.sh
-```
-> **_NOTE:_** You will see the word cab on most files in the project. Note that it was the initial project name of InteractiveAI. Might be updated later. 
+export USER_ID=1000 USER_GID=1000
+export SPRING_PROFILES_ACTIVE=docker
+export VITE_RAILWAY_SIMU=http://localhost:5001
 
-3. **Setting up Keycloak `Frontend URL`**  
-    * Access Keycloak Interface: 
-      - Ensure that your Keycloak instance is running and accessible.
-      - Open a web browser and navigate to the Keycloak admin console, typically available at `http://localhost:89/auth/admin`.  
-    * Login to Keycloak Admin Console: 
-      - Log in to the Keycloak admin console using your administrator credentials (`admin:admin` by default)
-    * Configure frontendUrl:
-      - On the Keycloak admin console, locate and click on the "Realm Settings" section.
-      - In the Frontend URL field, add the URL of InteractiveAI frontend. If your frontend is hosted locally for development purposes, you might add `http://localhost:3200/`.
-      - After adding the frontend URL, save the changes.
-    * Configure Valid Redirect URIs:
-      - On the Keycloak admin console, locate and click on the "Clients" section.
-      - Select the client (opfab-client).  
-      - Within the client settings, look for the "Valid Redirect URIs" field.
-      - Add the URL of the frontend with /*, if it's local deployment: `http://localhost:3200/*`.
-      - After adding the Valid Redirect URIs, save the changes to update the client settings.
-
-
-4. **Load resources**
-
-**WARNING:** You need to restart the frontend after updating the URL on keycloak do it before loading the resources. 
-```sh
-docker restart frontend
+docker compose -f config/dev/cab-standalone/docker-compose.yml up
 ```
 
+Then load resources:
 ```sh
-cd resources
-./loadTestConf.sh
+cd resources && ./loadTestConf.sh
 ```
 
-5. If you encounter CORS errors (which can happen if you start the platform in a non-HTTPS environment), you can start your browser with security mode disabled.
+### Default Ports
 
+| Service | Port |
+|---------|------|
+| Frontend | 3200 |
+| Railway brain (Flask) | 5001 |
+| ZWL Angular (Railway) | 4200 |
+| Keycloak | 89 |
+
+### Authentication
+
+| Username | Password |
+|----------|----------|
+| `railway_user` | `test` |
+| `powergrid_user` | `test` |
+| `admin` | `test` |
+
+---
+
+## Railway Use Case
+
+The Railway use case adds a Flatland train simulation with interactive scenario-based training. It requires **two additional services** beyond the main Docker stack.
+
+> See **[HANDOVER.md](HANDOVER.md)** for full deployment details.
+
+### Additional Prerequisites
+
+- **Python 3.10** (exact version required for flatland-rl)
+- **Node.js 18+**
+
+### Option A — Local / Development
+
+Start the main Docker stack (see [Usage](#usage)), then:
+
+**Terminal 2 — Flask Railway brain:**
 ```sh
-your-chromium-browser --disable-web-security --user-data-dir="[some directory here]" # replace your-chromium-browser with your browser
+cd usecases_examples/Railway
+python3.10 -m venv .venv
+source .venv/bin/activate      # Linux/Mac | .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python app.py
+```
+Ready when: `Running on http://0.0.0.0:5001`
+
+**Terminal 3 — ZWL Angular frontend:**
+```sh
+cd flatland-hmi-hack4rail/frontend
+npm install    # first time only
+npm start
+```
+Ready when: `Local: http://localhost:4200`
+
+**MongoDB perimeter setup** (required after every Docker restart):
+```sh
+docker exec cab-standalone-mongodb-1 mongo operator-fabric \
+  -u root -p password --authenticationDatabase admin \
+  --eval 'db.perimeter.updateOne({_id:"cabProcess"},{$set:{process:"cabProcess",stateRights:[{state:"messageState",right:"ReceiveAndWrite"}]}},{upsert:true}); db.group.updateOne({_id:"Planner"},{$addToSet:{perimeters:"cabProcess"}}); db.group.updateOne({_id:"Dispatcher"},{$addToSet:{perimeters:"cabProcess"}}); print("done")'
 ```
 
-> **_NOTE:_** If you encounter any issues, please refer to our [troubleshooting guide](docs/troubleshooting.md).
+### Option B — Server / Production (Docker)
 
-### Default ports
+Flask and the ZWL Angular frontend can be containerised using the provided Dockerfiles, eliminating the need for Python or npm on the server.
 
-This project is based on a microservice architecture. Every service run on a specific port. Some of the default ports are as fellow:
-* Frontend: 3200
-* Context Service: 5100
-* Event Service: 5000
-* Historic Service: 5200
-* Keycloak: 89
+```sh
+# Set server URL in .env:
+# VITE_RAILWAY_SIMU=http://<SERVER_PUBLIC_IP>:5001
 
-### Authentication data
+docker compose \
+  -f config/dev/cab-standalone/docker-compose.yml \
+  -f config/dev/cab-standalone/docker-compose-railway.yml \
+  up --build
+```
 
-For a development environment, the system uses predefined initial data for Keycloak setup.
-You can find authentication data under config/dev/cab-keycloak
+**Provided deployment files:**
+- `usecases_examples/Railway/Railway.Dockerfile` — Flask container
+- `flatland-hmi-hack4rail/zwl.Dockerfile` — Angular/nginx container
+- `config/dev/cab-standalone/docker-compose-railway.yml` — adds both to the stack
+- `config/dev/cab-standalone/mongo-init.js` — auto-applies MongoDB perimeter
 
-Some examples of credentials:
+**⚠️ Open items for server deployment:**
+1. Port 5001 must be reachable from users' browsers (open firewall or nginx proxy)
+2. `AUTH_DISABLED=true` must be removed for production
+3. Set `VITE_RAILWAY_SIMU` to the server's public IP/hostname before building
 
-| username         | password |
-| ---------------- | -------- |
-| `admin`          | `test`   |
-| `powergrid_user` | `test`   |
-| `railway_user`   | `test`   |
-| `atm_user`       | `test`   |
+### Troubleshooting
 
+| Problem | Solution |
+|---------|----------|
+| Kartenansicht: "cannot connect to localhost:4200" | Start the ZWL Angular frontend (Terminal 3) |
+| No train data visible | Flask brain not running — start Terminal 2 |
+| No notification cards | Run MongoDB perimeter command above |
+| Build fails: `session.ts` error | `sed -i "s/authStore.logout('json', { force: false })/authStore.logout('json')/" frontend/src/utils/session.ts` |
+| Build fails: `stopContext` error | Add `stopContext: () => {}` to the `return {}` block in `frontend/src/stores/services.ts` |
+| Keycloak crash | `docker compose -f config/dev/cab-standalone/docker-compose.yml up --force-recreate keycloak` |
 
-By default, the system allows the user to be connected only from a single machine. Which means if you try to connect using the same credentials from another machine, you will be disconnected on the first machine. 
+---
 
-# Development
+## Development
 
-Contributions to the InteractiveAI Assistant Platform are welcome! To contribute, please make sure to use [developer guide](docs/developer-guide.md)
+Contributions welcome — please follow the [developer guide](docs/developer-guide.md).
 
-# Docs
-A postman collection is under docs/postman_collections.
-You can also check the openapi through the URL http://localhost:[Service port]/docs
+A Postman collection is available under `docs/postman_collections`.
