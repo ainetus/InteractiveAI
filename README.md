@@ -2,7 +2,7 @@
 **An interactive AI Assistant Platform for Real Time operations**
 
 _Frontend_ 
-​ [![Node](https://img.shields.io/badge/Node-339933?style=plastic&logo=nodedotjs&logoColor=fff)](https://nodejs.org) [![Vue](https://img.shields.io/badge/Vue-35495E?style=plastic&logo=vuedotjs&logoColor=fff)](https://vuejs.org) [![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?style=plastic&logo=vite&logoColor=fff)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/Typescript-%23007ACC.svg?style=plastic&logo=typescript&logoColor=fff)](https://www.typescriptlang.org)
+[![Node](https://img.shields.io/badge/Node-339933?style=plastic&logo=nodedotjs&logoColor=fff)](https://nodejs.org) [![Vue](https://img.shields.io/badge/Vue-35495E?style=plastic&logo=vuedotjs&logoColor=fff)](https://vuejs.org) [![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?style=plastic&logo=vite&logoColor=fff)](https://vitejs.dev) [![TypeScript](https://img.shields.io/badge/Typescript-%23007ACC.svg?style=plastic&logo=typescript&logoColor=fff)](https://www.typescriptlang.org)
 
 _Backend_ 
 ![Python](https://img.shields.io/badge/python-3670A0?style=plastic&logo=python&logoColor=ffdd54)
@@ -13,127 +13,132 @@ _Backend_
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#getting-started">Getting Started</a></li>
-    <li><a href="#usage">Usage</a></li>
+    <li><a href="#local-setup-step-by-step">Local Setup</a></li>
     <li><a href="#railway-use-case">Railway Use Case</a></li>
-    <li><a href="#development">Development</a></li>
+    <li><a href="#server-deployment">Server Deployment</a></li>
+    <li><a href="#authentication">Authentication</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
   </ol>
 </details>
 
+---
+
 ## About The Project
 
-InteractiveAI platform provides support in augmented decision-making for complex steering systems. It is a prototype of a bi-directional virtual assistant, open in terms of industrial applications, in which it will be possible to evaluate the forms of exchange between the expert and an AI that learns continuously.
+InteractiveAI is a prototype bi-directional virtual assistant platform for augmented decision-making in complex industrial operations. It is generic and supports multiple use cases including **PowerGrid**, **ATM**, and **Railway** (FHNW/AI4REALNET).
 
-The platform uses **OperatorFabric** for notification management and is generic — it supports multiple use cases including **PowerGrid**, **ATM**, and **Railway**.
+The platform uses **OperatorFabric** for notification management.
 
-## Getting Started
+> **Railway use case:** Branch `FHNWtec-version` — https://github.com/ainetus/InteractiveAI/tree/FHNWtec-version
+
+---
+
+## Local Setup — Step by Step
 
 ### Prerequisites
 
 - [Git](https://git-scm.com/)
-- [Docker Engine 27+](https://www.docker.com/)
-- [Docker Compose V2](https://www.docker.com/)
-- **Railway use case only:** Python 3.10, Node.js 18+ (see [Railway Use Case](#railway-use-case))
+- [Docker Engine 27+](https://www.docker.com/) with Docker Compose V2
+- **Railway only:** Python 3.10, Node.js 18+
 
-### Setup
+### 1. Clone the repository
 
-```sh
-git clone [repo-url]
+```bash
+git clone https://github.com/ainetus/InteractiveAI.git
 cd InteractiveAI
-git checkout FHNWtec-version   # Railway use case branch
-
-cp config/dev/cab-standalone/.env.example config/dev/cab-standalone/.env
+git checkout FHNWtec-version
 ```
 
-Edit `.env` and set simulator URLs:
-```sh
-VITE_RAILWAY_SIMU=http://localhost:5001    # or server IP for deployment
-VITE_POWERGRID_SIMU=
-VITE_ATM_SIMU=
-```
+### 2. Set environment variables
 
-## Usage
-
-### Running All Services (Dev Mode)
-
-```sh
-export USER_ID=1000 USER_GID=1000
+```bash
+export MSYS_NO_PATHCONV=1          # Windows Git Bash only
+export USER_ID=1000
+export USER_GID=1000
 export SPRING_PROFILES_ACTIVE=docker
+export CONFIG_PATH=./config/dev/cab-standalone
 export VITE_RAILWAY_SIMU=http://localhost:5001
-
-docker compose -f config/dev/cab-standalone/docker-compose.yml up
+export RL_AGENT_API_URL=http://localhost:5001/recommendations
 ```
 
-Then load resources:
-```sh
-cd resources && ./loadTestConf.sh
+### 3. Start the main Docker stack
+
+```bash
+docker compose -f config/dev/cab-standalone/docker-compose.yml up -d
 ```
 
-### Default Ports
+Open http://localhost:3200/cab/Railway in your browser to verify it's running.
 
-| Service | Port |
-|---------|------|
-| Frontend | 3200 |
-| Railway brain (Flask) | 5001 |
-| ZWL Angular (Railway) | 4200 |
-| Keycloak | 89 |
+### 4. Configure the database
 
-### Authentication
+Run once after each Docker start:
 
-| Username | Password |
-|----------|----------|
-| `railway_user` | `test` |
-| `powergrid_user` | `test` |
-| `admin` | `test` |
-
----
-
-## Railway Use Case
-
-The Railway use case adds a Flatland train simulation with interactive scenario-based training. It requires **two additional services** beyond the main Docker stack.
-
-> See **[HANDOVER.md](HANDOVER.md)** for full deployment details.
-
-### Additional Prerequisites
-
-- **Python 3.10** (exact version required for flatland-rl)
-- **Node.js 18+**
-
-### Option A — Local / Development
-
-Start the main Docker stack (see [Usage](#usage)), then:
-
-**Terminal 2 — Flask Railway brain:**
-```sh
-cd usecases_examples/Railway
-python3.10 -m venv .venv
-source .venv/bin/activate      # Linux/Mac | .venv\Scripts\activate on Windows
-pip install -r requirements.txt
-python app.py
-```
-Ready when: `Running on http://0.0.0.0:5001`
-
-**Terminal 3 — ZWL Angular frontend:**
-```sh
-cd flatland-hmi-hack4rail/frontend
-npm install    # first time only
-npm start
-```
-Ready when: `Local: http://localhost:4200`
-
-**MongoDB perimeter setup** (required after every Docker restart):
-```sh
+```bash
 docker exec cab-standalone-mongodb-1 mongo operator-fabric \
   -u root -p password --authenticationDatabase admin \
   --eval 'db.perimeter.updateOne({_id:"cabProcess"},{$set:{process:"cabProcess",stateRights:[{state:"messageState",right:"ReceiveAndWrite"}]}},{upsert:true}); db.group.updateOne({_id:"Planner"},{$addToSet:{perimeters:"cabProcess"}}); db.group.updateOne({_id:"Dispatcher"},{$addToSet:{perimeters:"cabProcess"}}); print("done")'
 ```
 
-### Option B — Server / Production (Docker)
+Expected output:
+```
+MongoDB shell version v4.4.4
+connecting to: mongodb://127.0.0.1:27017/operator-fabric?...
+done
+```
 
-Flask and the ZWL Angular frontend can be containerised using the provided Dockerfiles, eliminating the need for Python or npm on the server.
+### 5. Install Python dependencies (first time only)
 
-```sh
-# Set server URL in .env:
+```bash
+cd usecases_examples/Railway
+python3.10 -m venv .venv
+source .venv/bin/activate          # Linux/Mac
+# .venv\Scripts\activate           # Windows
+pip install -r requirements.txt
+cd ../..
+```
+
+### 6. Start Flask Railway brain *(new terminal)*
+
+```bash
+cd usecases_examples/Railway
+source .venv/bin/activate
+python app.py
+```
+
+Ready when you see: `Running on http://0.0.0.0:5001`
+
+### 7. Start ZWL Angular frontend *(new terminal)*
+
+```bash
+cd flatland-hmi-hack4rail/frontend
+npm install    # first time only
+npm start
+```
+
+Ready when you see: `Local: http://localhost:4200`
+
+---
+
+## Railway Use Case
+
+The Railway use case (FHNW/AI4REALNET) adds a Flatland train simulation with three interactive training scenarios:
+
+| ID | Name | Description |
+|----|------|-------------|
+| `scenario1` | Kreuzungskonflikt | Single-track crossing conflict |
+| `scenario2` | Fahrt auf Sichtweite | Speed restriction causing dispatch conflict |
+| `scenario3` | Zugreihenfolge | Multiple delays disrupting train order |
+
+Log in as `railway_user` / `test` and select the Railway use case.
+
+---
+
+## Server Deployment
+
+For server deployment, Flask and the ZWL Angular frontend can be containerised — no Python or npm needed on the server.
+
+```bash
+# Set server URL before building:
 # VITE_RAILWAY_SIMU=http://<SERVER_PUBLIC_IP>:5001
 
 docker compose \
@@ -142,32 +147,35 @@ docker compose \
   up --build
 ```
 
-**Provided deployment files:**
-- `usecases_examples/Railway/Railway.Dockerfile` — Flask container
-- `flatland-hmi-hack4rail/zwl.Dockerfile` — Angular/nginx container
-- `config/dev/cab-standalone/docker-compose-railway.yml` — adds both to the stack
-- `config/dev/cab-standalone/mongo-init.js` — auto-applies MongoDB perimeter
+**Provided Dockerfiles:**
+- `usecases_examples/Railway/Railway.Dockerfile`
+- `flatland-hmi-hack4rail/zwl.Dockerfile`
 
-**⚠️ Open items for server deployment:**
-1. Port 5001 must be reachable from users' browsers (open firewall or nginx proxy)
-2. `AUTH_DISABLED=true` must be removed for production
-3. Set `VITE_RAILWAY_SIMU` to the server's public IP/hostname before building
+**⚠️ Open items:** Port 5001 must be reachable from users' browsers. Set `VITE_RAILWAY_SIMU` to the server's public IP/hostname. Disable `AUTH_DISABLED=true` for production.
 
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Kartenansicht: "cannot connect to localhost:4200" | Start the ZWL Angular frontend (Terminal 3) |
-| No train data visible | Flask brain not running — start Terminal 2 |
-| No notification cards | Run MongoDB perimeter command above |
-| Build fails: `session.ts` error | `sed -i "s/authStore.logout('json', { force: false })/authStore.logout('json')/" frontend/src/utils/session.ts` |
-| Build fails: `stopContext` error | Add `stopContext: () => {}` to the `return {}` block in `frontend/src/stores/services.ts` |
-| Keycloak crash | `docker compose -f config/dev/cab-standalone/docker-compose.yml up --force-recreate keycloak` |
+See `HANDOVER.md` for full details.
 
 ---
 
-## Development
+## Authentication
 
-Contributions welcome — please follow the [developer guide](docs/developer-guide.md).
+| Username | Password |
+|----------|----------|
+| `railway_user` | `test` |
+| `powergrid_user` | `test` |
+| `atm_user` | `test` |
+| `admin` | `test` |
 
-A Postman collection is available under `docs/postman_collections`.
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Kartenansicht: "cannot connect to localhost:4200" | ZWL Angular not running — run step 7 |
+| No train data visible | Flask not running — run step 6 |
+| No notification cards | Re-run step 4 (MongoDB command) |
+| Build fails: `session.ts` error | `sed -i "s/authStore.logout('json', { force: false })/authStore.logout('json')/" frontend/src/utils/session.ts` |
+| Build fails: `stopContext` error | Add `stopContext: () => {}` to `return {}` block in `frontend/src/stores/services.ts` |
+| Keycloak crash | `docker compose -f config/dev/cab-standalone/docker-compose.yml up --force-recreate keycloak` |
+| MongoDB crash | `docker tag cab-standalone-frontend:latest irtsystemx/interactiveai-cab-standalone-frontend:latest && docker compose -f config/dev/cab-standalone/docker-compose.yml up` |

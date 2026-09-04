@@ -892,18 +892,10 @@ def _delete_all_pushed_cards():
     """Clear all pushed notification cards. Fail-safe — never crashes session_start."""
     global pushed_card_ids, pushed_process_instance_ids
     try:
-        from experiment_scenarios import ALL_SCENARIOS as _SC
         ts_ms = int(__import__("time").time() * 1000)
-        all_pids = set(pushed_process_instance_ids)
-        for sc in _SC.values():
-            for ev in sc.get("events", []):
-                all_pids.add(f"scenario_event_{ev.get('timestep', 0)}")
-            for dp in sc.get("decision_points", []):
-                all_pids.add(f"scenario_event_{dp.get('timestep', 0)}")
-            all_pids.add(f"scenario_resolved_{sc.get('id', 'x')}")
+        # Only send ND for cards actually pushed this session — avoids 404s on first run
+        all_pids = set(pid for pid in pushed_process_instance_ids if pid)
         for pid in all_pids:
-            if not pid:
-                continue
             payload = {
                 "publisher": "publisher_test", "processVersion": "1",
                 "process": "cabProcess", "processInstanceId": pid,
@@ -1109,6 +1101,21 @@ def session_status():
                                 train_actions[t].append("vorfahrt")
         status["conflict_trains"] = sorted(trains)
         status["train_actions"]   = train_actions
+
+        # Build kpis_by_train: for each selectable train → its matched option's KPIs
+        kpis_by_train = {}
+        for opt in dp.get("options", []):
+            outcome = opt.get("outcome", {})
+            kpis    = opt.get("kpis", {})
+            held = set(outcome.get("hold_trains", []))
+            held |= set(outcome.get("holds", {}).keys())
+            if outcome.get("hold_train"):
+                held.add(outcome["hold_train"])
+            for t in trains:
+                if t not in held:
+                    # This train gets priority in this option
+                    kpis_by_train[t] = kpis
+        status["kpis_by_train"] = kpis_by_train
     # Include currently selected train for ZWL map highlight
     status["selected_train"] = selected_train
     # Human-readable train names from scenario agent_defs

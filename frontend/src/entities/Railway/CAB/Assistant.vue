@@ -253,6 +253,32 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { sendTrace } from '@/api/services'
+import { useCardsStore } from '@/stores/cards'
+import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
+import { recordTraceForSession } from '@/utils/traceSessionExport'
+
+// Send a trace that survives SSE connection resets (keepalive fetch)
+// Also records to localStorage for session summary export
+async function sendTraceRobust(payload: { data: any; step: string; use_case: string }) {
+  const authStore = useAuthStore()
+  const token = authStore.token?.access_token
+  const tracePayload = { ...payload, date: new Date().toISOString() }
+  // Record to localStorage (used by session summary export)
+  try { recordTraceForSession(tracePayload as any) } catch {}
+  // Send to cabhistoric with keepalive (survives SSE resets)
+  try {
+    await fetch('/cabhistoric/api/v1/traces', {
+      method:    'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(tracePayload),
+    })
+  } catch {}
+}
 
 const BRAIN_URL  = import.meta.env.VITE_RAILWAY_SIMU || 'http://localhost:5001'
 
@@ -267,7 +293,9 @@ const decisionError  = ref<string>('')
 const applied        = ref<boolean>(false)
 const showConfirmModal   = ref<boolean>(false)
 const trainNames         = ref<Record<string,string>>({})
+const kpisByTrain        = ref<Record<string,any>>({})
 const colearningError    = ref<string>('')
+const helpRequested      = ref<boolean>(false)
 // CoLearning mode state
 const mode           = ref<string>('recommendation')
 const conflictTrains = ref<string[]>([])
@@ -330,15 +358,10 @@ async function confirmDecision() {
   showConfirmModal.value = false
   decisionError.value    = ''
 
-  // Log AWARD trace to InteractiveAI history service
-  const cardId = 'cabProcess.scenario_event_30'
-  try {
-    sendTrace({
-      data:     { id: cardId, option_index: selectedOption.value } as any,
-      use_case: 'Railway',
-      step:     'AWARD',
-    })
-  } catch {}
+  // Log AWARD trace — find real card and activate it so trace links correctly
+  const _awts = activeDecision.value?.timestep ?? 0
+  const cardId = await findAndActivateEventCard(_awts)
+  sendTraceRobust({ data: { id: cardId, option_index: selectedOption.value }, use_case: 'Railway', step: 'AWARD' })
 
   try {
     const res  = await fetch(`${BRAIN_URL}/session/decision`, {
@@ -400,6 +423,10 @@ async function applyColearning() {
       colearningError.value = data.message || '⚠ Ungültige Aktion für dieses Szenario.'
       setTimeout(() => { colearningError.value = '' }, 3000)
     } else {
+      // Log AWARD trace for co-learning decision
+      const _clts = activeDecision.value?.timestep ?? 0
+      const klCardId = await findAndActivateEventCard(_clts)
+      sendTraceRobust({ data: { id: klCardId, train: klTrain.value, action: klAction.value }, use_case: 'Railway', step: 'AWARD' })
       klApplied.value = true
       klTrain.value   = ''
       klAction.value  = ''
@@ -438,21 +465,16 @@ async function pollStatus() {
     if (data.train_actions)   trainActions.value   = data.train_actions
 
     if (data.state === 'paused_for_decision') {
-      // Send ASKFORHELP trace only on first detection
-      if (state.value !== 'paused_for_decision') {
-        // Use the processInstanceId of our decision-point event card
-        const cardId = 'cabProcess.scenario_event_30'
-        try {
-          sendTrace({
-            data:     { id: cardId } as any,
-            use_case: 'Railway',
-            step:     'ASKFORHELP',
-          })
-        } catch {}
-      }
       trainNames.value     = data.train_names || {}
       activeDecision.value = data.active_decision
-      state.value          = 'paused_for_decision'
+      // Send ASKFORHELP on first detection — set state BEFORE await to prevent double-fire
+      if (state.value !== 'paused_for_decision') {
+        state.value = 'paused_for_decision'  // set immediately so next poll skips
+        const ts = data.active_decision?.timestep ?? 0
+        const ahCardId = await findAndActivateEventCard(ts)
+        sendTraceRobust({ data: { id: ahCardId }, use_case: 'Railway', step: 'ASKFORHELP' })
+      }
+      if (data.kpis_by_train) kpisByTrain.value = data.kpis_by_train
     } else if (data.state === 'complete') {
       state.value = 'complete'
       // Don't stop polling — new session may start
@@ -474,6 +496,35 @@ async function pollStatus() {
   } catch {
     // Fail silently
   }
+}
+
+async function findAndActivateEventCard(timestep: number): Promise<string> {
+  const cardsStore = useCardsStore()
+  const appStore   = useAppStore()
+  const pid = `scenario_event_${timestep}`
+
+  // Wait up to 4s for card to arrive in store (card is pushed just before decision fires)
+  for (let i = 0; i < 13; i++) {
+    const card = (cardsStore._cards as any[]).find(c => c.processInstanceId === pid)
+    if (card?.id) {
+      appStore._card = card
+      return card.id as string  // actual OperatorFabric id (may include publisher prefix)
+    }
+    await new Promise(r => setTimeout(r, 300))
+  }
+  return `cabProcess.${pid}`  // fallback if card never arrives
+}
+
+function askForHelp() {
+  helpRequested.value = true
+  // Log ASKFORHELP step when user explicitly requests help
+  try {
+    sendTrace({
+      data:     { id: 'cabProcess.scenario_decision' } as any,
+      use_case: 'Railway',
+      step:     'ASKFORHELP',
+    })
+  } catch {}
 }
 
 // -- KPI colour coding ─────────────────────────────────────────────────────────
@@ -502,30 +553,10 @@ function connectionClass(count: number): string {
 // -- Co-Learning KPI preview ───────────────────────────────────────────────────
 
 function previewKpis() {
-  if (!klTrain.value || !klAction.value || !activeDecision.value) return null
-  const train  = klTrain.value
-  const action = klAction.value
-  const opts   = activeDecision.value.options || []
-
-  for (const opt of opts) {
-    const outcome = opt.outcome || {}
-    const holds   = Object.keys(outcome.holds || {})
-    const holdTrain  = outcome.hold_train
-    const holdTrains = outcome.hold_trains || []
-
-    if (action === 'warten') {
-      if (holdTrain === train || holdTrains.includes(train) || holds.includes(train)) {
-        return opt.kpis
-      }
-    } else if (action === 'vorfahrt') {
-      const allHeld = [...holdTrains, ...holds, ...(holdTrain ? [holdTrain] : [])]
-      if (!allHeld.includes(train)) return opt.kpis
-    } else if (action === 'umleiten') {
-      const sa = outcome.scripted_actions || {}
-      if (sa[train]) return opt.kpis
-    }
-  }
-  return null
+  // Backend pre-computes kpis_by_train so we just look up the selected train
+  if (!klTrain.value || !klAction.value) return null
+  if (!kpisByTrain.value || !klTrain.value) return null
+  return kpisByTrain.value[klTrain.value] ?? null
 }
 
 // -- Lifecycle ─────────────────────────────────────────────────────────────────

@@ -192,6 +192,7 @@ class ScenarioPlayer:
             }
             if self.active_decision is not None:
                 result["active_decision"] = {
+                    "timestep":   self.active_decision.get("timestep", 0),
                     "description": self.active_decision.get("description", ""),
                     "options": [
                         {

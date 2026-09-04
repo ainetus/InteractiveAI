@@ -57,6 +57,19 @@ SCENARIO_3 = {
                 "Geschätzte Verzögerung: 18 Zeitschritte."
             ),
         },
+        {
+            "timestep":         40,
+            "type":             "info",
+            "train":            "Train_0",
+            "duration":         0,
+            "push_card":        True,
+            "card_title":       "Dispositionskonflikt — Zugreihenfolge",
+            "card_description": (
+                "Durch die Verspätungen von S 17 und S 18 ist die geplante Zugreihenfolge "
+                "nicht mehr einzuhalten. Bitte entscheiden Sie, welchem Zug Vorfahrt "
+                "gewährt werden soll."
+            ),
+        },
     ],
 
     "decision_points": [

@@ -75,12 +75,6 @@
       <div class="tl-col tl-col-modules">
         <div class="tl-col-label">Module</div>
         <div class="module-buttons">
-          <button class="module-btn module-btn-login" @click="openLogin">
-            <span class="module-label">Nutzerkennung</span>
-          </button>
-          <button class="module-btn module-btn-reflection" @click="openReflection" :disabled="experimentActive">
-            <span class="module-label">Reflexionsmodul</span>
-          </button>
           <button class="module-btn module-btn-test" @click="startTestProtocol" :disabled="sessionActive || experimentActive">
             <span class="module-label">Testprotokoll</span>
           </button>
@@ -163,8 +157,8 @@
     <div class="test-banner-info">
       <span style="font-weight:600;">Experiment {{ experimentRunIndex + 1 }}/6</span>
       <span style="margin-left:12px;">{{ experimentRuns[experimentRunIndex]?.name }}</span>
-      <span class="test-badge" :style="experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'background:#4a90d9' : 'background:#7b5ea7'">
-        {{ experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'Co-Learning' : 'Recommendation' }}
+      <span style="margin-left:8px; opacity:0.6; font-size:12px;">
+        — {{ experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'Co-Learning' : 'Recommendation' }}
       </span>
       <span style="margin-left:12px; opacity:0.7;">Schritt {{ sessionStep }}</span>
     </div>
