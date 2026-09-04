@@ -122,6 +122,27 @@ with the name of the missing variable, and the generated config is checked with 
 before the daemon starts — so a misconfiguration fails loudly at startup instead of
 producing a silently broken proxy.
 
+`REQUIRED_VARS` (space- or comma-separated) lists the variables that must be **non-empty**;
+an empty one aborts startup. It is opt-in because an absent value is not always wrong —
+local dev runs the whole stack with no cognitive token and just loses that panel — whereas
+on a public deploy an empty token means nginx sends `Bearer ` with nothing after it and
+every `/cognitive-api/` call 401s while the pod still reports itself healthy.
+`deploy-chart/values.ovh.yaml` therefore sets `REQUIRED_VARS=COGNITIVE_TOKEN`, so the pod
+crashloops with the reason in its log and k8s keeps the previous pod serving.
+
+Two ordering rules follow from all of this, and breaking the first is what silently broke
+`/cognitive-api/` once already:
+
+- **Never push a conf ahead of the pod that has to substitute it.** A placeholder the
+  running image does not know is left in the config *literally* and goes out in the proxied
+  request. `deploy-chart/apply-nginx-conf.sh` now refuses to push in that case: it checks
+  every `__NAME__` in the conf against the deployment's env, and resolves `secretKeyRef`s
+  to confirm the secret and key actually exist.
+- **Verify the config nginx loaded, not the ConfigMap.** nginx runs with an explicit
+  `-c /personal-conf/nginx.conf`; a bare `nginx -T` re-reads `/etc/nginx/nginx.conf` and the
+  raw ConfigMap mount, where `proxy_pass __POWERGRID_SIMU_UPSTREAM__;` is not a valid URL —
+  so it exits non-zero and prints nothing, which reads as a missing location.
+
 Two things to keep in mind:
 
 - **In k8s the config does not come from the image.** The `cab-assistant-platform-config`

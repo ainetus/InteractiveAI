@@ -265,7 +265,7 @@ data:
         # PowerGrid (grid2op) simulator "apply action" proxy. Keeps the browser POST
         # same-origin (no CORS) — the frontend is built with
         # VITE_POWERGRID_SIMU=/powergrid-simu and posts to /powergrid-simu/api/v1/recommendations.
-        # __POWERGRID_SIMU_UPSTREAM__ is substituted at container start by start-webui.sh
+        # The proxy_pass placeholder below is substituted at container start by start-webui.sh
         # from the POWERGRID_SIMU_UPSTREAM env var of the frontend pod.
         # No explicit Host header: nginx defaults it to $proxy_host (the authority from
         # proxy_pass), so the passerelle gets the right vhost whatever the upstream is.
@@ -283,10 +283,12 @@ data:
             root /usr/share/nginx/html;
         }
         # Proxy for the INESCTEC cognitive API (avoids browser CORS restrictions).
-        # The bearer token is attached here, not by the browser: __COGNITIVE_TOKEN__ is
-        # substituted at container start by start-webui.sh from the COGNITIVE_TOKEN env
-        # var of the frontend pod, so the token stays out of the public JS bundle and is
-        # rotated by updating the secret and restarting the deployment.
+        # The bearer token is attached here, not by the browser: the placeholder on the
+        # Authorization line is substituted at container start by start-webui.sh from the
+        # COGNITIVE_TOKEN env var of the frontend pod, so the token stays out of the public
+        # JS bundle and is rotated by updating the secret and restarting the deployment.
+        # The placeholder is deliberately not named in this comment: substitution is a
+        # plain sed, so naming it would write the token into the comment as well.
         location /cognitive-api/ {
             add_header Cache-Control "no-cache";
             proxy_set_header Host wesenss.inesctec.pt;

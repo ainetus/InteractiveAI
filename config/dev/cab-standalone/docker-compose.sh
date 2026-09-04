@@ -54,5 +54,9 @@ echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env
 echo "POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM:-http://host.docker.internal:5122/}" >> .env
 echo "COGNITIVE_TOKEN=${COGNITIVE_TOKEN:-}" >> .env
 
-cat .env
+# Echo the generated .env for confidence, with credential values masked: this file now
+# carries RL_AGENT_API_TOKEN and COGNITIVE_TOKEN, and a plain `cat` put both in the
+# terminal (and in any CI log that runs this script).
+sed -E 's/^([A-Z_]*(TOKEN|SECRET|PASSWORD)[A-Z_]*)=(.+)$/\1=<set>/; s/^([A-Z_]*(TOKEN|SECRET|PASSWORD)[A-Z_]*)=$/\1=<empty>/' .env
+
 docker compose up -d

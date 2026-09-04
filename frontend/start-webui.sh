@@ -91,6 +91,20 @@ grep "conf.d" $nginx_conf_path_personal/nginx.conf
 
 SUBST_VARS="POWERGRID_SIMU_UPSTREAM COGNITIVE_TOKEN"
 
+# Names that must carry a NON-EMPTY value, space- or comma-separated. An empty required
+# variable aborts startup instead of quietly substituting nothing.
+#
+# Opt-in rather than "everything is required" because an absent value is not always wrong.
+# Local dev runs the whole stack without a cognitive token and merely loses the cognitive
+# panel, so demanding one there would block work on unrelated features. A public deployment
+# is the opposite case: an empty token means nginx sends "Bearer " with nothing after it and
+# every /cognitive-api/ call 401s while the pod reports itself healthy. So
+# deploy-chart/values.ovh.yaml sets REQUIRED_VARS=COGNITIVE_TOKEN and the pod crashloops
+# instead - which in k8s leaves the previous pod serving, and puts the reason in the logs.
+: "${REQUIRED_VARS:=}"
+
+missing_required=""
+
 for name in $SUBST_VARS; do
     eval "value=\$$name"
     # Escape the sed replacement metacharacters, including the # delimiter, so tokens and
@@ -103,7 +117,23 @@ for name in $SUBST_VARS; do
             if [ -n "$value" ]; then echo "$name: set (${#value} chars)"; else echo "$name: EMPTY"; fi ;;
         *) echo "$name: $value" ;;
     esac
+    # Collected rather than fatal on the spot, so the log names every missing variable in
+    # one go instead of one per restart.
+    if [ -z "$value" ] && printf '%s' "$REQUIRED_VARS" | tr ',' ' ' | grep -qw "$name"; then
+        missing_required="$missing_required $name"
+    fi
 done
+
+if [ -n "$missing_required" ]; then
+    echo "ERROR: required runtime variable(s) empty:$missing_required" >&2
+    echo "They are listed in REQUIRED_VARS=\"$REQUIRED_VARS\" and would have been substituted" >&2
+    echo "into the nginx conf as empty strings - producing a proxy that answers requests but" >&2
+    echo "sends no credentials, which surfaces only as a 401 from the upstream. Refusing to" >&2
+    echo "start instead." >&2
+    echo "In k8s: check the env var on the deployment, and that the secret and key it" >&2
+    echo "references both exist (deploy-chart/apply-nginx-conf.sh reports this)." >&2
+    exit 1
+fi
 
 # A placeholder that survives means its env var was never set. nginx would either refuse to
 # start on an invalid proxy_pass or, worse, serve a silently broken proxy - so fail here,
