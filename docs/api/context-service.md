@@ -32,10 +32,8 @@ As with events, the `data` field carries domain-specific context that the HMI us
   "use_case": "Powergrid",
   "date": "2024-03-15T10:23:00Z",
   "data": {
-    "grid_load_percent": 87.3,
-    "weather": "storm",
-    "operator_shift": "night",
-    "active_incidents": 2
+    "obs" : {},
+    "topology" : img
   }
 }
 ```
