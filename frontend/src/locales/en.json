@@ -73,5 +73,9 @@
   "recommendations.description.more": "{sign} details",
   "recommendations.modal": "You are about to apply {recommendation}. Do you want to continue?",
   "recommendations.title": "Recommendations",
+  "survey.intro": "Please answer this short questionnaire about the session you have just finished. Your participant and condition identifiers are already filled in - just press Start.",
+  "survey.skip": "Skip the questionnaire",
+  "survey.thanks": "Thank you, your answers have been saved.",
+  "survey.title": "Before you log out",
   "to": "to"
 }

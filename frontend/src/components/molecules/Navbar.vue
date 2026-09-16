@@ -77,6 +77,8 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useCardsStore } from '@/stores/cards'
 import type { Entity } from '@/types/entities'
+import { requestSurvey, UNKNOWN_USE_CASE } from '@/utils/survey'
+import { currentTraceSessionId } from '@/utils/traceSessionExport'
 import { asset, hashColor } from '@/utils/utils'
 
 import pkg from '../../../package.json'
@@ -116,9 +118,37 @@ function logout() {
   })
 }
 
+/**
+ * End the session, then hand the operator the HMI questionnaire chain.
+ *
+ * Both identifiers are read *before* `logout()`, which clears the trace session
+ * and the user: the survey is tagged with the session that just ended
+ * (Participant ID) and the use case it was run on (Condition ID), so the
+ * operator only has to press Start.
+ */
 function leave() {
+  const sessionId = currentTraceSessionId()
+  const entity = router.currentRoute.value.params.entity as Entity | undefined
+  // Logging out from the home page: unambiguous only when the operator has a
+  // single use case.
+  const useCase =
+    entity ??
+    (authStore.entities.length === 1
+      ? (authStore.entities[0] as Entity)
+      : UNKNOWN_USE_CASE)
+
   authStore.logout()
-  router.push({ name: 'login' })
+
+  // No session recorded (e.g. a reloaded tab that never started one): nothing
+  // to attach answers to, so skip the survey rather than file them under a
+  // missing id.
+  if (!sessionId) {
+    router.push({ name: 'login' })
+    return
+  }
+
+  requestSurvey({ sessionId, useCase })
+  router.push({ name: 'survey' })
 }
 </script>
 <style scoped>

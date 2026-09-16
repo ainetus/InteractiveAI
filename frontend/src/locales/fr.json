@@ -73,5 +73,9 @@
   "recommendations.description.more": "{sign} détails",
   "recommendations.modal": "Vous êtes sur le point d'appliquer {recommendation}. Voulez-vous continuer ?",
   "recommendations.title": "Recommandations",
+  "survey.intro": "Merci de répondre à ce court questionnaire sur la session que vous venez de terminer. Vos identifiants de participant et de condition sont déjà renseignés : il suffit d'appuyer sur Start.",
+  "survey.skip": "Passer le questionnaire",
+  "survey.thanks": "Merci, vos réponses ont été enregistrées.",
+  "survey.title": "Avant de vous déconnecter",
   "to": "à"
 }

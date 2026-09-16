@@ -562,6 +562,14 @@ function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'htm
   return `historic-session-${user}-${started}.${extension}`
 }
 
+/**
+ * Id of the session currently being recorded, if any. Read before `logout()`
+ * clears the session, so the post-logout survey can be tagged with it.
+ */
+export function currentTraceSessionId(): string | undefined {
+  return loadSession()?.sessionId
+}
+
 export function startTraceSession(userLogin?: string) {
   saveSession(createSession(userLogin))
 }
