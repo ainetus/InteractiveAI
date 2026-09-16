@@ -4,7 +4,7 @@ import type { Trace } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 
 type ExportFormat = 'json' | 'csv'
-type SessionStep = Trace['step'] | 'FEEDBACK'
+type SessionStep = Trace['step'] | 'FEEDBACK' | 'RECOMMENDATIONS'
 
 type StoredTrace = {
   date: string
@@ -129,6 +129,13 @@ type StructuredEvent = StoredTrace & {
   interactions: StoredTrace[]
   /** Time in ms between ASKFORHELP and AWARD. null when the user didn't choose a solution. */
   decision_time_ms: number | null
+  /**
+   * Time in ms between the recommendations appearing on screen and the operator
+   * applying one - the decision time with the agent's own latency taken out.
+   * null when no solution was applied, or when the session predates the
+   * RECOMMENDATIONS trace.
+   */
+  human_decision_time_ms: number | null
 }
 
 type StructuredTrace = StoredTrace | StructuredEvent
@@ -138,6 +145,13 @@ type SessionKpis = {
   total_session_time_ms: number
   /** Average decision time across ALL events (sum of decision times / total events). null if no events. */
   avg_decision_time_ms: number | null
+  /**
+   * Average human decision time, over the events where one could be measured
+   * (recommendations displayed *and* a solution applied) rather than over every
+   * event - an event the operator never acted on says nothing about how long
+   * they take to decide. null when no event qualifies.
+   */
+  avg_human_decision_time_ms: number | null
 }
 
 function isStructuredEvent(t: StructuredTrace): t is StructuredEvent {
@@ -153,6 +167,22 @@ function computeDecisionTime(interactions: StoredTrace[]): number | null {
   }
   if (!askDate || !awardDate) return null
   return new Date(awardDate).getTime() - new Date(askDate).getTime()
+}
+
+/**
+ * How long the operator themselves took: from the recommendations being shown
+ * to the apply. `decision_time_ms` starts one step earlier, at ASKFORHELP, so it
+ * also carries however long the recommendation service took to answer.
+ */
+function computeHumanDecisionTime(interactions: StoredTrace[]): number | null {
+  let shownDate: string | undefined
+  let awardDate: string | undefined
+  for (let i = 0; i < interactions.length; i++) {
+    if (interactions[i].step === 'RECOMMENDATIONS' && !shownDate) shownDate = interactions[i].date
+    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
+  }
+  if (!shownDate || !awardDate) return null
+  return new Date(awardDate).getTime() - new Date(shownDate).getTime()
 }
 
 /** Map legacy event_type values to human-readable labels for export. */
@@ -171,7 +201,12 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
 
   for (const trace of flat) {
     if (trace.step === 'EVENT') {
-      const structured: StructuredEvent = { ...trace, interactions: [], decision_time_ms: null }
+      const structured: StructuredEvent = {
+        ...trace,
+        interactions: [],
+        decision_time_ms: null,
+        human_decision_time_ms: null
+      }
       const data = trace.data as Record<string, unknown> | undefined
       const cardId = data?.card_id as string | undefined
       if (cardId) eventByCardId[cardId] = structured
@@ -208,6 +243,7 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
   for (const entry of result) {
     if (isStructuredEvent(entry)) {
       entry.decision_time_ms = computeDecisionTime(entry.interactions)
+      entry.human_decision_time_ms = computeHumanDecisionTime(entry.interactions)
     }
   }
 
@@ -279,6 +315,7 @@ function stepBadge(step: string): string {
     EVENT: '#2563eb',
     ASKFORHELP: '#d97706',
     FEEDBACK: '#7c3aed',
+    RECOMMENDATIONS: '#0ea5e9',
     AWARD: '#059669',
     SOLUTION: '#0891b2'
   }
@@ -498,6 +535,8 @@ function buildHtmlSummary(
   const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
   html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Avg Decision Time (across all events)</div></div>'
+  const humanDecided = events.filter(function (e) { return e.human_decision_time_ms !== null })
+  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Avg Human Decision Time (' + humanDecided.length + ' event' + (humanDecided.length === 1 ? '' : 's') + ', recommendations shown &rarr; apply)</div></div>'
   html += '</div>'
 
   // Per-event details
@@ -525,7 +564,10 @@ function buildHtmlSummary(
 
     // Decision time
     if (evt.decision_time_ms !== null) {
-      html += '<div style="margin-top:8px;font-size:13px">&#9201; Decision time: <b>' + formatMs(evt.decision_time_ms) + '</b></div>'
+      html += '<div style="margin-top:8px;font-size:13px">&#9201; Decision time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280">(from asking for help)</span></div>'
+      if (evt.human_decision_time_ms !== null) {
+        html += '<div style="font-size:13px">&#128100; Human decision time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280">(from the recommendations being shown)</span></div>'
+      }
     } else {
       html += '<div class="no-solution" style="margin-top:8px">No solution selected</div>'
     }
@@ -746,9 +788,15 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
     (sum, evt) => sum + (evt.decision_time_ms ?? 0),
     0
   )
+  const humanDecisionTimes = events
+    .map((evt) => evt.human_decision_time_ms)
+    .filter((time): time is number => time !== null)
   const kpis: SessionKpis = {
     total_session_time_ms: totalSessionTimeMs,
-    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null
+    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null,
+    avg_human_decision_time_ms: humanDecisionTimes.length
+      ? humanDecisionTimes.reduce((sum, time) => sum + time, 0) / humanDecisionTimes.length
+      : null
   }
 
   // Build HTML summary before replacing event_context so the image is preserved in the HTML
