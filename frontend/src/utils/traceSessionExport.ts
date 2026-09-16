@@ -474,13 +474,19 @@ function buildHtmlSummary(
   html += 'h3{margin:0 0 6px 0;font-size:15px}'
   html += '.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:12px;background:#e5e7eb;color:#374151;margin-right:4px}'
   html += '.no-solution{color:#dc2626;font-style:italic;font-size:13px}'
-  html += '@media print{body{padding:12px}.card{box-shadow:none;break-inside:avoid}}'
+  html += '.copy-btn{margin-left:6px;padding:1px 8px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;font-size:11px;font-family:inherit;cursor:pointer;vertical-align:middle}'
+  html += '.copy-btn:hover{background:#f3f4f6}'
+  html += '.copy-btn.copied{border-color:#059669;color:#059669}'
+  html += '@media print{body{padding:12px}.card{box-shadow:none;break-inside:avoid}.copy-btn{display:none}}'
   html += '</style></head><body>'
 
   // Header
   html += '<div class="card">'
   html += '<h1>Session Summary</h1>'
-  html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span></div>'
+  // The session id is what ties this report to the survey answers and the JSON
+  // export, so it is made copyable rather than retyped by hand.
+  html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span>'
+  html += '<button type="button" class="copy-btn" data-copy="' + escapeHtml(session.sessionId) + '" onclick="copyValue(this)" title="Copy the session id">Copy</button></div>'
   html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">' + formatTime(session.startedAt) + ' &rarr; ' + formatTime(endedAt) + '</div>'
   html += '</div>'
 
@@ -546,6 +552,22 @@ function buildHtmlSummary(
 
     html += '</div>'
   }
+
+  // Inline so the report keeps working as a standalone file. `execCommand` is
+  // the fallback for the downloaded copy: opened from file://, some browsers
+  // refuse the async clipboard API.
+  html += '<script>'
+  html += 'function copyValue(btn){'
+  html += 'var text=btn.getAttribute("data-copy");'
+  html += 'var mark=function(){btn.textContent="Copied";btn.className="copy-btn copied";'
+  html += 'setTimeout(function(){btn.textContent="Copy";btn.className="copy-btn"},1500)};'
+  html += 'if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(mark,function(){legacyCopy(text,mark)})}'
+  html += 'else{legacyCopy(text,mark)}}'
+  html += 'function legacyCopy(text,done){'
+  html += 'var area=document.createElement("textarea");area.value=text;'
+  html += 'area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);'
+  html += 'area.select();try{if(document.execCommand("copy"))done()}catch(e){}area.remove()}'
+  html += '</' + 'script>'
 
   html += '</body></html>'
   return html
