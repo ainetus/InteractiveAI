@@ -68,6 +68,7 @@
   "modal.error.SESSION_EXPIRED": "Your session has expired, please log in again",
   "modal.error.default": "Request to {url} failed with code {code} and message {message}",
   "modal.info.DELETE_ALERTS": "Delete the remaining alerts? They will not be shown at the next login.",
+  "modal.info.OPEN_SESSION_LOG": "Open the session report in a new tab? It is saved with the session files either way.",
   "modal.info.SUBSCRIPTION_ACTIVE": "A user is logged in, log them out?",
   "recommendations.description": "Description",
   "recommendations.description.more": "{sign} details",

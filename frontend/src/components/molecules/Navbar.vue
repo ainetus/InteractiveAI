@@ -137,11 +137,15 @@ function leave() {
       ? (authStore.entities[0] as Entity)
       : UNKNOWN_USE_CASE)
 
-  authStore.logout()
+  // The session report would open on top of the questionnaire and hide it, so
+  // it is held back whenever a survey follows; the survey page offers it once
+  // the operator is done (`openDeferredSummary`). The files are written either
+  // way.
+  authStore.logout('json', { openSummary: !sessionId })
 
   // No session recorded (e.g. a reloaded tab that never started one): nothing
   // to attach answers to, so skip the survey rather than file them under a
-  // missing id.
+  // missing id - and the report opens straight away, as it always did.
   if (!sessionId) {
     router.push({ name: 'login' })
     return

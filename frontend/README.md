@@ -144,6 +144,21 @@ session id and use case **before** `logout()` clears them, queues them with
 
 so both fields are prefilled and hidden - only *Start* is left to press.
 
+The session report (`exportTraceSession`) still writes its JSON and HTML files
+on logout, but it no longer opens itself in a new tab there: that tab takes the
+focus, and an operator who did not notice the survey behind it never took it.
+The report is held back (`openSummary: false`) and offered once the
+questionnaire is over — *Delete the remaining alerts?* → survey → *Open the
+session report?* — so the full order is
+
+1. `Navbar.leave` exports the session, keeping the report in memory.
+2. The operator answers the questionnaire, or skips it.
+3. The survey page asks whether to open the report, then returns to the login
+   page.
+
+Logging out without a recorded session skips both steps and opens the report
+immediately, as it always did.
+
 ### Changing the questionnaires
 
 The chain lives at the top of `public/surveys/surveychainer.html`:

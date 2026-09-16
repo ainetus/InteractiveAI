@@ -23,6 +23,13 @@ type TraceSession = {
 type ExportOptions = {
   force?: boolean
   userLogin?: string
+  /**
+   * Whether the HTML summary is opened in a new tab right away. The file is
+   * written either way. `false` holds the report back instead - the tab steals
+   * the focus, which would cover the post-logout survey, so it is offered once
+   * the questionnaire is over (see `openDeferredSummary`).
+   */
+  openSummary?: boolean
 }
 
 const STORAGE_KEY = 'interactiveai.trace-session.v1'
@@ -544,6 +551,46 @@ function buildHtmlSummary(
   return html
 }
 
+/** Show an already-built report in a new tab. */
+function openSummaryTab(url: string) {
+  // <a target="_blank"> rather than window.open(): survives popup blockers
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.target = '_blank'
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+}
+
+/**
+ * Report held back by `openSummary: false`, waiting for the operator to say
+ * whether they want to see it. Object URLs live as long as the document, so it
+ * survives the client-side navigation to /survey - but not a reload, which is
+ * harmless: the same report was downloaded as a file.
+ */
+let deferredSummaryUrl: string | undefined
+
+/** True while a report is waiting to be shown. */
+export function hasDeferredSummary(): boolean {
+  return !!deferredSummaryUrl
+}
+
+/** Show the held-back report, if there is one. */
+export function openDeferredSummary(): void {
+  if (!deferredSummaryUrl) return
+  openSummaryTab(deferredSummaryUrl)
+  // Not revoked: the tab that was just opened is still reading from it.
+  deferredSummaryUrl = undefined
+}
+
+/** Drop the held-back report unseen, freeing the blob it holds. */
+export function dropDeferredSummary(): void {
+  if (!deferredSummaryUrl) return
+  URL.revokeObjectURL(deferredSummaryUrl)
+  deferredSummaryUrl = undefined
+}
+
 function download(content: string, mimeType: string, fileName: string) {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
@@ -711,17 +758,14 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
   )
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))
 
-  // Open HTML summary in a new tab (use <a target="_blank"> to avoid popup blocker)
+  // A report from an earlier export was never claimed: it will not be now.
+  dropDeferredSummary()
   const summaryBlob = new Blob([summaryHtml], { type: 'text/html;charset=utf-8' })
   const summaryUrl = URL.createObjectURL(summaryBlob)
-  const summaryAnchor = document.createElement('a')
-  summaryAnchor.href = summaryUrl
-  summaryAnchor.target = '_blank'
-  summaryAnchor.rel = 'noopener'
-  document.body.appendChild(summaryAnchor)
-  summaryAnchor.click()
-  summaryAnchor.remove()
-  // Also download the HTML file as a backup
+  if (options.openSummary ?? true) openSummaryTab(summaryUrl)
+  else deferredSummaryUrl = summaryUrl
+
+  // The HTML file is written whether or not the report is ever opened
   download(summaryHtml, 'text/html;charset=utf-8', sessionFileName(session, 'html'))
 }
 

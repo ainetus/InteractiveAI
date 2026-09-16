@@ -17,12 +17,21 @@
 </template>
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import Button from '@/components/atoms/Button.vue'
+import { useAppStore } from '@/stores/app'
 import { clearPendingSurvey, pendingSurvey, surveyUrl } from '@/utils/survey'
+import {
+  dropDeferredSummary,
+  hasDeferredSummary,
+  openDeferredSummary
+} from '@/utils/traceSessionExport'
 
 const router = useRouter()
+const appStore = useAppStore()
+const { t } = useI18n()
 
 /**
  * Read once: the request is cleared as soon as the chain is over, and the
@@ -45,10 +54,28 @@ function onMessage(event: MessageEvent) {
   clearPendingSurvey()
 }
 
-/** Leave the questionnaire, taken or skipped, and drop the pending request. */
+/**
+ * Leave the questionnaire, taken or skipped.
+ *
+ * The session report was held back at logout so it would not cover the survey;
+ * this is where the operator is offered it, once nothing is left to hide. The
+ * new tab is opened from the click on *Yes*, so no popup blocker rejects it.
+ */
 function leave() {
   clearPendingSurvey()
-  router.push({ name: 'login' })
+  if (!hasDeferredSummary()) {
+    router.push({ name: 'login' })
+    return
+  }
+  appStore.addModal({
+    data: t('modal.info.OPEN_SESSION_LOG'),
+    type: 'choice',
+    callback: (open) => {
+      if (open) openDeferredSummary()
+      else dropDeferredSummary()
+      router.push({ name: 'login' })
+    }
+  })
 }
 
 onMounted(() => window.addEventListener('message', onMessage))

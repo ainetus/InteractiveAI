@@ -68,6 +68,7 @@
   "modal.error.SESSION_EXPIRED": "Votre session a expiré, veuillez vous reconnecter",
   "modal.error.default": "La requête à {url} a échoué avec le code {code} et le message {message}",
   "modal.info.DELETE_ALERTS": "Supprimer les alertes restantes ? Elles ne seront plus affichées à la prochaine connexion.",
+  "modal.info.OPEN_SESSION_LOG": "Ouvrir le rapport de session dans un nouvel onglet ? Il est enregistré avec les fichiers de session dans tous les cas.",
   "modal.info.SUBSCRIPTION_ACTIVE": "Un utilisateur est connecté, le déconnecter ?",
   "recommendations.description": "Description",
   "recommendations.description.more": "{sign} détails",
