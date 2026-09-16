@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { AppWindow, ArrowUpDown, Bell, LogIn, User } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAppStore } from '@/stores/app'
@@ -90,9 +91,32 @@ const authStore = useAuthStore()
 const cardsStore = useCardsStore()
 const appStore = useAppStore()
 
+const { t } = useI18n()
+
 const color = computed(() => (env.PROD ? 'var(--color-primary)' : hashColor(env.MODE)))
 
+/**
+ * Offer to wipe the alerts still on the board before leaving. Cards outlive the
+ * session server-side, so without this the next operator reopens the previous
+ * run's events. Deleting needs a live token, hence before `authStore.logout()`.
+ */
 function logout() {
+  if (!cardsStore._cards.length) return leave()
+  appStore.addModal({
+    data: t('modal.info.DELETE_ALERTS'),
+    type: 'choice',
+    callback: async (success) => {
+      if (success) {
+        const failed = await cardsStore.removeAll()
+        if (failed)
+          appStore.addModal({ data: t('modal.error.DELETE_ALERTS', { n: failed }), type: 'info' })
+      }
+      leave()
+    }
+  })
+}
+
+function leave() {
   authStore.logout()
   router.push({ name: 'login' })
 }
