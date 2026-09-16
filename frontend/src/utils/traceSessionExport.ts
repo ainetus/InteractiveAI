@@ -57,7 +57,47 @@ function loadSession(): TraceSession | undefined {
 }
 
 function saveSession(session: TraceSession) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  } catch (error) {
+    // Quota exceeded: traces carry base64 snapshots and full observations, so a
+    // long session can fill the 5 MB store. Keep what is already recorded
+    // instead of letting the write reject and stop the recording altogether.
+    console.warn('Unable to persist the trace session (storage full?):', error)
+  }
+}
+
+/** Narrow an unknown trace payload to something spreadable. */
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+}
+
+/**
+ * The grid state the operator was looking at when an event fired - the very
+ * payload the recommendation service is handed, kept verbatim (~20 kB of JSON
+ * per event). Only the PowerGrid context carries an `observation`; the other
+ * use cases record nothing.
+ *
+ * The services store is imported lazily: it reaches the auth store, which
+ * imports this module, and a static cycle would leave the import undefined at
+ * module-init time.
+ */
+async function currentObservation(useCase: Trace['use_case']): Promise<unknown> {
+  try {
+    const { useServicesStore } = await import('@/stores/services')
+    const stored = asRecord(useServicesStore().context(useCase)?.data).observation
+    if (stored !== undefined) return stored
+
+    // The store only publishes a context once its id *changes*, so it is still
+    // empty right after login - fetch directly rather than lose the first
+    // events of a session.
+    const { getContext } = await import('@/api/services')
+    const { data } = await getContext()
+    return asRecord(data.find((item) => item.use_case === useCase)?.data).observation
+  } catch (error) {
+    console.warn('Unable to attach the context observation to the trace:', error)
+    return undefined
+  }
 }
 
 function eventKey(data: unknown): string | undefined {
@@ -268,6 +308,28 @@ function isLargeBlob(val: unknown): boolean {
   return str.length > MAX_VALUE_LENGTH
 }
 
+/**
+ * Build an `<img>` source from a raw base64 payload.
+ *
+ * The PowerGrid simulator renders its observation snapshots as SVG since the
+ * zoom feature landed (`plt.savefig(..., format="svg")`), while older sessions
+ * still carry PNG. A `data:image/png` URI holding SVG bytes renders as a broken
+ * image, so the media type is sniffed from the payload instead of assumed.
+ */
+function imageDataUri(base64: string): string {
+  if (base64.startsWith('data:')) return base64
+  let head = ''
+  try {
+    // 64 chars is a whole number of base64 quanta, so a prefix decodes cleanly
+    head = atob(base64.slice(0, 64)).trimStart()
+  } catch {
+    // Undecodable on its own - fall back to PNG, the historical format
+  }
+  const isSvg =
+    head.startsWith('<svg') || head.startsWith('<?xml') || head.startsWith('<!DOCTYPE svg')
+  return 'data:' + (isSvg ? 'image/svg+xml' : 'image/png') + ';base64,' + base64
+}
+
 function eventMetadataHtml(data: unknown): string {
   if (!data || typeof data !== 'object') return ''
   const d = data as Record<string, unknown>
@@ -279,7 +341,7 @@ function eventMetadataHtml(data: unknown): string {
     const key = keys[i]
     const val = meta[key]
     if (key === 'event_context' && isLargeBlob(val) && typeof val === 'string') {
-      const src = val.startsWith('data:') ? val : 'data:image/png;base64,' + val
+      const src = imageDataUri(val)
       rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px;vertical-align:top">' + escapeHtml(key) + '</td><td><img src="' + src + '" style="width:600px;max-width:100%;border-radius:4px;margin-top:4px;cursor:zoom-in" alt="event context image" onclick="this.style.width=this.style.width===\'100%\'?\'600px\':\'100%\'"></td></tr>')
     } else if (isLargeBlob(val)) {
       rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(key) + '</td><td style="font-size:13px;color:#9ca3af;font-style:italic">[large data omitted]</td></tr>')
@@ -288,6 +350,23 @@ function eventMetadataHtml(data: unknown): string {
     }
   }
   return '<table style="margin:4px 0 0 16px">' + rows.join('') + '</table>'
+}
+
+/**
+ * The observation is ~65 arrays of floats: useful to have, unreadable inline.
+ * Render it folded so the event card stays scannable.
+ */
+function observationHtml(data: unknown): string {
+  const observation = asRecord(data).observation
+  if (!observation || typeof observation !== 'object') return ''
+  const fields = Object.keys(observation as Record<string, unknown>).length
+  return (
+    '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:#6b7280">Grid observation (' +
+    fields +
+    ' fields)</summary><pre style="max-height:400px;overflow:auto;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all">' +
+    escapeHtml(JSON.stringify(observation, null, 2)) +
+    '</pre></details>'
+  )
 }
 
 function cognitiveSnapshotHtml(data: unknown): string {
@@ -428,6 +507,7 @@ function buildHtmlSummary(
     if (eventSummary) html += '<div style="font-size:13px;color:#6b7280;margin-bottom:4px">' + escapeHtml(eventSummary) + '</div>'
     html += '<div class="time">' + formatTime(evt.date) + '</div>'
     html += eventMetadataHtml(evt.data)
+    html += observationHtml(evt.data)
     html += cognitiveSnapshotHtml(evt.data)
 
     // Decision time
@@ -512,25 +592,27 @@ export async function recordTraceForSession(
     }
   }
 
+  // Snapshot the context observation alongside the event, so the export says
+  // what the grid actually looked like and not just which card was raised.
+  let baseData = trace.data
+  if (trace.step === 'EVENT') {
+    const observation = await currentObservation(trace.use_case)
+    if (observation !== undefined) baseData = { ...asRecord(trace.data), observation }
+  }
+
   // Enrich trace data with the latest cognitive snapshot — but only when the
   // operator has consented. Without consent, nothing is fetched or recorded.
   // On API failure the snapshot contains an `error` field.
-  let enrichedData: unknown = trace.data
+  let enrichedData: unknown = baseData
   if (hasCognitiveConsent()) {
     try {
       const cognitiveSnapshot = await fetchCognitiveSnapshot()
-      const base = (trace.data !== null && typeof trace.data === 'object')
-        ? (trace.data as Record<string, unknown>)
-        : {}
-      enrichedData = { ...base, cognitive_snapshot: cognitiveSnapshot }
+      enrichedData = { ...asRecord(baseData), cognitive_snapshot: cognitiveSnapshot }
     } catch (err: unknown) {
       // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
       const message = err instanceof Error ? err.message : String(err)
-      const base = (trace.data !== null && typeof trace.data === 'object')
-        ? (trace.data as Record<string, unknown>)
-        : {}
       enrichedData = {
-        ...base,
+        ...asRecord(baseData),
         cognitive_snapshot: {
           cognitive_performance: null,
           stress_state: null,
