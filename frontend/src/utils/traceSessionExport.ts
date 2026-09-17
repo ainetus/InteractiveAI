@@ -534,9 +534,9 @@ function buildHtmlSummary(
 
   const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Avg Decision Time (across all events)</div></div>'
+  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Average Total Decision Time </div></div>'
   const humanDecided = events.filter(function (e) { return e.human_decision_time_ms !== null })
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Avg Human Decision Time (' + humanDecided.length + ' event' + (humanDecided.length === 1 ? '' : 's') + ', recommendations shown &rarr; apply)</div></div>'
+  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Average Human Response Time </div></div>'
   html += '</div>'
 
   // Per-event details
@@ -564,9 +564,9 @@ function buildHtmlSummary(
 
     // Decision time
     if (evt.decision_time_ms !== null) {
-      html += '<div style="margin-top:8px;font-size:13px">&#9201; Decision time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280">(from asking for help)</span></div>'
+      html += '<div style="margin-top:8px;font-size:13px">&#9201; Total Decision Time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
       if (evt.human_decision_time_ms !== null) {
-        html += '<div style="font-size:13px">&#128100; Human decision time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280">(from the recommendations being shown)</span></div>'
+        html += '<div style="font-size:13px">&#128100; Human Response Time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
       }
     } else {
       html += '<div class="no-solution" style="margin-top:8px">No solution selected</div>'
@@ -655,6 +655,9 @@ export function dropDeferredSummary(): void {
   deferredSummaryUrl = undefined
 }
 
+/** Grace period before a download's object URL is released. */
+const REVOKE_DELAY_MS = 60_000
+
 function download(content: string, mimeType: string, fileName: string) {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
@@ -664,7 +667,11 @@ function download(content: string, mimeType: string, fileName: string) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  // Revoked on a timer rather than inline: the browser reads the blob
+  // asynchronously, *after* the click returns, so revoking in the same task can
+  // cancel the download before it starts. The small JSON usually wins that race
+  // and the HTML report - megabytes of base64 screenshots - loses it.
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS)
 }
 
 function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'html') {
