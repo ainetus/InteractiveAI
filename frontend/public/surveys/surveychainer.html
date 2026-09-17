@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Chain Orchestrator</title>
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 24px;
+            background: #f9f9f9;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        /* The chain fills whatever height it is given (a browser tab or the
+           InteractiveAI survey page) rather than overflowing it. */
+        #part1 {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        iframe {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .hidden { display: none; }
+        .btn {
+            align-self: center;
+            margin-top: 25px;
+            padding: 10px 20px;
+            border: none;
+            background: #007acc;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover { background: #005fa3; }
+        #progress { margin-bottom: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<section id="part1">
+    <h1>Survey Session</h1>
+    <p id="progress">Press Start button below</p>
+
+    <!-- Participant info fields (shown only if ParticipantID == true) -->
+    <div id="participantInfo" style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+        <label for="pid"><strong>Participant ID:</strong></label>
+        <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+        <label for="cond"><strong>Condition ID:</strong></label>
+        <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+    </div>
+
+    <iframe id="surveyFrame" src="" allow="clipboard-write"></iframe>
+
+    <button id="startBtn" class="btn">Start</button>
+    <button id="downloadBtn" class="btn hidden">Finish</button>
+</section>
+
+<section id="resultsSection" class="hidden">
+</section>
+
+<script>
+    // =============================================================
+    // === GLOBAL CONTROL BOOLEANS =================================
+    // =============================================================
+    const fileDownload = true;       // Set to true to auto-download JSON
+    const ParticipantID = true;      // Set to true to show Participant/Condition fields
+
+    // =============================================================
+    // === HOST-SUPPLIED IDENTITY ==================================
+    // =============================================================
+    // InteractiveAI embeds this chainer and passes the operator's identity in
+    // the query string: ?participant=<trace session id>&condition=<use case>.
+    // Both fields are then prefilled and hidden - the operator only presses
+    // Start. Opened standalone (no params), the chainer asks for them as before.
+    const surveyParams = new URLSearchParams(window.location.search);
+    const prefill = {
+        id: (surveyParams.get("participant") || "").trim(),
+        condition: (surveyParams.get("condition") || "").trim()
+    };
+    const autofilled = !!(prefill.id && prefill.condition);
+
+    // =============================================================
+    // === SURVEY CHAIN CONFIGURATION ===============================
+    // =============================================================
+    // Chain played when the condition has no entry of its own below.
+    const DEFAULT_CHAIN = [
+        { name: "System Understanding & Confidence", url: "./understanding/understanding.html" },
+        { name: "UEQ – User Experience Questionnaire", url: "./experience/ueq_short.html" },
+        { name: "Van der Laan Acceptance", url: "./acceptance/vanderlaan.html" },
+        { name: "Modified Cooper–Harper Workload", url: "./workload/mch.html" }
+    ];
+
+    // Per-use-case chains, keyed by the condition InteractiveAI sends (the
+    // entity name: PowerGrid, ATM, Railway). Every use case shares the default
+    // chain today; give one its own questionnaires by adding an entry here,
+    // e.g. PowerGrid: [{ name: "...", url: "./workload/nasa_tlx.html" }].
+    const CHAINS = {};
+
+    const surveys = CHAINS[prefill.condition] || DEFAULT_CHAIN;
+
+    // =============================================================
+    // === STATE ====================================================
+    let current = -1;
+
+    let participantData = {
+        id: prefill.id || "anon",
+        condition: prefill.condition || "none"
+    };
+
+    const allResults = {
+        timestamp: new Date().toISOString(),
+        surveys: []
+    };
+
+    const frame = document.getElementById("surveyFrame");
+    const progress = document.getElementById("progress");
+    const startBtn = document.getElementById("startBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    // =============================================================
+    // === MESSAGE HANDLER =========================================
+    window.addEventListener("message", (event) => {
+        if (!event.data || !event.data.success) return;
+
+        const surveyMeta = surveys[current];
+        console.log(`📩 Received data from: ${surveyMeta.name}`, event.data);
+
+        // Store current survey results
+        allResults.surveys.push({
+            surveyName: surveyMeta.name,
+            timestamp: new Date().toISOString(),
+            payload: event.data
+        });
+
+        // Proceed to next survey
+        if (current + 1 < surveys.length) {
+            current++;
+            loadSurvey();
+        } else {
+            finishSession();
+        }
+    });
+
+    // === Show participant fields if enabled ===
+    if (autofilled) {
+        // Filled in but left hidden, so the values are visible in the DOM when
+        // debugging a session without ever being asked of the operator.
+        document.getElementById("pid").value = participantData.id;
+        document.getElementById("cond").value = participantData.condition;
+    } else if (ParticipantID) {
+        document.getElementById("participantInfo").style.display = "block";
+    }
+
+    // =============================================================
+    // === SURVEY FLOW ==============================================
+    startBtn.addEventListener("click", () => {
+        startBtn.classList.add("hidden");
+        current = 0;
+        loadSurvey();
+    });
+
+    function loadSurvey() {
+        const survey = surveys[current];
+        progress.textContent = `Survey ${current + 1} of ${surveys.length}: ${survey.name}`;
+
+        // Build URL and enforce global overrides
+        const url = new URL(survey.url, window.location.href);
+        frame.src = url.href;
+    }
+
+    function finishSession() {
+
+        frame.classList.add("hidden");
+        progress.textContent = "✅ All surveys completed!";
+        downloadBtn.classList.remove("hidden");
+    }
+
+    downloadBtn.addEventListener("click", () => {
+
+        // === Capture optional participant info ===
+        if (ParticipantID && !autofilled) {
+            participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+            participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+        }
+
+        if (ParticipantID && !autofilled && (participantData.id === "anon" || participantData.condition === "none")) {
+            alert("Please enter both Participant ID and Condition ID.");
+            return;
+        }
+
+        // `parent`, not `top`: InteractiveAI embeds this chainer in an iframe, so
+        // `top` would be the app shell and the listener here would be bypassed.
+        window.parent.postMessage({ success: true, participantData, allResults }, "*");
+
+        if (fileDownload) downloadResultsJSON({ success: true, participantData, allResults });
+
+        document.getElementById("part1").style.display = "none";
+        const resultsSection = document.getElementById("resultsSection");
+        resultsSection.style.display = "block";
+
+        document.getElementById("resultsSection").outerText = "Thank you!";
+
+    });
+
+    // === Optional local JSON file download ===
+    function downloadResultsJSON(results) {
+        const pid = results.participantData?.id || "anon";
+        const cond = results.participantData?.condition || "none";
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `survey_session_${pid}_${cond}_${timestamp}.json`;
+        const json = JSON.stringify(results, null, 2);
+
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>

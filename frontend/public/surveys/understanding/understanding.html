@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comprehensive AI System Understanding Assessment (Fixed)</title>
+<style>
+body {font-family:Arial,Helvetica,sans-serif;margin:20px;line-height:1.5;}
+h2 {margin-top:0;}
+table.scale {border-collapse:collapse;width:100%;max-width:900px;margin-top:1em;}
+table.scale th,table.scale td{border:1px solid #ccc;padding:6px 10px;text-align:center;font-size:14px;}
+table.scale th:first-child,table.scale td:first-child{text-align:left;width:60%;}
+.next{margin-top:20px;font-size:15px;padding:8px 16px;}
+.hidden{display:none;}
+#results table{margin-top:1em;border-collapse:collapse;}
+#results th,#results td{border:1px solid #ccc;padding:5px 10px;}
+</style>
+</head>
+<body>
+<section id="part1">
+  <h2>System Understanding Assessment</h2>
+  <p>
+  This instrument measures three aspects of user understanding:
+    <ul>
+      <li><strong>Perceived Understanding</strong> — how well the user <em>feels</em> they understand the system.</li>
+      <li><strong>Factual Accuracy</strong> — correct recall of objective system parameters.</li>
+      <li><strong>Conceptual Comprehension</strong> — correct understanding of how or why the system behaves as it does.</li>
+    </ul>
+  </p>
+
+  <!-- Participant info fields (shown only if ParticipantID == true) -->
+  <div id="participantInfo" style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+    <label for="pid"><strong>Participant ID:</strong></label>
+    <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+    <label for="cond"><strong>Condition ID:</strong></label>
+    <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+  </div>
+
+<table class="scale" id="understandingTable">
+<thead>
+<tr>
+<th>Statement / Question</th>
+    <th>1<br>Strongly<br>Disagree</th>
+    <th>2</th><th>3</th>
+    <th>4<br>Neutral</th>
+    <th>5</th><th>6</th>
+    <th>7<br>Strongly<br>Agree</th>
+<!-- <th colspan="7">Response</th> -->
+</tr>
+</thead>
+<tbody id="itemsBody"></tbody>
+</table>
+
+<button class="next" id="submitBtn">Submit</button>
+</section>
+
+<section id="results" class="hidden">
+<h2>Results</h2>
+<div id="resultsContent"></div>
+</section>
+
+<script>
+/* ===============================================================
+   CONFIGURATION SECTION — Researchers customize below
+   =============================================================== */
+
+// === Global options ===
+const fileDownload = false;       // Set to true to auto-download JSON
+const ParticipantID = false;      // Set to true to show Participant/Condition fields
+
+const questions = [
+  // === Likert (subjective understanding) ===
+  { type:"likert", text:"I understood what the system was doing.", scale:"Perceived Understanding", reverse:false },
+  { type:"likert", text:"The system's predictions were confusing or unpredictable.", scale:"Perceived Understanding", reverse:true },
+
+  // === Factual (True/False) ===
+  { type:"factual", text:"The system used a 5 nautical mile threshold to predict conflicts.", scale:"Factual Accuracy", correct:true },
+  { type:"factual", text:"The system ignored altitude information in its calculations.", scale:"Factual Accuracy", correct:false },
+
+  // === Conceptual (Multiple Choice) ===
+  { type:"conceptual", text:"What factor does the system prioritize when ranking conflicts?",
+    scale:"Conceptual Accuracy",
+    options:["Distance between aircraft","Time-to-conflict","Altitude difference","Random selection"],
+    correctIndex:1 },
+  { type:"conceptual", text:"Which input does the system model update most frequently?",
+    scale:"Conceptual Accuracy",
+    options:["Traffic density","Weather data","Aircraft call sign","Controller workload"],
+    correctIndex:1 }
+];
+
+/* =============================================================== */
+
+const tbody=document.getElementById("itemsBody");
+const responses={};
+
+// === Render dynamic questionnaire ===
+questions.forEach((q,i)=>{
+  const tr=document.createElement("tr");
+  const tdLabel=document.createElement("td");
+  tdLabel.textContent=q.text;
+  tr.appendChild(tdLabel);
+
+  if(q.type==="likert"){
+    for(let v=1;v<=7;v++){
+      const td=document.createElement("td");
+      const r=document.createElement("input");
+      r.type="radio"; r.name="q"+i; r.value=v;
+      r.addEventListener("change",()=>{responses[i]=parseInt(v);});
+      td.appendChild(r);
+      tr.appendChild(td);
+    }
+  } 
+  else if(q.type==="factual"){
+    const tdTrue=document.createElement("td");
+    tdTrue.colSpan=3;
+    const rTrue=document.createElement("input");
+    rTrue.type="radio"; rTrue.name="q"+i; rTrue.value="true";
+    rTrue.addEventListener("change",()=>{responses[i]=true;});
+    tdTrue.appendChild(rTrue); tdTrue.append(" True");
+    tr.appendChild(tdTrue);
+
+    const tdFalse=document.createElement("td");
+    tdFalse.colSpan=4;
+    const rFalse=document.createElement("input");
+    rFalse.type="radio"; rFalse.name="q"+i; rFalse.value="false";
+    rFalse.addEventListener("change",()=>{responses[i]=false;});
+    tdFalse.appendChild(rFalse); tdFalse.append(" False");
+    tr.appendChild(tdFalse);
+  } 
+  else if(q.type==="conceptual"){
+    const tdOpt=document.createElement("td");
+    tdOpt.colSpan=7;
+    const sel=document.createElement("select");
+    sel.name="q"+i;
+    const defaultOpt=document.createElement("option");
+    defaultOpt.textContent="-- Select an answer --";
+    defaultOpt.value="";
+    sel.appendChild(defaultOpt);
+    q.options.forEach((opt,idx)=>{
+      const o=document.createElement("option");
+      o.value=idx; o.textContent=opt;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change",()=>{responses[i]=parseInt(sel.value);});
+    tdOpt.appendChild(sel);
+    tr.appendChild(tdOpt);
+  }
+  tbody.appendChild(tr);
+});
+
+// === Capture optional participant info ===
+let participantData = {};
+
+
+// === Show participant fields if enabled ===
+if (ParticipantID) {
+  document.getElementById("participantInfo").style.display = "block";
+}
+
+document.getElementById("submitBtn").addEventListener("click",()=> {
+  if(Object.keys(responses).length<questions.length){
+    alert("Please answer all questions before submitting.");
+    return;
+  }
+
+  // === Capture optional participant info ===
+  let participantData = {};
+  if (ParticipantID) {
+    participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+    participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+  }
+
+  if (ParticipantID && (participantData.id === "anon" || participantData.condition === "none")) {
+    alert("Please enter both Participant ID and Condition ID.");
+    return;
+  } 
+
+  let puVals=[];
+  let factualCorrect=0, factualTotal=0;
+  let conceptualCorrect=0, conceptualTotal=0;
+  const scored=[];
+
+  // === Scoring ===
+  questions.forEach((q,i)=>{
+    if(q.type==="likert"){
+      const val=q.reverse?8-responses[i]:responses[i];
+      puVals.push(val);
+      scored[i]=val;
+    }
+    else if(q.type==="factual"){
+      factualTotal++;
+      const correct=(responses[i]===q.correct);
+      if(correct) factualCorrect++;
+      scored[i]=correct?1:0;
+    }
+    else if(q.type==="conceptual"){
+      conceptualTotal++;
+      const correct=(responses[i]===q.correctIndex);
+      if(correct) conceptualCorrect++;
+      scored[i]=correct?1:0;
+    }
+  });
+
+  // === Compute subscale scores ===
+  const puMean = puVals.length ? mean(puVals) : 0;
+  const factualPercent = factualTotal ? (factualCorrect / factualTotal * 100) : 0;
+  const conceptualPercent = conceptualTotal ? (conceptualCorrect / conceptualTotal * 100) : 0;
+
+  const factualScaled = 1 + 6 * (factualPercent / 100);
+  const conceptualScaled = 1 + 6 * (conceptualPercent / 100);
+
+  // Composite understanding index
+  const overall = mean([puMean, factualScaled, conceptualScaled]);
+
+  // === Display results ===
+  document.getElementById("part1").classList.add("hidden");
+  const res=document.getElementById("results");
+  res.classList.remove("hidden");
+
+  if(!fileDownload) {
+      let html = "<table><tr><th>Item</th><th>Response</th><th>Score</th><th>Type</th></tr>";
+      questions.forEach((q, i) => {
+          let respDisplay = responses[i];
+          if (q.type === "conceptual" && typeof respDisplay === "number") {
+              respDisplay = q.options[respDisplay];
+          }
+          let scoreDisplay = (q.type === "likert") ? scored[i].toFixed(1) : (scored[i] ? "Correct" : "Incorrect");
+          html += `<tr><td>${q.text}</td><td>${respDisplay}</td><td>${scoreDisplay}</td><td>${q.type}</td></tr>`;
+      });
+      html += `</table>
+  <p>
+  <strong>Perceived Understanding mean:</strong> ${puMean.toFixed(2)} / 7<br>
+  <strong>Factual Accuracy:</strong> ${factualPercent.toFixed(1)}%  (scaled ${factualScaled.toFixed(2)} / 7)<br>
+  <strong>Conceptual Accuracy:</strong> ${conceptualPercent.toFixed(1)}%  (scaled ${conceptualScaled.toFixed(2)} / 7)<br>
+  <strong>Composite Understanding Index:</strong> ${overall.toFixed(2)} / 7
+  </p>`;
+      document.getElementById("resultsContent").innerHTML = html;
+  }
+  else
+      document.getElementById("results").outerText = "Thank you!";
+
+  // === Export as JSON ===
+  const resultObj={
+    success:true,
+    perceivedUnderstandingMean:puMean,
+    factualPercent,
+    conceptualPercent,
+    factualScaled,
+    conceptualScaled,
+    overallUnderstandingIndex:overall,
+    items:questions.map((q,i)=>({
+      item:q.text,
+      type:q.type,
+      scale:q.scale,
+      participantResponse:responses[i],
+      score:scored[i],
+      correctAnswer:q.correct ?? q.correctIndex
+    }))
+  };
+  window.parent.postMessage({ success: true, participantData, resultObj }, "*");
+
+  if (fileDownload) downloadResultsJSON({ success: true, participantData, resultObj });
+
+});
+
+function mean(arr){
+  if(!arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
+// === Optional local JSON file download ===
+function downloadResultsJSON(results) {
+  const pid = results.participantData?.id || "anon";
+  const cond = results.participantData?.condition || "none";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const filename = `understanding_${pid}_${cond}_${timestamp}.json`;
+  const json = JSON.stringify(results, null, 2);
+
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+</script>
+</body>
+</html>

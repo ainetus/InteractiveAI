@@ -4,7 +4,7 @@ import type { Trace } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 
 type ExportFormat = 'json' | 'csv'
-type SessionStep = Trace['step'] | 'FEEDBACK'
+type SessionStep = Trace['step'] | 'FEEDBACK' | 'RECOMMENDATIONS'
 
 type StoredTrace = {
   date: string
@@ -23,6 +23,13 @@ type TraceSession = {
 type ExportOptions = {
   force?: boolean
   userLogin?: string
+  /**
+   * Whether the HTML summary is opened in a new tab right away. The file is
+   * written either way. `false` holds the report back instead - the tab steals
+   * the focus, which would cover the post-logout survey, so it is offered once
+   * the questionnaire is over (see `openDeferredSummary`).
+   */
+  openSummary?: boolean
 }
 
 const STORAGE_KEY = 'interactiveai.trace-session.v1'
@@ -57,7 +64,47 @@ function loadSession(): TraceSession | undefined {
 }
 
 function saveSession(session: TraceSession) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+  } catch (error) {
+    // Quota exceeded: traces carry base64 snapshots and full observations, so a
+    // long session can fill the 5 MB store. Keep what is already recorded
+    // instead of letting the write reject and stop the recording altogether.
+    console.warn('Unable to persist the trace session (storage full?):', error)
+  }
+}
+
+/** Narrow an unknown trace payload to something spreadable. */
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+}
+
+/**
+ * The grid state the operator was looking at when an event fired - the very
+ * payload the recommendation service is handed, kept verbatim (~20 kB of JSON
+ * per event). Only the PowerGrid context carries an `observation`; the other
+ * use cases record nothing.
+ *
+ * The services store is imported lazily: it reaches the auth store, which
+ * imports this module, and a static cycle would leave the import undefined at
+ * module-init time.
+ */
+async function currentObservation(useCase: Trace['use_case']): Promise<unknown> {
+  try {
+    const { useServicesStore } = await import('@/stores/services')
+    const stored = asRecord(useServicesStore().context(useCase)?.data).observation
+    if (stored !== undefined) return stored
+
+    // The store only publishes a context once its id *changes*, so it is still
+    // empty right after login - fetch directly rather than lose the first
+    // events of a session.
+    const { getContext } = await import('@/api/services')
+    const { data } = await getContext()
+    return asRecord(data.find((item) => item.use_case === useCase)?.data).observation
+  } catch (error) {
+    console.warn('Unable to attach the context observation to the trace:', error)
+    return undefined
+  }
 }
 
 function eventKey(data: unknown): string | undefined {
@@ -82,6 +129,13 @@ type StructuredEvent = StoredTrace & {
   interactions: StoredTrace[]
   /** Time in ms between ASKFORHELP and AWARD. null when the user didn't choose a solution. */
   decision_time_ms: number | null
+  /**
+   * Time in ms between the recommendations appearing on screen and the operator
+   * applying one - the decision time with the agent's own latency taken out.
+   * null when no solution was applied, or when the session predates the
+   * RECOMMENDATIONS trace.
+   */
+  human_decision_time_ms: number | null
 }
 
 type StructuredTrace = StoredTrace | StructuredEvent
@@ -91,6 +145,13 @@ type SessionKpis = {
   total_session_time_ms: number
   /** Average decision time across ALL events (sum of decision times / total events). null if no events. */
   avg_decision_time_ms: number | null
+  /**
+   * Average human decision time, over the events where one could be measured
+   * (recommendations displayed *and* a solution applied) rather than over every
+   * event - an event the operator never acted on says nothing about how long
+   * they take to decide. null when no event qualifies.
+   */
+  avg_human_decision_time_ms: number | null
 }
 
 function isStructuredEvent(t: StructuredTrace): t is StructuredEvent {
@@ -106,6 +167,22 @@ function computeDecisionTime(interactions: StoredTrace[]): number | null {
   }
   if (!askDate || !awardDate) return null
   return new Date(awardDate).getTime() - new Date(askDate).getTime()
+}
+
+/**
+ * How long the operator themselves took: from the recommendations being shown
+ * to the apply. `decision_time_ms` starts one step earlier, at ASKFORHELP, so it
+ * also carries however long the recommendation service took to answer.
+ */
+function computeHumanDecisionTime(interactions: StoredTrace[]): number | null {
+  let shownDate: string | undefined
+  let awardDate: string | undefined
+  for (let i = 0; i < interactions.length; i++) {
+    if (interactions[i].step === 'RECOMMENDATIONS' && !shownDate) shownDate = interactions[i].date
+    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
+  }
+  if (!shownDate || !awardDate) return null
+  return new Date(awardDate).getTime() - new Date(shownDate).getTime()
 }
 
 /** Map legacy event_type values to human-readable labels for export. */
@@ -124,7 +201,12 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
 
   for (const trace of flat) {
     if (trace.step === 'EVENT') {
-      const structured: StructuredEvent = { ...trace, interactions: [], decision_time_ms: null }
+      const structured: StructuredEvent = {
+        ...trace,
+        interactions: [],
+        decision_time_ms: null,
+        human_decision_time_ms: null
+      }
       const data = trace.data as Record<string, unknown> | undefined
       const cardId = data?.card_id as string | undefined
       if (cardId) eventByCardId[cardId] = structured
@@ -161,6 +243,7 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
   for (const entry of result) {
     if (isStructuredEvent(entry)) {
       entry.decision_time_ms = computeDecisionTime(entry.interactions)
+      entry.human_decision_time_ms = computeHumanDecisionTime(entry.interactions)
     }
   }
 
@@ -232,6 +315,7 @@ function stepBadge(step: string): string {
     EVENT: '#2563eb',
     ASKFORHELP: '#d97706',
     FEEDBACK: '#7c3aed',
+    RECOMMENDATIONS: '#0ea5e9',
     AWARD: '#059669',
     SOLUTION: '#0891b2'
   }
@@ -268,6 +352,28 @@ function isLargeBlob(val: unknown): boolean {
   return str.length > MAX_VALUE_LENGTH
 }
 
+/**
+ * Build an `<img>` source from a raw base64 payload.
+ *
+ * The PowerGrid simulator renders its observation snapshots as SVG since the
+ * zoom feature landed (`plt.savefig(..., format="svg")`), while older sessions
+ * still carry PNG. A `data:image/png` URI holding SVG bytes renders as a broken
+ * image, so the media type is sniffed from the payload instead of assumed.
+ */
+function imageDataUri(base64: string): string {
+  if (base64.startsWith('data:')) return base64
+  let head = ''
+  try {
+    // 64 chars is a whole number of base64 quanta, so a prefix decodes cleanly
+    head = atob(base64.slice(0, 64)).trimStart()
+  } catch {
+    // Undecodable on its own - fall back to PNG, the historical format
+  }
+  const isSvg =
+    head.startsWith('<svg') || head.startsWith('<?xml') || head.startsWith('<!DOCTYPE svg')
+  return 'data:' + (isSvg ? 'image/svg+xml' : 'image/png') + ';base64,' + base64
+}
+
 function eventMetadataHtml(data: unknown): string {
   if (!data || typeof data !== 'object') return ''
   const d = data as Record<string, unknown>
@@ -279,7 +385,7 @@ function eventMetadataHtml(data: unknown): string {
     const key = keys[i]
     const val = meta[key]
     if (key === 'event_context' && isLargeBlob(val) && typeof val === 'string') {
-      const src = val.startsWith('data:') ? val : 'data:image/png;base64,' + val
+      const src = imageDataUri(val)
       rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px;vertical-align:top">' + escapeHtml(key) + '</td><td><img src="' + src + '" style="width:600px;max-width:100%;border-radius:4px;margin-top:4px;cursor:zoom-in" alt="event context image" onclick="this.style.width=this.style.width===\'100%\'?\'600px\':\'100%\'"></td></tr>')
     } else if (isLargeBlob(val)) {
       rows.push('<tr><td style="padding:2px 10px 2px 0;color:#6b7280;font-size:13px">' + escapeHtml(key) + '</td><td style="font-size:13px;color:#9ca3af;font-style:italic">[large data omitted]</td></tr>')
@@ -288,6 +394,23 @@ function eventMetadataHtml(data: unknown): string {
     }
   }
   return '<table style="margin:4px 0 0 16px">' + rows.join('') + '</table>'
+}
+
+/**
+ * The observation is ~65 arrays of floats: useful to have, unreadable inline.
+ * Render it folded so the event card stays scannable.
+ */
+function observationHtml(data: unknown): string {
+  const observation = asRecord(data).observation
+  if (!observation || typeof observation !== 'object') return ''
+  const fields = Object.keys(observation as Record<string, unknown>).length
+  return (
+    '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:#6b7280">Grid observation (' +
+    fields +
+    ' fields)</summary><pre style="max-height:400px;overflow:auto;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all">' +
+    escapeHtml(JSON.stringify(observation, null, 2)) +
+    '</pre></details>'
+  )
 }
 
 function cognitiveSnapshotHtml(data: unknown): string {
@@ -388,13 +511,19 @@ function buildHtmlSummary(
   html += 'h3{margin:0 0 6px 0;font-size:15px}'
   html += '.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:12px;background:#e5e7eb;color:#374151;margin-right:4px}'
   html += '.no-solution{color:#dc2626;font-style:italic;font-size:13px}'
-  html += '@media print{body{padding:12px}.card{box-shadow:none;break-inside:avoid}}'
+  html += '.copy-btn{margin-left:6px;padding:1px 8px;border:1px solid #d1d5db;border-radius:4px;background:#fff;color:#374151;font-size:11px;font-family:inherit;cursor:pointer;vertical-align:middle}'
+  html += '.copy-btn:hover{background:#f3f4f6}'
+  html += '.copy-btn.copied{border-color:#059669;color:#059669}'
+  html += '@media print{body{padding:12px}.card{box-shadow:none;break-inside:avoid}.copy-btn{display:none}}'
   html += '</style></head><body>'
 
   // Header
   html += '<div class="card">'
   html += '<h1>Session Summary</h1>'
-  html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span></div>'
+  // The session id is what ties this report to the survey answers and the JSON
+  // export, so it is made copyable rather than retyped by hand.
+  html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span>'
+  html += '<button type="button" class="copy-btn" data-copy="' + escapeHtml(session.sessionId) + '" onclick="copyValue(this)" title="Copy the session id">Copy</button></div>'
   html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">' + formatTime(session.startedAt) + ' &rarr; ' + formatTime(endedAt) + '</div>'
   html += '</div>'
 
@@ -405,7 +534,9 @@ function buildHtmlSummary(
 
   const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Avg Decision Time (across all events)</div></div>'
+  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Average Total Decision Time </div></div>'
+  const humanDecided = events.filter(function (e) { return e.human_decision_time_ms !== null })
+  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Average Human Response Time </div></div>'
   html += '</div>'
 
   // Per-event details
@@ -428,11 +559,15 @@ function buildHtmlSummary(
     if (eventSummary) html += '<div style="font-size:13px;color:#6b7280;margin-bottom:4px">' + escapeHtml(eventSummary) + '</div>'
     html += '<div class="time">' + formatTime(evt.date) + '</div>'
     html += eventMetadataHtml(evt.data)
+    html += observationHtml(evt.data)
     html += cognitiveSnapshotHtml(evt.data)
 
     // Decision time
     if (evt.decision_time_ms !== null) {
-      html += '<div style="margin-top:8px;font-size:13px">&#9201; Decision time: <b>' + formatMs(evt.decision_time_ms) + '</b></div>'
+      html += '<div style="margin-top:8px;font-size:13px">&#9201; Total Decision Time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
+      if (evt.human_decision_time_ms !== null) {
+        html += '<div style="font-size:13px">&#128100; Human Response Time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
+      }
     } else {
       html += '<div class="no-solution" style="margin-top:8px">No solution selected</div>'
     }
@@ -460,9 +595,68 @@ function buildHtmlSummary(
     html += '</div>'
   }
 
+  // Inline so the report keeps working as a standalone file. `execCommand` is
+  // the fallback for the downloaded copy: opened from file://, some browsers
+  // refuse the async clipboard API.
+  html += '<script>'
+  html += 'function copyValue(btn){'
+  html += 'var text=btn.getAttribute("data-copy");'
+  html += 'var mark=function(){btn.textContent="Copied";btn.className="copy-btn copied";'
+  html += 'setTimeout(function(){btn.textContent="Copy";btn.className="copy-btn"},1500)};'
+  html += 'if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(mark,function(){legacyCopy(text,mark)})}'
+  html += 'else{legacyCopy(text,mark)}}'
+  html += 'function legacyCopy(text,done){'
+  html += 'var area=document.createElement("textarea");area.value=text;'
+  html += 'area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);'
+  html += 'area.select();try{if(document.execCommand("copy"))done()}catch(e){}area.remove()}'
+  html += '</' + 'script>'
+
   html += '</body></html>'
   return html
 }
+
+/** Show an already-built report in a new tab. */
+function openSummaryTab(url: string) {
+  // <a target="_blank"> rather than window.open(): survives popup blockers
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.target = '_blank'
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+}
+
+/**
+ * Report held back by `openSummary: false`, waiting for the operator to say
+ * whether they want to see it. Object URLs live as long as the document, so it
+ * survives the client-side navigation to /survey - but not a reload, which is
+ * harmless: the same report was downloaded as a file.
+ */
+let deferredSummaryUrl: string | undefined
+
+/** True while a report is waiting to be shown. */
+export function hasDeferredSummary(): boolean {
+  return !!deferredSummaryUrl
+}
+
+/** Show the held-back report, if there is one. */
+export function openDeferredSummary(): void {
+  if (!deferredSummaryUrl) return
+  openSummaryTab(deferredSummaryUrl)
+  // Not revoked: the tab that was just opened is still reading from it.
+  deferredSummaryUrl = undefined
+}
+
+/** Drop the held-back report unseen, freeing the blob it holds. */
+export function dropDeferredSummary(): void {
+  if (!deferredSummaryUrl) return
+  URL.revokeObjectURL(deferredSummaryUrl)
+  deferredSummaryUrl = undefined
+}
+
+/** Grace period before a download's object URL is released. */
+const REVOKE_DELAY_MS = 60_000
 
 function download(content: string, mimeType: string, fileName: string) {
   const blob = new Blob([content], { type: mimeType })
@@ -473,13 +667,25 @@ function download(content: string, mimeType: string, fileName: string) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  // Revoked on a timer rather than inline: the browser reads the blob
+  // asynchronously, *after* the click returns, so revoking in the same task can
+  // cancel the download before it starts. The small JSON usually wins that race
+  // and the HTML report - megabytes of base64 screenshots - loses it.
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS)
 }
 
 function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'html') {
   const started = session.startedAt.replace(/:/g, '-').replace('.', '-')
   const user = session.userLogin ?? 'unknown'
   return `historic-session-${user}-${started}.${extension}`
+}
+
+/**
+ * Id of the session currently being recorded, if any. Read before `logout()`
+ * clears the session, so the post-logout survey can be tagged with it.
+ */
+export function currentTraceSessionId(): string | undefined {
+  return loadSession()?.sessionId
 }
 
 export function startTraceSession(userLogin?: string) {
@@ -512,25 +718,27 @@ export async function recordTraceForSession(
     }
   }
 
+  // Snapshot the context observation alongside the event, so the export says
+  // what the grid actually looked like and not just which card was raised.
+  let baseData = trace.data
+  if (trace.step === 'EVENT') {
+    const observation = await currentObservation(trace.use_case)
+    if (observation !== undefined) baseData = { ...asRecord(trace.data), observation }
+  }
+
   // Enrich trace data with the latest cognitive snapshot — but only when the
   // operator has consented. Without consent, nothing is fetched or recorded.
   // On API failure the snapshot contains an `error` field.
-  let enrichedData: unknown = trace.data
+  let enrichedData: unknown = baseData
   if (hasCognitiveConsent()) {
     try {
       const cognitiveSnapshot = await fetchCognitiveSnapshot()
-      const base = (trace.data !== null && typeof trace.data === 'object')
-        ? (trace.data as Record<string, unknown>)
-        : {}
-      enrichedData = { ...base, cognitive_snapshot: cognitiveSnapshot }
+      enrichedData = { ...asRecord(baseData), cognitive_snapshot: cognitiveSnapshot }
     } catch (err: unknown) {
       // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
       const message = err instanceof Error ? err.message : String(err)
-      const base = (trace.data !== null && typeof trace.data === 'object')
-        ? (trace.data as Record<string, unknown>)
-        : {}
       enrichedData = {
-        ...base,
+        ...asRecord(baseData),
         cognitive_snapshot: {
           cognitive_performance: null,
           stress_state: null,
@@ -587,9 +795,15 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
     (sum, evt) => sum + (evt.decision_time_ms ?? 0),
     0
   )
+  const humanDecisionTimes = events
+    .map((evt) => evt.human_decision_time_ms)
+    .filter((time): time is number => time !== null)
   const kpis: SessionKpis = {
     total_session_time_ms: totalSessionTimeMs,
-    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null
+    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null,
+    avg_human_decision_time_ms: humanDecisionTimes.length
+      ? humanDecisionTimes.reduce((sum, time) => sum + time, 0) / humanDecisionTimes.length
+      : null
   }
 
   // Build HTML summary before replacing event_context so the image is preserved in the HTML
@@ -621,17 +835,14 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
   )
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))
 
-  // Open HTML summary in a new tab (use <a target="_blank"> to avoid popup blocker)
+  // A report from an earlier export was never claimed: it will not be now.
+  dropDeferredSummary()
   const summaryBlob = new Blob([summaryHtml], { type: 'text/html;charset=utf-8' })
   const summaryUrl = URL.createObjectURL(summaryBlob)
-  const summaryAnchor = document.createElement('a')
-  summaryAnchor.href = summaryUrl
-  summaryAnchor.target = '_blank'
-  summaryAnchor.rel = 'noopener'
-  document.body.appendChild(summaryAnchor)
-  summaryAnchor.click()
-  summaryAnchor.remove()
-  // Also download the HTML file as a backup
+  if (options.openSummary ?? true) openSummaryTab(summaryUrl)
+  else deferredSummaryUrl = summaryUrl
+
+  // The HTML file is written whether or not the report is ever opened
   download(summaryHtml, 'text/html;charset=utf-8', sessionFileName(session, 'html'))
 }
 
