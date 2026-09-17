@@ -61,6 +61,7 @@ export type PowerGrid = {
       year: [number]
     }
     topology: string
+    selected_policy?: number
   }
   Metadata: {
     event_type: 'KPI' | 'anticipation' | 'agent' | 'consignation'

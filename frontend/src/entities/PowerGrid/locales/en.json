@@ -17,5 +17,14 @@
   "PowerGrid.kpis.redispatching_volume": "Redispatch volume",
   "PowerGrid.kpis.renewable_energy_share": "Proportion of renewable",
   "PowerGrid.kpis.total_consumption": "Total consumption",
-  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation"
+  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation",
+  "PowerGrid.pareto.title": "Pareto front",
+  "PowerGrid.pareto.loading": "Loading agent policies…",
+  "PowerGrid.pareto.error": "Unable to load the agent Pareto front.",
+  "PowerGrid.pareto.empty": "The agent did not provide any policies.",
+  "PowerGrid.pareto.selected": "Selected checkpoint",
+  "PowerGrid.pareto.policy": "Policy {id}",
+  "PowerGrid.pareto.rewards": "Rewards",
+  "PowerGrid.pareto.weights": "Objective weights",
+  "PowerGrid.pareto.help": "Select a point to choose the agent used for the next recommendation."
 }

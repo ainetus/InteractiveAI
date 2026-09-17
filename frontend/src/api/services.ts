@@ -6,7 +6,7 @@ import { useServicesStore } from '@/stores/services'
 import type { Card } from '@/types/cards'
 import type { Action, Context, Entity } from '@/types/entities'
 import type { Procedure } from '@/types/procedure'
-import type { FullContext, Recommendation, Trace } from '@/types/services'
+import type { FullContext, ParetoFront, Recommendation, Trace } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
 export function getRecommendation<E extends Entity = Entity>(payload: {
@@ -15,6 +15,12 @@ export function getRecommendation<E extends Entity = Entity>(payload: {
   cognitive_snapshot?: CognitiveSnapshot
 }) {
   return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
+}
+
+export function getParetoFront() {
+  return http.get<ParetoFront>('/cab_recommendation/api/v1/pareto-front', {
+    params: { use_case: 'PowerGrid' }
+  })
 }
 
 export function getContext<E extends Entity = Entity>() {

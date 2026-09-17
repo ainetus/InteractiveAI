@@ -8,6 +8,26 @@ export type Recommendation<E extends Entity = Entity> = {
   title: string
   actions: Action<E>[]
   kpis?: { [key: string]: any }
+  policy_id?: number
+}
+
+export type ParetoObjective = {
+  id: string
+  label: string
+  description: string
+}
+
+export type ParetoPoint = {
+  id: number
+  checkpoint?: string
+  weights: Record<string, number>
+  reward: Record<string, number>
+}
+
+export type ParetoFront = {
+  default_policy_id: number
+  objectives: [ParetoObjective, ParetoObjective]
+  points: ParetoPoint[]
 }
 
 export type FullContext<E extends Entity = Entity> = {

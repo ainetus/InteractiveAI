@@ -7,7 +7,7 @@ import * as servicesApi from '@/api/services'
 import i18n from '@/plugins/i18n'
 import type { Card } from '@/types/cards'
 import type { Context, Entity } from '@/types/entities'
-import type { FullContext, Recommendation } from '@/types/services'
+import type { FullContext, ParetoFront, Recommendation } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 import { getRootCard } from '@/utils/utils'
 
@@ -18,6 +18,9 @@ const { t } = i18n.global
 export const useServicesStore = defineStore('services', () => {
   const _context = ref<FullContext>()
   const _recommendations = ref<Recommendation[]>([])
+  const _paretoFront = ref<ParetoFront>()
+  const _paretoFrontStatus = ref<'IDLE' | 'LOADING' | 'ERROR'>('IDLE')
+  const _selectedPolicyId = ref<number>()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function context<E extends Entity>(entity: E) {
@@ -27,6 +30,27 @@ export const useServicesStore = defineStore('services', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function recommendations<E extends Entity>(entity: E) {
     return _recommendations.value as Recommendation<E>[]
+  }
+
+  async function getParetoFront() {
+    _paretoFrontStatus.value = 'LOADING'
+    try {
+      const { data } = await servicesApi.getParetoFront()
+      _paretoFront.value = data
+      const selectedStillExists = data.points.some(
+        (point) => point.id === _selectedPolicyId.value
+      )
+      if (!selectedStillExists) _selectedPolicyId.value = data.default_policy_id
+      _paretoFrontStatus.value = 'IDLE'
+    } catch (error) {
+      _paretoFrontStatus.value = 'ERROR'
+      throw error
+    }
+  }
+
+  function selectPolicy(policyId: number) {
+    if (!_paretoFront.value?.points.some((point) => point.id === policyId)) return
+    _selectedPolicyId.value = policyId
   }
 
   async function getContext<E extends Entity>(
@@ -106,6 +130,12 @@ export const useServicesStore = defineStore('services', () => {
     if ('topology' in contextForAgent) {
       delete (contextForAgent as Record<string, unknown>).topology
     }
+    if (
+      (event.entityRecipients as Entity[]).includes('PowerGrid') &&
+      _selectedPolicyId.value !== undefined
+    ) {
+      Object.assign(contextForAgent, { selected_policy: _selectedPolicyId.value })
+    }
 
     // Send the latest cognitive/stress snapshot alongside event/context so the
     // RL agent can factor operator state into its recommendation — but only
@@ -130,6 +160,11 @@ export const useServicesStore = defineStore('services', () => {
   return {
     context,
     recommendations,
+    paretoFront: _paretoFront,
+    paretoFrontStatus: _paretoFrontStatus,
+    selectedPolicyId: _selectedPolicyId,
+    getParetoFront,
+    selectPolicy,
     getContext,
     getRecommendation
   }

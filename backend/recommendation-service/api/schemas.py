@@ -20,6 +20,13 @@ class RecommendationOut(Schema):
     agent_type = String()
     actions = List(Dict())
     kpis = Dict(allow_none=True)
+    policy_id = Integer(allow_none=True)
+
+
+class ParetoFrontOut(Schema):
+    default_policy_id = Integer()
+    objectives = List(Dict())
+    points = List(Dict())
 
 
 class ProcedureOut(Schema):

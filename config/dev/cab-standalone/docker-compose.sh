@@ -54,5 +54,6 @@ echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env
 echo "POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM:-http://host.docker.internal:5122/}" >> .env
 echo "VITE_COGNITIVE_TOKEN=${VITE_COGNITIVE_TOKEN:-}" >> .env
 
-cat .env
+# cat .env
+# RL_AGENT_API_TOKEN and may be captured in terminal history or CI logs
 docker compose up -d

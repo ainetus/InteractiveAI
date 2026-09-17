@@ -17,6 +17,7 @@ from .exceptions import InvalidUseCase
 from .models import UseCaseModel, db
 from .schemas import (
     ProcedureOut,
+    ParetoFrontOut,
     RecommendationAsk,
     RecommendationOut,
     UseCaseIn,
@@ -67,6 +68,38 @@ class RecommendationView(MethodView):
         result = manager.get_recommendation(data)
 
         # Return the result as JSON
+        return jsonify(result)
+
+
+class ParetoFrontView(MethodView):
+    @api_bp.output(ParetoFrontOut)
+    @protected
+    def get(self):
+        """Get the PowerGrid agent's available MORL policies."""
+        request_use_case = request.args.get("use_case")
+        token_use_case_list = get_use_cases()
+        if len(token_use_case_list) > 1 and not request_use_case:
+            return abort(
+                400,
+                "User registred for more than one entity, specify use_case",
+            )
+        use_case_name = request_use_case or token_use_case_list[0]
+
+        from flask import current_app
+
+        try:
+            manager = current_app.use_case_factory.get_recommendation_manager(
+                use_case_name
+            )
+        except InvalidUseCase as invalid_use_case:
+            logger.error("Invalid use case %s detected", use_case_name)
+            raise invalid_use_case
+
+        if not hasattr(manager, "get_pareto_front"):
+            return abort(404, "Pareto front is not available for this use case")
+        result = manager.get_pareto_front()
+        if result is None:
+            return abort(502, "Unable to retrieve the agent Pareto front")
         return jsonify(result)
 
 
@@ -197,6 +230,9 @@ api_bp.add_url_rule(
 api_bp.add_url_rule("/health", view_func=HealthCheck.as_view("health"))
 api_bp.add_url_rule(
     "/recommendation", view_func=RecommendationView.as_view("recommendation")
+)
+api_bp.add_url_rule(
+    "/pareto-front", view_func=ParetoFrontView.as_view("pareto-front")
 )
 api_bp.add_url_rule("/procedure", view_func=ProcedureView.as_view("procedure"))
 

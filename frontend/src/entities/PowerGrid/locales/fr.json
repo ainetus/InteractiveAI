@@ -17,5 +17,14 @@
   "PowerGrid.kpis.distance_from_reference_topology": "Distance à la topologie de référence",
   "PowerGrid.kpis.curtailment_volume": "Volume de curtailment",
   "PowerGrid.kpis.redispatching_volume": "Volume de redispatching",
-  "PowerGrid.kpis.type_of_the_reco": "Type de la parade"
+  "PowerGrid.kpis.type_of_the_reco": "Type de la parade",
+  "PowerGrid.pareto.title": "Front de Pareto",
+  "PowerGrid.pareto.loading": "Chargement des politiques de l’agent…",
+  "PowerGrid.pareto.error": "Impossible de charger le front de Pareto de l’agent.",
+  "PowerGrid.pareto.empty": "L’agent n’a fourni aucune politique.",
+  "PowerGrid.pareto.selected": "Checkpoint sélectionné",
+  "PowerGrid.pareto.policy": "Politique {id}",
+  "PowerGrid.pareto.rewards": "Récompenses",
+  "PowerGrid.pareto.weights": "Poids des objectifs",
+  "PowerGrid.pareto.help": "Sélectionnez un point pour choisir l’agent utilisé pour la prochaine recommandation."
 }

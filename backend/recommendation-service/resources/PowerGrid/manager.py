@@ -23,6 +23,10 @@ class PowerGridManager(BaseRecommendationManager):
             "RL_AGENT_API_URL",
             "http://frontend:80/rl-api/recommendation",
         )
+        self.rl_agent_pareto_front_url = os.environ.get(
+            "RL_AGENT_PARETO_FRONT_URL",
+            f"{self.rl_agent_api_url.rsplit('/', 1)[0]}/pareto-front",
+        )
         self.rl_agent_api_token = os.environ.get("RL_AGENT_API_TOKEN", "")
         super().__init__()
 
@@ -37,6 +41,36 @@ class PowerGridManager(BaseRecommendationManager):
         """
         logger.info("Getting RL agent recommendations from external API")
         return self._get_rl_parades(request_data)
+
+    def get_pareto_front(self):
+        """Return the policy/objective catalog exposed by the RL agent."""
+        try:
+            headers = {}
+            if self.rl_agent_api_token:
+                headers["Authorization"] = f"Bearer {self.rl_agent_api_token}"
+            response = requests.get(
+                self.rl_agent_pareto_front_url,
+                headers=headers,
+                timeout=30,
+                verify=False,
+            )
+            response.raise_for_status()
+            data = response.json()
+            logger.info(
+                "RL agent returned a Pareto front with %d point(s)",
+                len(data.get("points", [])),
+            )
+            return data
+        except requests.exceptions.RequestException as error:
+            logger.error(
+                "Error calling RL agent Pareto-front API (%s): %s",
+                self.rl_agent_pareto_front_url,
+                error,
+            )
+            return None
+        except (TypeError, ValueError) as error:
+            logger.error("Invalid Pareto-front response from RL agent: %s", error)
+            return None
 
     def _get_rl_parades(self, request_data):
         """Call the external RL agent API to get parade recommendations.

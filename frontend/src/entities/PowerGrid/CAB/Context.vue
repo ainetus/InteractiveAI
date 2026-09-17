@@ -1,5 +1,5 @@
 <template>
-  <Context :tabs="[$t('cab.tab.context')]">
+  <Context :tabs="[$t('cab.tab.context'), $t('PowerGrid.pareto.title')]">
     <template v-if="appStore.tab.context === 0">
       <ZoomImg
         v-if="context"
@@ -12,12 +12,15 @@
         :step="0.5" />
       <h1 v-else>{{ $t('cab.tab.nocontext') }}</h1>
     </template>
+    <ParetoFront v-if="appStore.tab.context === 1" />
     <Notification
+      v-if="appStore.tab.context === 0"
       :card="appStore.card('PowerGrid')"
       :shown="!!appStore.card('PowerGrid')"
       :top="1"
       :right="1"></Notification>
     <Notification
+      v-if="appStore.tab.context === 0"
       :card="appStore.card('PowerGrid')"
       :shown="!!appStore.card('PowerGrid')"
       :top="1"
@@ -30,7 +33,7 @@
       </div>
     </Notification>
     <Button
-      v-if="appStore.card('PowerGrid')"
+      v-if="appStore.tab.context === 0 && appStore.card('PowerGrid')"
       icon="Current time frame"
       style="position: absolute; right: var(--spacing-1); bottom: var(--spacing-1)"
       @click="appStore._card = undefined">
@@ -46,6 +49,7 @@ import { ZoomImg } from 'vue3-zoomer'
 import Button from '@/components/atoms/Button.vue'
 import Context from '@/components/organisms/CAB/Context.vue'
 import Notification from '@/components/organisms/CAB/Context/Notification.vue'
+import ParetoFront from '@/entities/PowerGrid/CAB/ParetoFront.vue'
 import { useAppStore } from '@/stores/app'
 import { useServicesStore } from '@/stores/services'
 
@@ -62,6 +66,7 @@ const context = computed(
 
 onBeforeMount(async () => {
   contextPID.value = await servicesStore.getContext('PowerGrid')
+  servicesStore.getParetoFront().catch(() => {})
 })
 
 onUnmounted(() => {
