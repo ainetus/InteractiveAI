@@ -8,7 +8,7 @@
          task as the message that ends the chain, and unmounting the frame under
          it would cancel that download. -->
     <iframe v-show="!done" :src="url" :title="$t('survey.title')"></iframe>
-    <Button v-show="!done" color="secondary" @click="leave">{{ $t('survey.skip') }}</Button>
+    <Button v-show="!done" color="secondary" @click="skip">{{ $t('survey.skip') }}</Button>
     <div v-if="done" class="flex flex-center flex-col h-100">
       <h1>{{ $t('survey.thanks') }}</h1>
       <Button class="mt-2" @click="leave">{{ $t('button.login') }}</Button>
@@ -52,6 +52,21 @@ function onMessage(event: MessageEvent) {
   if (!event.data?.success || !event.data.allResults) return
   done.value = true
   clearPendingSurvey()
+}
+
+/**
+ * Skipping loses the answers for good - the chain cannot be reopened once the
+ * session is over - so it is confirmed before anything else happens. Declining
+ * leaves the operator exactly where they were, mid-questionnaire.
+ */
+function skip() {
+  appStore.addModal({
+    data: t('modal.info.SKIP_SURVEY'),
+    type: 'choice',
+    callback: (confirmed) => {
+      if (confirmed) leave()
+    }
+  })
 }
 
 /**

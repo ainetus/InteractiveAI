@@ -69,6 +69,7 @@
   "modal.error.default": "Request to {url} failed with code {code} and message {message}",
   "modal.info.DELETE_ALERTS": "Delete the remaining alerts? They will not be shown at the next login.",
   "modal.info.OPEN_SESSION_LOG": "Open the session report in a new tab? It is saved with the session files either way.",
+  "modal.info.SKIP_SURVEY": "Skip the questionnaire? Your answers will not be recorded and it cannot be reopened afterwards.",
   "modal.info.SUBSCRIPTION_ACTIVE": "A user is logged in, log them out?",
   "recommendations.description": "Description",
   "recommendations.description.more": "{sign} details",
