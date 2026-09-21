@@ -6,6 +6,19 @@
       :url="tileLayer"
       layer-type="base"
       name="OpenStreetMap" />
+    <LPolygon
+      v-for="polygon of mapStore.polygons"
+      :key="polygon.id"
+      :lat-lngs="polygon.points"
+      :color="`var(--color-${criticalityToColor(maxCriticality('ROUTINE'))})`"
+      :weight="2"
+      :fill="true"
+      :fill-opacity="0.15"
+      v-bind="polygon.options">
+      <LTooltip :options="{ direction: 'center', className: 'shape-tooltip' }">
+        {{ polygon.id.replace(/^shape-/, '') }}
+      </LTooltip>
+    </LPolygon>
     <LPolyline
       v-for="polyline of mapStore.polylines"
       :key="polyline.id"
@@ -34,6 +47,24 @@
         {{ waypoint.id }}
       </LTooltip>
     </LCircleMarker>
+    <!--
+      ATM-only: Protected zone of 5 NM: scales with the map and stays centered on the aircraft.
+      Turns red when waypoint.inLos (another aircraft is inside this zone right now, per
+      BlueSky's own conflict detection -- see _aircraft_in_los() in the bridge script).
+    -->
+    <template v-if="$route.params.entity === 'ATM'">
+      <LCircle
+        v-for="waypoint of mapStore.contextWaypoints"
+        :key="`protected-zone-${waypoint.id}`"
+        :lat-lng="[waypoint.lat, waypoint.lng]"
+        :radius="PROTECTED_ZONE_RADIUS_M"
+        :color="waypoint.inLos ? '#ff0000' : '#009e8f'"
+        :weight="waypoint.inLos ? 2 : 1"
+        :dash-array="waypoint.inLos ? undefined : '4 4'"
+        :fill="!!waypoint.inLos"
+        fill-color="#ff0000"
+        :fill-opacity="0.15" />
+    </template>
     <LMarker
       v-for="waypoint of mapStore.contextWaypoints"
       :key="waypoint.id"
@@ -44,11 +75,26 @@
         :options="{ permanent: waypoint.permanentTooltip, direction: 'top', offset: [0, -12] }">
         {{ waypoint.id }}
       </LTooltip>
+      <!--
+        Switched to L-divIcon to allow rotation of the ATM plane icon, based on the heading. For non atm use-cases it should default to 0 degrees orientation.
+      -->
       <LIcon
-        :icon-url="`/img/icons/map_markers/${$route.params.entity}.svg`"
         :icon-size="[32, 32]"
-        class="context-marker"
-        :class-name="'context-marker ' + waypoint.severity" />
+        :class-name="
+          'context-marker ' +
+          waypoint.severity +
+          ($route.params.entity === 'ATM' ? ' context-marker-plain' : '')
+        ">
+        <img
+          :src="`/img/icons/map_markers/${$route.params.entity}.svg`"
+          :style="{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            transformOrigin: 'center center',
+            transform: `rotate(${waypoint.heading ?? 0}deg)`
+          }" />
+      </LIcon>
     </LMarker>
     <LControlScale />
   </LMap>
@@ -65,11 +111,13 @@
 import 'leaflet/dist/leaflet.css'
 
 import {
+  LCircle,
   LCircleMarker,
   LControlScale,
   LIcon,
   LMap,
   LMarker,
+  LPolygon,
   LPolyline,
   LTileLayer,
   LTooltip
@@ -99,6 +147,11 @@ const props = withDefaults(
 
 const mapStore = useMapStore()
 const appStore = useAppStore()
+
+// Protected-zone ring drawn around each ATM aircraft context marker.
+// Leaflet's LCircle radius is in meters; 1 NM = 1852 m.
+const PROTECTED_ZONE_RADIUS_NM = 5
+const PROTECTED_ZONE_RADIUS_M = PROTECTED_ZONE_RADIUS_NM * 1852
 
 const lockView = ref(true)
 const zoom = ref(6)
@@ -140,6 +193,10 @@ onUnmounted(() => {
 }
 
 .context-marker {
+  // Overrides leaflet.css's .leaflet-div-icon defaults (white fill + grey
+  // border) now that this marker is rendered as an L.divIcon (needed so the
+  // ATM plane icon inside it can be rotated -- see Map.vue's LIcon usage).
+  border: none !important;
   transition: var(--duration);
   background: var(--color-success);
   border-radius: var(--radius-circular);
@@ -150,6 +207,11 @@ onUnmounted(() => {
   &.ALARM {
     background: var(--color-error);
   }
+}
+// ATM-only: no colored circular badge behind the plane icon
+.context-marker.context-marker-plain {
+  background: transparent !important;
+  padding: 0 !important;
 }
 .cab-map-lockview {
   width: calc(var(--unit) * 5);

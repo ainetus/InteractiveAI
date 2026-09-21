@@ -1,18 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import type { Polyline, Waypoint } from '@/types/components/map'
+import type { Polygon, Polyline, Waypoint } from '@/types/components/map'
 import { addOrUpdate, remove } from '@/utils/utils'
 
 export const useMapStore = defineStore('map', () => {
   const waypoints = ref<Waypoint[]>([])
   const polylines = ref<Polyline[]>([])
   const contextWaypoints = ref<Waypoint[]>([])
+  const polygons = ref<Polygon[]>([])
 
   function reset() {
     resetWaypoints()
     resetPolylines()
     resetContextWaypoints()
+    resetPolygons()
   }
 
   function addWaypoint(waypoint: Waypoint) {
@@ -54,10 +56,28 @@ export const useMapStore = defineStore('map', () => {
     contextWaypoints.value.splice(0, contextWaypoints.value.length)
   }
 
+  function addPolygon(polygon: Polygon) {
+    addOrUpdate(polygons.value, polygon, (el) => el.id === polygon.id)
+  }
+
+  function removePolygon(polygon: Polygon) {
+    remove(polygons.value, (el) => el.id === polygon.id)
+  }
+
+  function removeCategoryPolygon(category: string) {
+    for (const polygon of polygons.value.filter((p) => p.category === category))
+      remove(polygons.value, (el) => el.id === polygon.id)
+  }
+
+  function resetPolygons() {
+    polygons.value.splice(0, polygons.value.length)
+  }
+
   return {
     waypoints,
     polylines,
     contextWaypoints,
+    polygons,
     reset,
     addWaypoint,
     removeWaypoint,
@@ -68,6 +88,10 @@ export const useMapStore = defineStore('map', () => {
     resetPolylines,
     addContextWaypoint,
     removeContextWaypoint,
-    resetContextWaypoints
+    resetContextWaypoints,
+    addPolygon,
+    removePolygon,
+    removeCategoryPolygon,
+    resetPolygons
   }
 })
