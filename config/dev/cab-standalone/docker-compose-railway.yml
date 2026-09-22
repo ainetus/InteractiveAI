@@ -1,0 +1,51 @@
+# docker-compose override — Railway use case services
+# Usage: docker compose -f config/dev/cab-standalone/docker-compose.yml \
+#                       -f config/dev/cab-standalone/docker-compose-railway.yml up
+
+version: '3.5'
+services:
+
+  # Flask Railway brain (app.py)
+  railway-brain:
+    container_name: railway-brain
+    build:
+      context: ../../../usecases_examples/Railway
+      dockerfile: Railway.Dockerfile
+    restart: unless-stopped
+    ports:
+      - '5001:5001'         # exposed so browser can reach it directly
+    volumes:
+      - railway_logs:/app/experiment_logs
+      - railway_maps:/app/maps
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Cards-publication reachable via Docker network
+    depends_on:
+      - cards-publication
+
+  # ZWL Angular frontend (Kartenansicht + Marey diagram)
+  zwl-frontend:
+    container_name: zwl-frontend
+    build:
+      context: ../../../flatland-hmi-hack4rail
+      dockerfile: zwl.Dockerfile
+      args:
+        # Must be reachable FROM THE BROWSER — use server public IP/hostname
+        # Local dev:   http://localhost:5001
+        # Deployment:  http://<SERVER_IP>:5001
+        RAILWAY_SIMU_URL: ${VITE_RAILWAY_SIMU:-http://localhost:5001}
+    restart: unless-stopped
+    ports:
+      - '4200:80'           # same port as local npm start
+
+  # MongoDB with auto-perimeter init for cabProcess cards
+  mongodb:
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ../../../config/dev/cab-standalone/mongo-init.js:/docker-entrypoint-initdb.d/01-cabprocess.js:ro
+
+volumes:
+  railway_logs:
+  railway_maps:

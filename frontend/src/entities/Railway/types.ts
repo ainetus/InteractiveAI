@@ -2,43 +2,41 @@ export type Railway = {
   AppData: {
     message: string
   }
+
   Context: {
-    direction_agents: number[]
-    list_of_target: {
-      [key: `${number}`]: [number, number][]
-    }
-    position_agents: {
-      [key: `${number}`]: [number, number]
-    }
     trains: {
-      failure: boolean
       id_train: string
-      latitude: number
-      longitude: number
-      nb_passengers_connection: null
+      train_type: 'PASSENGER' | 'FREIGHT' | 'REGIONAL'
       nb_passengers_onboard: number
+      position: [number, number] | null   // Flatland grid [row, col]
+      direction: number
+      failure: boolean
       speed: number
+      latitude?: number                   // optional, for real map overlay later
+      longitude?: number
     }[]
+    position_agents: {
+      [key: `${number}`]: [number, number] | null
+    }
+    direction_agents: number[]
   }
+
   Metadata: {
+    // Platform-expected fields (keep for compatibility)
     event_type: 'PASSENGER' | 'INFRASTRUCTURE' | 'IMPACT' | 'HARDWARE'
-    travel_plan?: { name: string; startDate: number; endDate?: number }[]
     id_train: string
     agent_id: string
-    agent_position?: [number, number]
+    delay: number
     latitude?: number
     longitude?: number
-    delay: number
+    // Flatland-specific additions
+    train_b?: string
+    cell?: [number, number]
+    conflict_id?: string
+    message?: string
   }
+
   Action: {
-    simulation_name: string
-    targets_list: {
-      agent_id: string
-      targets: {
-        passengers: number
-        target_id: number
-        target_type: 'STATION'
-      }[]
-    }[]
+    option_index: number
   }
 }
