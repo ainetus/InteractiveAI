@@ -269,3 +269,85 @@ Contributions to the InteractiveAI Assistant Platform are welcome! To contribute
 # Docs
 A postman collection is under docs/postman_collections.
 You can also check the openapi through the URL http://localhost:[Service port]/docs
+
+
+---
+
+## Railway Use Case (FHNW / AI4REALNET)
+
+The Railway use case adds a Flatland train simulation with interactive scenario-based dispatcher training. It requires **two additional services** beyond the main Docker stack.
+
+> See also `HANDOVER.md` for deployment decisions.
+
+### Additional Prerequisites
+
+- **Python 3.10** (exact version required for `flatland-rl`)
+- **Node.js 18+**
+
+### Step-by-step Local Setup
+
+After completing the standard InteractiveAI setup above, add `VITE_RAILWAY_SIMU=http://localhost:5001` to your `.secrets` file, then:
+
+**1. Install Python dependencies (first time only)**
+```bash
+cd usecases_examples/Railway
+python3.10 -m venv .venv
+source .venv/bin/activate      # Linux/Mac
+# .venv\Scripts\activate       # Windows
+pip install -r requirements.txt
+cd ../..
+```
+
+**2. Start Flask Railway brain** *(new terminal)*
+```bash
+cd usecases_examples/Railway
+source .venv/bin/activate
+python app.py
+```
+Ready when: `Running on http://0.0.0.0:5001`
+
+**3. Start ZWL Angular frontend** *(new terminal)*
+```bash
+cd flatland-hmi-hack4rail/frontend
+npm install    # first time only
+npm start
+```
+Ready when: `Local: http://localhost:4200`
+
+**4. MongoDB perimeter setup** *(required after every Docker restart)*
+```bash
+docker exec cab-standalone-mongodb-1 mongo operator-fabric \
+  -u root -p password --authenticationDatabase admin \
+  --eval 'db.perimeter.updateOne({_id:"cabProcess"},{$set:{process:"cabProcess",stateRights:[{state:"messageState",right:"ReceiveAndWrite"}]}},{upsert:true}); db.group.updateOne({_id:"Planner"},{$addToSet:{perimeters:"cabProcess"}}); db.group.updateOne({_id:"Dispatcher"},{$addToSet:{perimeters:"cabProcess"}}); print("done")'
+```
+
+Open `http://localhost:3200/cab/Railway` and log in as `railway_user` / `test`.
+
+### Scenarios
+
+| ID | Name | Description |
+|----|------|-------------|
+| `scenario1` | Kreuzungskonflikt | Single-track crossing conflict |
+| `scenario2` | Fahrt auf Sichtweite | Speed restriction causing dispatch conflict |
+| `scenario3` | Zugreihenfolge | Multiple delays disrupting train order |
+
+### Server Deployment (Docker)
+
+Dockerfiles are provided to containerise Flask and the ZWL frontend:
+
+```bash
+docker compose \
+  -f config/dev/cab-standalone/docker-compose.yml \
+  -f config/dev/cab-standalone/docker-compose-railway.yml \
+  up --build
+```
+
+Set `VITE_RAILWAY_SIMU=http://<SERVER_PUBLIC_IP>:5001` in `.secrets` before building. See `HANDOVER.md` for open deployment decisions (port exposure, auth, nginx proxy).
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Kartenansicht: "cannot connect to localhost:4200" | ZWL Angular not running — run step 3 |
+| No train data | Flask not running — run step 2 |
+| No notification cards | Re-run step 4 (MongoDB command) |
