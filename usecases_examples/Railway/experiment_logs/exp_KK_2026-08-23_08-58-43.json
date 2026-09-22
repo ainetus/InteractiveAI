@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_KK_20260823_085843",
+  "participant_id": "KK",
+  "type": "test_run",
+  "started_at": "2026-08-23T08:57:18.797Z",
+  "completed_at": "2026-08-23T08:58:43.387063+00:00",
+  "szenario": {
+    "id": "test",
+    "name": "Technical Failure — Train 3",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_3",
+    "action": "warten",
+    "option_index": 1,
+    "option_label": "Hold Train 3 for 15 more steps — Train 0 passes first",
+    "kpis": {
+      "local_delay": 40,
+      "global_delay": 75,
+      "energy": 90,
+      "anschluss": 60
+    },
+    "timestamp": "2026-08-23T08:57:46.593446+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "hhkj"
+    },
+    {
+      "frage": "Was ist die wichtigste Erkenntnis für das nächste Mal?",
+      "antwort": "bjmb"
+    }
+  ]
+}

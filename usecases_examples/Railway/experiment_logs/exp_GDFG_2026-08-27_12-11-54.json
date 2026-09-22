@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_GDFG_20260827_121154",
+  "participant_id": "GDFG",
+  "type": "test_run",
+  "started_at": "2026-08-27T12:09:56.370Z",
+  "completed_at": "2026-08-27T12:11:54.091835+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "recommendation"
+  },
+  "entscheidung": {
+    "type": "recommendation",
+    "option_index": 0,
+    "option_label": "P 205 Vorfahrt — G 501 und P 312 warten",
+    "kpis": {
+      "local_delay": 20,
+      "global_delay": 14,
+      "energy": 78,
+      "anschluss": 2
+    },
+    "timestamp": "2026-08-27T12:10:48.193486+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "tert"
+    },
+    {
+      "frage": "Auf welche Logik habe ich mich gestützt?",
+      "antwort": "rezerz"
+    }
+  ]
+}

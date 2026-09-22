@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_JANICK_20260827_095013",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-08-27T09:47:17.643Z",
+  "completed_at": "2026-08-27T09:50:13.788569+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_2",
+    "action": "warten",
+    "option_index": 0,
+    "option_label": "P 205 Vorfahrt — G 501 und P 312 warten",
+    "kpis": {
+      "local_delay": 20,
+      "global_delay": 14,
+      "energy": 78,
+      "anschluss": 2
+    },
+    "timestamp": "2026-08-27T09:48:14.008713+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Was ist die wichtigste Erkenntnis für das nächste Mal?",
+      "antwort": "etet"
+    },
+    {
+      "frage": "Auf welche Logik habe ich mich gestützt?",
+      "antwort": "etet"
+    }
+  ]
+}

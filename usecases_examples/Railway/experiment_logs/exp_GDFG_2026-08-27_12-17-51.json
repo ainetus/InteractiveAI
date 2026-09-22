@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_GDFG_20260827_121751",
+  "participant_id": "GDFG",
+  "type": "test_run",
+  "started_at": "2026-08-27T12:14:18.398Z",
+  "completed_at": "2026-08-27T12:17:51.929532+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_1",
+    "action": "vorfahrt",
+    "option_index": 1,
+    "option_label": "G 501 Vorfahrt — P 205 und P 312 warten",
+    "kpis": {
+      "local_delay": 29,
+      "global_delay": 20,
+      "energy": 72,
+      "anschluss": 3
+    },
+    "timestamp": "2026-08-27T12:15:45.196093+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": ""
+    },
+    {
+      "frage": "Was ist die wichtigste Erkenntnis für das nächste Mal?",
+      "antwort": ""
+    }
+  ]
+}

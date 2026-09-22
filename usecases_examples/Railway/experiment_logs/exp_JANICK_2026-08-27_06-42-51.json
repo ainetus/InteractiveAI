@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_JANICK_20260827_064251",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-08-27T06:38:57.675Z",
+  "completed_at": "2026-08-27T06:42:51.908385+00:00",
+  "szenario": {
+    "id": "scenario1",
+    "name": "Szenario 1 — Kreuzungskonflikt",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_0",
+    "action": "warten",
+    "option_index": 0,
+    "option_label": "IC 301 wartet — S 420 und S 425 passieren zuerst",
+    "kpis": {
+      "local_delay": 18,
+      "global_delay": 22,
+      "energy": 74,
+      "anschluss": 2
+    },
+    "timestamp": "2026-08-27T06:40:16.714959+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "r"
+    },
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": "r"
+    }
+  ]
+}

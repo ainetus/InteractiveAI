@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_JANICK_20260904_071318",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-09-04T07:09:38.248Z",
+  "completed_at": "2026-09-04T07:13:18.287477+00:00",
+  "szenario": {
+    "id": "scenario1",
+    "name": "Szenario 1 — Kreuzungskonflikt",
+    "modus": "recommendation"
+  },
+  "entscheidung": {
+    "type": "recommendation",
+    "option_index": 1,
+    "option_label": "S 420 und S 425 warten — IC 301 passiert zuerst",
+    "kpis": {
+      "local_delay": 32,
+      "global_delay": 18,
+      "energy": 69,
+      "anschluss": 3
+    },
+    "timestamp": "2026-09-04T07:12:01.932849+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Auf welche Logik habe ich mich gestützt?",
+      "antwort": "jhdsf"
+    },
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "fefdf"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_JANICK_20260827_085513",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-08-27T08:51:56.983Z",
+  "completed_at": "2026-08-27T08:55:13.143546+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_1",
+    "action": "vorfahrt",
+    "option_index": 1,
+    "option_label": "G 501 Vorfahrt — P 205 und P 312 warten",
+    "kpis": {
+      "local_delay": 29,
+      "global_delay": 20,
+      "energy": 72,
+      "anschluss": 3
+    },
+    "timestamp": "2026-08-27T08:53:39.728963+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "kljsfsdgf"
+    },
+    {
+      "frage": "Gab es ein Bauchgefühl, das ich ignoriert habe?",
+      "antwort": "dgsdg"
+    }
+  ]
+}
