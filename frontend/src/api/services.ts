@@ -13,6 +13,7 @@ export function getRecommendation<E extends Entity = Entity>(payload: {
   event: Card<E>['data']['metadata']
   context: Context<E>
   cognitive_snapshot?: CognitiveSnapshot
+  options?: { kpi_prediction_steps?: number }
 }) {
   return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
 }

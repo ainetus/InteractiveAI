@@ -61,6 +61,12 @@ export type PowerGrid = {
       year: [number]
     }
     topology: string
+    // Opaque state envelope, forwarded to the recommendation service so A3S can rebuild the environment.
+    environment_state?: {
+      serializer: string
+      state: Record<string, any>
+      metadata?: Record<string, any>
+    }
   }
   Metadata: {
     event_type: 'KPI' | 'anticipation' | 'agent' | 'consignation'

@@ -10,6 +10,8 @@ class RecommendationAsk(Schema):
     # only when the operator has consented. Declared so it survives schema
     # validation and is forwarded verbatim to the RL agent.
     cognitive_snapshot = Dict()
+    # Optional per-request tuning, e.g. kpi_prediction_steps for A3S.
+    options = Dict()
 
 
 class RecommendationOut(Schema):
@@ -20,6 +22,9 @@ class RecommendationOut(Schema):
     agent_type = String()
     actions = List(Dict())
     kpis = Dict(allow_none=True)
+    # A3S multi-step rollouts: candidate index and rollout timestep.
+    branch_index = Integer(allow_none=True)
+    step = Integer(allow_none=True)
 
 
 class ProcedureOut(Schema):

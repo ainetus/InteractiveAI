@@ -30,6 +30,9 @@
         </template>
         <template #footer="{ selected }">
           <div style="flex: none; overflow: auto">
+            <KpiProjectionChart
+              :recommendations="allRecommendations"
+              kpi-key="efficiency_of_the_reco" />
             <table v-if="recommendations.length">
               <thead>
                 <tr>
@@ -65,7 +68,7 @@
   </section>
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { sendTrace } from '@/api/services'
@@ -74,6 +77,8 @@ import Default from '@/components/organisms/CAB/Assistant.vue'
 import Event from '@/components/organisms/CAB/Assistant/Event.vue'
 import Recommendations from '@/components/organisms/CAB/Assistant/Recommendations.vue'
 import { applyRecommendation } from '@/entities/PowerGrid/api'
+import { branchKey } from '@/entities/PowerGrid/CAB/kpiProjection'
+import KpiProjectionChart from '@/entities/PowerGrid/CAB/KpiProjectionChart.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
@@ -85,7 +90,15 @@ const servicesStore = useServicesStore()
 const appStore = useAppStore()
 const cardsStore = useCardsStore()
 
-const recommendations = ref<Recommendation<'PowerGrid'>[]>([])
+// All rollout steps; `recommendations` below keeps only the applicable first step of each.
+const allRecommendations = ref<Recommendation<'PowerGrid'>[]>([])
+const recommendations = computed<Recommendation<'PowerGrid'>[]>({
+  get: () => allRecommendations.value.filter((r) => (r.step ?? 1) === 1),
+  set: (kept) => {
+    const branches = new Set(kept.map(branchKey))
+    allRecommendations.value = allRecommendations.value.filter((r) => branches.has(branchKey(r)))
+  }
+})
 
 watch(
   () => appStore._card,
@@ -99,9 +112,9 @@ watch(
     switch (index) {
       case 2:
         if (!appStore.card('PowerGrid')) break
-        recommendations.value = []
+        allRecommendations.value = []
         await servicesStore.getRecommendation(appStore.card('PowerGrid')!)
-        recommendations.value = servicesStore.recommendations('PowerGrid')
+        allRecommendations.value = servicesStore.recommendations('PowerGrid')
     }
   }
 )
@@ -129,7 +142,9 @@ async function onSelection(selected: any) {
     if (activeCard) cardsStore.resolveCriticality(activeCard)
     appStore.tab.assistant = 0
   } catch {
-    console.error('[PowerGrid][apply] failed — leaving card open for retry (error modal shown by http plugin)')
+    console.error(
+      '[PowerGrid][apply] failed — leaving card open for retry (error modal shown by http plugin)'
+    )
     // http plugin already shows an error modal — leave the card open so the user can retry
   }
 }

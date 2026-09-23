@@ -45,9 +45,14 @@ echo "HOST_IP=${HOST_IP}" >> .env
 
 # Secrets — sourced from .secrets if present (gitignored), otherwise from shell env
 # In CI these are injected by GitHub Actions as environment variables.
+# An RL_AGENT_API_URL already in the environment wins over the file: that is how
+# `local_setup.sh --a3s` points this stack at a running A3S without editing
+# .secrets, and it would otherwise be silently overwritten here.
+_ENV_RL_AGENT_API_URL="${RL_AGENT_API_URL:-}"
 if [[ -f .secrets ]]; then
   source .secrets
 fi
+RL_AGENT_API_URL="${_ENV_RL_AGENT_API_URL:-${RL_AGENT_API_URL:-}}"
 echo "RL_AGENT_API_URL=${RL_AGENT_API_URL:-https://interactiveagent.passerelle.irt-systemx.fr/api/v1/recommendation}" >> .env
 echo "RL_AGENT_API_TOKEN=${RL_AGENT_API_TOKEN:-}" >> .env
 echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env

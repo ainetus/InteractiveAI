@@ -8,6 +8,13 @@ export type Recommendation<E extends Entity = Entity> = {
   title: string
   actions: Action<E>[]
   kpis?: { [key: string]: any }
+  // A3S multi-step rollouts: candidate index and rollout timestep.
+  branch_index?: number
+  step?: number
+  // Whether this rollout step ended the episode (terminal-state KPIs).
+  done?: boolean
+  // Environment's absolute clock, vs `step`'s rollout-relative count.
+  env_timestep?: number
 }
 
 export type FullContext<E extends Entity = Entity> = {

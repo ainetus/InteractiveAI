@@ -1,7 +1,9 @@
 import os
+import time
 
 import requests
 import urllib3
+from api.exceptions import UpstreamAgentError
 from api.manager.base_manager import BaseRecommendationManager
 from settings import logger
 
@@ -24,6 +26,10 @@ class PowerGridManager(BaseRecommendationManager):
             "http://frontend:80/rl-api/recommendation",
         )
         self.rl_agent_api_token = os.environ.get("RL_AGENT_API_TOKEN", "")
+        # A3S rollouts can take tens of seconds; 30s was too tight.
+        self.rl_agent_api_timeout = float(
+            os.environ.get("RL_AGENT_API_TIMEOUT", "120")
+        )
         super().__init__()
 
     def get_recommendation(self, request_data):
@@ -45,35 +51,76 @@ class PowerGridManager(BaseRecommendationManager):
             request_data (dict): Full request payload with keys "event" and "context"
 
         Returns:
-            list[dict]: List of parade recommendations, empty on failure
+            list[dict]: List of parade recommendations. Empty only when the
+                agent ran and had nothing to propose.
+
+        Raises:
+            UpstreamAgentError: If the agent API could not be reached or
+                answered with an error. Deliberately not swallowed into an
+                empty list — see the exception's docstring.
         """
         try:
             headers = {}
             if self.rl_agent_api_token:
                 headers["Authorization"] = f"Bearer {self.rl_agent_api_token}"
+            started = time.monotonic()
             response = requests.post(
                 self.rl_agent_api_url,
                 json=request_data,
                 headers=headers,
-                timeout=30,
+                timeout=self.rl_agent_api_timeout,
                 verify=False,  # SSL cert may not be trusted inside the container
             )
             response.raise_for_status()
             data = response.json()
+            elapsed = time.monotonic() - started
+            if elapsed > self.rl_agent_api_timeout / 2:
+                logger.warning(
+                    "RL agent call took %.1fs of a %.0fs budget",
+                    elapsed,
+                    self.rl_agent_api_timeout,
+                )
+            else:
+                logger.info("RL agent call took %.1fs", elapsed)
             logger.info(f"RL agent returned {len(data)} recommendation(s)")
             return data
         except requests.exceptions.SSLError as e:
             logger.error(f"SSL error calling RL agent API: {e}")
-            return []
+            raise UpstreamAgentError(
+                message="Could not establish a secure connection to the "
+                "recommendation agent"
+            ) from e
         except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP error calling RL agent API: {e} — response body: {e.response.text[:500] if e.response is not None else 'N/A'}")
-            return []
+            body = e.response.text[:500] if e.response is not None else 'N/A'
+            logger.error(f"HTTP error calling RL agent API: {e} — response body: {body}")
+            status = e.response.status_code if e.response is not None else None
+            raise UpstreamAgentError(
+                message=f"The recommendation agent returned an error "
+                f"({status})" if status else
+                "The recommendation agent returned an error",
+                # The agent's own message goes in the detail rather than the
+                # user-facing message: it is a Python traceback summary, not
+                # something an operator can act on.
+                detail={"upstream_status": status, "upstream_body": body},
+            ) from e
+        except requests.exceptions.Timeout as e:
+            # Before ConnectionError: requests' Timeout subclasses it for the
+            # connect-timeout case, so the narrower except has to come first.
+            logger.error(
+                "Timeout calling RL agent API (%s) after %.0fs",
+                self.rl_agent_api_url,
+                self.rl_agent_api_timeout,
+            )
+            raise UpstreamAgentError(
+                message="The recommendation agent did not answer in time"
+            ) from e
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error calling RL agent API ({self.rl_agent_api_url}): {e}")
-            return []
-        except requests.exceptions.Timeout:
-            logger.error(f"Timeout calling RL agent API ({self.rl_agent_api_url}) after 30s")
-            return []
+            raise UpstreamAgentError(
+                message="Could not reach the recommendation agent"
+            ) from e
         except Exception as e:
             logger.error(f"Unexpected error calling RL agent API: {type(e).__name__}: {e}")
-            return []
+            raise UpstreamAgentError(
+                detail={"error": f"{type(e).__name__}: {e}"}
+            ) from e

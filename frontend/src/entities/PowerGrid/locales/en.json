@@ -17,5 +17,13 @@
   "PowerGrid.kpis.redispatching_volume": "Redispatch volume",
   "PowerGrid.kpis.renewable_energy_share": "Proportion of renewable",
   "PowerGrid.kpis.total_consumption": "Total consumption",
-  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation"
+  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation",
+  "kpiProjection.show": "Show KPI projections",
+  "kpiProjection.close": "Close",
+  "kpiProjection.title": "{kpi} — projection over the next timesteps",
+  "kpiProjection.description": "For each candidate recommendation, projected value of the selected KPI if the action is applied and the grid then evolves under the agent's own policy for the next timesteps.",
+  "kpiProjection.xAxis": "Timesteps ahead",
+  "kpiProjection.tableCaption": "Projected {kpi} value per candidate recommendation and timestep ahead",
+  "kpiProjection.tableRecommendation": "Recommendation",
+  "kpiProjection.step": "t+{step}"
 }

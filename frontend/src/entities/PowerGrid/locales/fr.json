@@ -17,5 +17,13 @@
   "PowerGrid.kpis.distance_from_reference_topology": "Distance à la topologie de référence",
   "PowerGrid.kpis.curtailment_volume": "Volume de curtailment",
   "PowerGrid.kpis.redispatching_volume": "Volume de redispatching",
-  "PowerGrid.kpis.type_of_the_reco": "Type de la parade"
+  "PowerGrid.kpis.type_of_the_reco": "Type de la parade",
+  "kpiProjection.show": "Afficher les projections de KPI",
+  "kpiProjection.close": "Fermer",
+  "kpiProjection.title": "{kpi} — projection sur les prochains pas de temps",
+  "kpiProjection.description": "Pour chaque parade candidate, valeur projetée du KPI sélectionné si l'action est appliquée puis que le réseau évolue selon la politique de l'agent sur les prochains pas de temps.",
+  "kpiProjection.xAxis": "Pas de temps à venir",
+  "kpiProjection.tableCaption": "Valeur projetée du KPI {kpi} par parade candidate et pas de temps à venir",
+  "kpiProjection.tableRecommendation": "Parade",
+  "kpiProjection.step": "t+{step}"
 }
