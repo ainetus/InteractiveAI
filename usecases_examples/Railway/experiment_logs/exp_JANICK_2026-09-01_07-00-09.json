@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_JANICK_20260901_070009",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-09-01T06:57:40.555Z",
+  "completed_at": "2026-09-01T07:00:09.168963+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "recommendation"
+  },
+  "entscheidung": {
+    "type": "recommendation",
+    "option_index": 2,
+    "option_label": "P 312 Vorfahrt — P 205 und G 501 warten",
+    "kpis": {
+      "local_delay": 28,
+      "global_delay": 23,
+      "energy": 70,
+      "anschluss": 3
+    },
+    "timestamp": "2026-09-01T06:58:42.172807+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": "nsd"
+    },
+    {
+      "frage": "Auf welche Logik habe ich mich gestützt?",
+      "antwort": "csgfg"
+    }
+  ]
+}

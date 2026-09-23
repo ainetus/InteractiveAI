@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_JANICK_20260827_130830",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-08-27T13:06:13.067Z",
+  "completed_at": "2026-08-27T13:08:30.741000+00:00",
+  "szenario": {
+    "id": "scenario1",
+    "name": "Szenario 1 — Kreuzungskonflikt",
+    "modus": "recommendation"
+  },
+  "entscheidung": {
+    "type": "recommendation",
+    "option_index": 1,
+    "option_label": "S 420 und S 425 warten — IC 301 passiert zuerst",
+    "kpis": {
+      "local_delay": 32,
+      "global_delay": 18,
+      "energy": 69,
+      "anschluss": 3
+    },
+    "timestamp": "2026-08-27T13:07:21.585564+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": "gfg"
+    },
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "gsddrfg"
+    }
+  ]
+}

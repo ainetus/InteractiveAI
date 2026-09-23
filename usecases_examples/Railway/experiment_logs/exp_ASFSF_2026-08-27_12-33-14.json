@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_ASFSF_20260827_123314",
+  "participant_id": "ASFSF",
+  "type": "test_run",
+  "started_at": "2026-08-27T12:30:39.580Z",
+  "completed_at": "2026-08-27T12:33:14.930087+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "recommendation"
+  },
+  "entscheidung": {
+    "type": "recommendation",
+    "option_index": 1,
+    "option_label": "G 501 Vorfahrt — P 205 und P 312 warten",
+    "kpis": {
+      "local_delay": 29,
+      "global_delay": 20,
+      "energy": 72,
+      "anschluss": 3
+    },
+    "timestamp": "2026-08-27T12:31:47.658769+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": "ewtzet"
+    },
+    {
+      "frage": "Welche Informationen fehlten, die mir geholfen hätten?",
+      "antwort": "wetwet"
+    }
+  ]
+}

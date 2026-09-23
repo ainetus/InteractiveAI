@@ -1,0 +1,36 @@
+{
+  "experiment_id": "exp_JANICK_20260827_073805",
+  "participant_id": "JANICK",
+  "type": "test_run",
+  "started_at": "2026-08-27T07:35:45.950Z",
+  "completed_at": "2026-08-27T07:38:05.809815+00:00",
+  "szenario": {
+    "id": "scenario2",
+    "name": "Szenario 2 — Fahrt auf Sichtweite",
+    "modus": "colearning"
+  },
+  "entscheidung": {
+    "type": "colearning",
+    "train": "Train_2",
+    "action": "vorfahrt",
+    "option_index": 2,
+    "option_label": "P 312 Vorfahrt — P 205 und G 501 warten",
+    "kpis": {
+      "local_delay": 28,
+      "global_delay": 23,
+      "energy": 70,
+      "anschluss": 3
+    },
+    "timestamp": "2026-08-27T07:36:47.349714+00:00"
+  },
+  "reflexion": [
+    {
+      "frage": "Auf welche Logik habe ich mich gestützt?",
+      "antwort": "sf"
+    },
+    {
+      "frage": "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "antwort": "ffff"
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+<svg [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block;">
+
+  <!-- Event warning labels (no red band) -->
+  @if (eventBands.length > 0) {
+    @for (band of eventBands; track $index) {
+      <text
+        [attr.x]="marginLeft + chartWidth - 4"
+        [attr.y]="marginTop + (band.start / maxTime) * chartHeight - 4"
+        fill="rgba(255,80,80,0.8)"
+        font-size="9"
+        text-anchor="end"
+      >⚠ event</text>
+    }
+  }
+
+  <!-- Grid lines vertical (distance) -->
+  <g stroke="#e9ecef" stroke-width="0.5">
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop" [attr.x2]="marginLeft" [attr.y2]="svgHeight - marginBottom" />
+    <line [attr.x1]="marginLeft + chartWidth * 0.2" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth * 0.2" [attr.y2]="svgHeight - marginBottom" />
+    <line [attr.x1]="marginLeft + chartWidth * 0.4" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth * 0.4" [attr.y2]="svgHeight - marginBottom" />
+    <line [attr.x1]="marginLeft + chartWidth * 0.6" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth * 0.6" [attr.y2]="svgHeight - marginBottom" />
+    <line [attr.x1]="marginLeft + chartWidth * 0.8" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth * 0.8" [attr.y2]="svgHeight - marginBottom" />
+    <line [attr.x1]="marginLeft + chartWidth" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth" [attr.y2]="svgHeight - marginBottom" />
+  </g>
+
+  <!-- Grid lines horizontal (time) -->
+  <g stroke="#e9ecef" stroke-width="0.5">
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop" [attr.x2]="marginLeft + chartWidth" [attr.y2]="marginTop" />
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop + chartHeight * 0.2" [attr.x2]="marginLeft + chartWidth" [attr.y2]="marginTop + chartHeight * 0.2" />
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop + chartHeight * 0.4" [attr.x2]="marginLeft + chartWidth" [attr.y2]="marginTop + chartHeight * 0.4" />
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop + chartHeight * 0.6" [attr.x2]="marginLeft + chartWidth" [attr.y2]="marginTop + chartHeight * 0.6" />
+    <line [attr.x1]="marginLeft" [attr.y1]="marginTop + chartHeight * 0.8" [attr.x2]="marginLeft + chartWidth" [attr.y2]="marginTop + chartHeight * 0.8" />
+    <line [attr.x1]="marginLeft" [attr.y1]="svgHeight - marginBottom" [attr.x2]="marginLeft + chartWidth" [attr.y2]="svgHeight - marginBottom" />
+  </g>
+
+  <!-- Axes -->
+  <line [attr.x1]="marginLeft" [attr.y1]="marginTop" [attr.x2]="marginLeft" [attr.y2]="svgHeight - marginBottom" stroke="#495057" stroke-width="2" />
+  <line [attr.x1]="marginLeft" [attr.y1]="svgHeight - marginBottom" [attr.x2]="marginLeft + chartWidth" [attr.y2]="svgHeight - marginBottom" stroke="#495057" stroke-width="2" />
+
+  <!-- Y-axis labels (Time) -->
+  <g fill="#495057" font-family="Arial, sans-serif" font-size="12" text-anchor="end">
+    <text [attr.x]="marginLeft - 10" [attr.y]="marginTop + 5">0</text>
+    <text [attr.x]="marginLeft - 10" [attr.y]="marginTop + chartHeight * 0.2 + 5">{{ maxTime * 0.2 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft - 10" [attr.y]="marginTop + chartHeight * 0.4 + 5">{{ maxTime * 0.4 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft - 10" [attr.y]="marginTop + chartHeight * 0.6 + 5">{{ maxTime * 0.6 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft - 10" [attr.y]="marginTop + chartHeight * 0.8 + 5">{{ maxTime * 0.8 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft - 10" [attr.y]="svgHeight - marginBottom + 5">{{ maxTime }}</text>
+  </g>
+
+  <!-- X-axis labels (Distance) -->
+  <g fill="#495057" font-family="Arial, sans-serif" font-size="12" text-anchor="middle">
+    <text [attr.x]="marginLeft" [attr.y]="svgHeight - marginBottom + 20">0</text>
+    <text [attr.x]="marginLeft + chartWidth * 0.2" [attr.y]="svgHeight - marginBottom + 20">{{ maxDistance * 0.2 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft + chartWidth * 0.4" [attr.y]="svgHeight - marginBottom + 20">{{ maxDistance * 0.4 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft + chartWidth * 0.6" [attr.y]="svgHeight - marginBottom + 20">{{ maxDistance * 0.6 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft + chartWidth * 0.8" [attr.y]="svgHeight - marginBottom + 20">{{ maxDistance * 0.8 | number: '1.0' }}</text>
+    <text [attr.x]="marginLeft + chartWidth" [attr.y]="svgHeight - marginBottom + 20">{{ maxDistance | number: '1.0-1' }}</text>
+  </g>
+
+  <!-- Y axis title -->
+  <text
+    [attr.transform]="'rotate(-90) translate(' + (-(svgHeight/2)) + ',' + (marginLeft - 35) + ')'"
+    fill="#495057" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">
+    Time (steps)
+  </text>
+
+  <!-- X axis title -->
+  <text
+    [attr.x]="marginLeft + chartWidth / 2"
+    [attr.y]="svgHeight - 5"
+    fill="#495057" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">
+    Position (column)
+  </text>
+
+  <!-- Planned trajectories -->
+  @for (plan of plannedRuns; let i = $index; track $index) {
+    @for (train of plan; track $index) {
+      <polyline
+        [attr.points]="getPolylinePoints(train.coordinates)"
+        [attr.stroke]="selectedPlan === i ? 'grey' : '#cccccc99'"
+        fill="none" stroke-width="3" opacity="0.8"
+      />
+    }
+  }
+
+  <!-- Train trajectories — normal hue-rotate coloring -->
+  @for (train of trainRuns; let i = $index; track $index) {
+    <filter [id]="'hue-rotate-' + i">
+      <feColorMatrix type="hueRotate" [attr.values]="(i / trainRuns.length) * 360" />
+    </filter>
+    <g>
+      <polyline
+        [attr.points]="getPolylinePoints(train.coordinates)"
+        fill="none"
+        stroke="red"
+        stroke-width="3"
+        opacity="0.8"
+        [attr.style]="'filter: url(#hue-rotate-' + i + ')'"
+      />
+      <!-- Dots at each position — makes vertical movement visible -->
+      @for (coord of train.coordinates; track $index) {
+        <circle
+          [attr.cx]="marginLeft + (coord.x / maxDistance) * chartWidth"
+          [attr.cy]="marginTop + (coord.y / maxTime) * chartHeight"
+          r="2"
+          fill="red"
+          opacity="0.7"
+          [attr.style]="'filter: url(#hue-rotate-' + i + ')'"
+        />
+      }
+      <!-- Train ID label -->
+      @if (train.coordinates.length > 0) {
+        <text
+          [attr.x]="marginLeft + (train.coordinates[train.coordinates.length - 1].x / maxDistance) * chartWidth + 6"
+          [attr.y]="marginTop + (train.coordinates[train.coordinates.length - 1].y / maxTime) * chartHeight"
+          font-family="Arial, sans-serif"
+          font-size="11"
+          font-weight="bold"
+          fill="red"
+          [attr.style]="'filter: url(#hue-rotate-' + i + ')'"
+        >Train {{ train.name }}</text>
+      }
+    </g>
+  }
+</svg>
