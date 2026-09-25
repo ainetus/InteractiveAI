@@ -10,3 +10,4 @@ assistant_path = "Ressources/XD_silly_repo"
 assistant_seed = 1227139268
 stepDuration_s = 0.5
 scenario_first_step = 752
+failure_forecast_artifact_dir = "failure_forecaster"
