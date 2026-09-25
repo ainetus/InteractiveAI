@@ -51,13 +51,8 @@ export function sendTrace(payload: Trace) {
   return http.post<Required<Trace>>('/cabhistoric/api/v1/traces', tracePayload)
 }
 
-// TODO: TEMP HACK (eval-demo) — MUST BE REMOVED before next release
-// The real API call is disabled and replaced with a fake success response for demo purposes.
 export function applyRecommendation<E extends Entity = Entity>(data: Action<E>) {
-  // [DISABLED] Simulator API is inactive — returning fake success for demo
-  // To restore: uncomment the http.post and remove the Promise.resolve
-  // return http.post<{ message: string }>('/api/v1/recommendations', data)
-  return Promise.resolve({ data: { message: 'ok (simulated)' } }) // TEMP HACK: remove this line
+  return http.post<{ message: string }>('/api/v1/recommendations', data)
 }
 
 export function getProcedure(event_type: string) {

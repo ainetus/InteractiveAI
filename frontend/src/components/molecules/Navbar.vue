@@ -70,12 +70,15 @@
 <script setup lang="ts">
 import { AppWindow, ArrowUpDown, Bell, LogIn, User } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useCardsStore } from '@/stores/cards'
 import type { Entity } from '@/types/entities'
+import { requestSurvey, UNKNOWN_USE_CASE } from '@/utils/survey'
+import { currentTraceSessionId } from '@/utils/traceSessionExport'
 import { asset, hashColor } from '@/utils/utils'
 
 import pkg from '../../../package.json'
@@ -90,11 +93,66 @@ const authStore = useAuthStore()
 const cardsStore = useCardsStore()
 const appStore = useAppStore()
 
+const { t } = useI18n()
+
 const color = computed(() => (env.PROD ? 'var(--color-primary)' : hashColor(env.MODE)))
 
+/**
+ * Offer to wipe the alerts still on the board before leaving. Cards outlive the
+ * session server-side, so without this the next operator reopens the previous
+ * run's events. Deleting needs a live token, hence before `authStore.logout()`.
+ */
 function logout() {
-  authStore.logout()
-  router.push({ name: 'login' })
+  if (!cardsStore._cards.length) return leave()
+  appStore.addModal({
+    data: t('modal.info.DELETE_ALERTS'),
+    type: 'choice',
+    callback: async (success) => {
+      if (success) {
+        const failed = await cardsStore.removeAll()
+        if (failed)
+          appStore.addModal({ data: t('modal.error.DELETE_ALERTS', { n: failed }), type: 'info' })
+      }
+      leave()
+    }
+  })
+}
+
+/**
+ * End the session, then hand the operator the HMI questionnaire chain.
+ *
+ * Both identifiers are read *before* `logout()`, which clears the trace session
+ * and the user: the survey is tagged with the session that just ended
+ * (Participant ID) and the use case it was run on (Condition ID), so the
+ * operator only has to press Start.
+ */
+function leave() {
+  const sessionId = currentTraceSessionId()
+  const entity = router.currentRoute.value.params.entity as Entity | undefined
+  // Logging out from the home page: unambiguous only when the operator has a
+  // single use case.
+  const useCase =
+    entity ??
+    (authStore.entities.length === 1
+      ? (authStore.entities[0] as Entity)
+      : UNKNOWN_USE_CASE)
+
+  // The session report would open on top of the questionnaire and hide it, so
+  // it is held back whenever a survey follows; the survey page offers it once
+  // the operator is done (`openDeferredSummary`). The files are written either
+  // way.
+  authStore.logout('json', { openSummary: !sessionId })
+
+  // No session recorded (e.g. a reloaded tab that never started one): nothing
+  // to attach answers to, so skip the survey rather than file them under a
+  // missing id - and the report opens straight away, as it always did.
+  if (!sessionId) {
+    router.push({ name: 'login' })
+    return
+  }
+
+  requestSurvey({ sessionId, useCase })
+  router.push({ name: 'survey' })
 }
 </script>
 <style scoped>

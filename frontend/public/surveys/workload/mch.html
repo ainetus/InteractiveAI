@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cooper–Harper Handling Qualities / Workload Rating</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 30px;
+    background: #fafafa;
+  }
+  h2 { text-align: center; margin-bottom: 5px; }
+  p.intro { text-align:center; max-width: 780px; margin: 0 auto 20px; }
+  .flow {
+    max-width: 780px;
+    margin: 0 auto;
+    border: 1px solid #bbb;
+    background: #fff;
+    padding: 15px 20px 25px;
+    border-radius: 10px;
+  }
+  .diamond {
+    margin: 12px auto;
+    padding: 10px 15px;
+    border: 1px solid #444;
+    background: #f8f8f8;
+    width: 280px;
+    text-align: center;
+    border-radius: 6px;
+  }
+  .answers label {
+    margin: 0 8px;
+    cursor: pointer;
+  }
+  .arrow {
+    text-align: center;
+    font-size: 22px;
+    color: #555;
+  }
+  .hidden { display: none; }
+
+  /* subscale panel */
+  .subscale {
+    margin-top: 25px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #f4f4f4;
+    padding: 10px 15px;
+  }
+  .subscale h3 {
+    margin-top: 0;
+  }
+  .subscale table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .subscale th, .subscale td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .rate-btn {
+    margin-top: 20px;
+    padding: 8px 16px;
+    background: #0077cc;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .rate-btn:hover { background: #005fa3; }
+
+  #finalResult {
+    margin-top: 25px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+
+  @media print {
+    body { background:#fff; margin:0; }
+    .rate-btn { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<h2>Modified Cooper–Harper Rating Scale</h2>
+<p class="intro">
+  Follow the boxes from top to bottom. Answer each question <strong>Yes</strong> or <strong>No</strong>.
+  When the path is determined, choose the rating from the corresponding 3-point group.
+</p>
+
+<!-- Participant info fields (shown only if ParticipantID == true) -->
+<div id="participantInfo" style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+  <label for="pid"><strong>Participant ID:</strong></label>
+  <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+  <label for="cond"><strong>Condition ID:</strong></label>
+  <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+</div>
+
+<div class="flow">
+  <!-- Q1 -->
+  <div class="diamond" id="q1">
+    <strong>1. Even though errors may be large or frequent, can instructed task be accomplished most of the time?</strong>
+    <div class="answers">
+      <label><input type="radio" name="q1" value="yes"> Yes</label>
+      <label><input type="radio" name="q1" value="no"> No</label>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- Q2 -->
+  <div class="diamond hidden" id="q2">
+    <strong>2. Are errors small and acceptable?</strong>
+    <div class="answers">
+      <label><input type="radio" name="q2" value="yes"> Yes</label>
+      <label><input type="radio" name="q2" value="no"> No</label>
+    </div>
+  </div>
+
+  <div class="arrow">↓</div>
+
+  <!-- Q3 -->
+  <div class="diamond hidden" id="q3">
+    <strong>3. Is mental workload level acceptable</strong>
+    <div class="answers">
+      <label><input type="radio" name="q3" value="yes"> Yes</label>
+      <label><input type="radio" name="q3" value="no"> No</label>
+    </div>
+  </div>
+
+  <!-- === SUBSCALES === -->
+
+  <!-- 10: Improvement mandatory -->
+  <div class="subscale hidden" id="grp10">
+    <h3>Rating 10 — Major deficiencies, system redesign is mandatory</h3>
+    <p>Impossible. Instructed task cannot be accomplished reliably.</p>
+    <button class="rate-btn" data-rating="10">Select Rating 10</button>
+  </div>
+
+  <!-- 7–9: Major deficiencies -->
+  <div class="subscale hidden" id="grp7_9">
+    <h3>Choose one: Major difficulty, system redesign recommended (7–9)</h3>
+    <table>
+      <tr><th>Rating</th><th>Description</th><th>Select</th></tr>
+      <tr>
+        <td><strong>7</strong></td>
+        <td>Maximum operator mental effort is required to bring errors to moderate level.</td>
+        <td><input type="radio" name="r79" value="7"></td>
+      </tr>
+      <tr>
+        <td><strong>8</strong></td>
+        <td>Maximum operator mental effort is required to avoid large or numerous errors.</td>
+        <td><input type="radio" name="r79" value="8"></td>
+      </tr>
+      <tr>
+        <td><strong>9</strong></td>
+        <td>Intense operator mental effort required to accomplish task, but frequent or numerous errors persist.</td>
+        <td><input type="radio" name="r79" value="9"></td>
+      </tr>
+    </table>
+    <button class="rate-btn" id="btn79">Confirm Selection</button>
+  </div>
+
+  <!-- 4–6: Deficiencies warrant improvement -->
+  <div class="subscale hidden" id="grp4_6">
+    <h3>Choose one: Deficiencies warrant improvement (4–6)</h3>
+    <table>
+      <tr><th>Rating</th><th>Description</th><th>Select</th></tr>
+      <tr>
+        <td><strong>4</strong></td>
+        <td>Minor but annoying difficulty. Moderate high operator mental effort required to attain adequate system performance.</td>
+        <td><input type="radio" name="r46" value="4"></td>
+      </tr>
+      <tr>
+        <td><strong>5</strong></td>
+        <td>Moderately objectionable difficulty. High operator mental effort required to attain adequate system performance.</td>
+        <td><input type="radio" name="r46" value="5"></td>
+      </tr>
+      <tr>
+        <td><strong>6</strong></td>
+        <td>Very objectionable but tolerable difficulty. Maximum operator mental effort required to attain adequate system performance.</td>
+        <td><input type="radio" name="r46" value="6"></td>
+      </tr>
+    </table>
+    <button class="rate-btn" id="btn46">Confirm Selection</button>
+  </div>
+
+  <!-- 1–3: Satisfactory / desirable -->
+  <div class="subscale hidden" id="grp1_3">
+    <h3>Choose one: Satisfactory / desirable (1–3)</h3>
+    <table>
+      <tr><th>Rating</th><th>Description</th><th>Select</th></tr>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>Very easy, highly desirable. Operator mental effort is minimal and desired performance is easily attainable.</td>
+        <td><input type="radio" name="r13" value="1"></td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>Easy, desirable. Operator mental effort is low and desired performance is attainable.</td>
+        <td><input type="radio" name="r13" value="2"></td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Fair, mildly difficulty. Acceptable operator mental effort is required to attain adequate system performance.</td>
+        <td><input type="radio" name="r13" value="3"></td>
+      </tr>
+    </table>
+    <button class="rate-btn" id="btn13">Confirm Selection</button>
+  </div>
+
+  <div id="finalResult" class="hidden"></div>
+
+</div><!-- /flow -->
+
+<script>
+
+  // ===============================================================
+  // === CONFIGURATION =============================================
+  // ===============================================================
+
+  // === Global options ===
+  const fileDownload = false;       // Set to true to auto-download JSON
+  const ParticipantID = false;      // Set to true to show Participant/Condition fields
+
+  const q1 = document.getElementById("q1");
+  const q2 = document.getElementById("q2");
+  const q3 = document.getElementById("q3");
+  const grp10 = document.getElementById("grp10");
+  const grp79 = document.getElementById("grp7_9");
+  const grp46 = document.getElementById("grp4_6");
+  const grp13 = document.getElementById("grp1_3");
+  const finalRes = document.getElementById("finalResult");
+
+  // === Show participant fields if enabled ===
+  if (ParticipantID) {
+    document.getElementById("participantInfo").style.display = "block";
+  }
+
+  function hideAllGroups() {
+    grp10.classList.add("hidden");
+    grp79.classList.add("hidden");
+    grp46.classList.add("hidden");
+    grp13.classList.add("hidden");
+    finalRes.classList.add("hidden");
+  }
+
+  // Q1: Is it controllable?
+  document.querySelectorAll('input[name="q1"]').forEach(el => {
+    el.addEventListener("change", e => {
+      hideAllGroups();
+      if (e.target.value === "no") {
+        // straight to 10
+        grp10.classList.remove("hidden");
+        q2.classList.add("hidden");
+        q3.classList.add("hidden");
+      } else {
+        // go to Q2
+        q2.classList.remove("hidden");
+        q3.classList.add("hidden");
+      }
+    });
+  });
+
+  // Q2: Is adequate performance attainable with tolerable workload?
+  document.querySelectorAll('input[name="q2"]').forEach(el => {
+    el.addEventListener("change", e => {
+      hideAllGroups();
+      if (e.target.value === "no") {
+        // go to 7-9
+        grp79.classList.remove("hidden");
+        q3.classList.add("hidden");
+      } else {
+        // go to Q3
+        q3.classList.remove("hidden");
+      }
+    });
+  });
+
+  // Q3: Is it satisfactory without improvement?
+  document.querySelectorAll('input[name="q3"]').forEach(el => {
+    el.addEventListener("change", e => {
+      hideAllGroups();
+      if (e.target.value === "no") {
+        // 4-6
+        grp46.classList.remove("hidden");
+      } else {
+        // 1-3
+        grp13.classList.remove("hidden");
+      }
+    });
+  });
+
+  // Confirm buttons
+  document.getElementById("btn79").addEventListener("click", () => {
+    const chosen = document.querySelector('input[name="r79"]:checked');
+    if (!chosen) { alert("Please select a rating (7–9)."); return; }
+    finish(Number(chosen.value));
+  });
+
+  document.getElementById("btn46").addEventListener("click", () => {
+    const chosen = document.querySelector('input[name="r46"]:checked');
+    if (!chosen) { alert("Please select a rating (4–6)."); return; }
+
+    finish(Number(chosen.value));
+  });
+
+  document.getElementById("btn13").addEventListener("click", () => {
+    const chosen = document.querySelector('input[name="r13"]:checked');
+    if (!chosen) { alert("Please select a rating (1–3)."); return; }
+
+    finish(Number(chosen.value));
+  });
+
+  // Rating 10 button
+  grp10.querySelector('button[data-rating="10"]').addEventListener("click", () => {
+    finish(Number(10));
+  });
+
+  function finish(rating) {
+    // === Capture optional participant info ===
+    let participantData = {};
+    if (ParticipantID) {
+      participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+      participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+    }
+
+    if (ParticipantID && (participantData.id === "anon" || participantData.condition === "none")) {
+      alert("Please enter both Participant ID and Condition ID.");
+      return;
+    }
+
+    if(!fileDownload) {
+      finalRes.textContent = `Final Cooper–Harper Rating: ${rating}`;
+      finalRes.classList.remove("hidden");
+    }
+    else
+      document.body.innerText = "Thank you!";
+
+    window.parent?.postMessage?.({success:true, rating: Number(rating)}, "*");
+
+    if (fileDownload) downloadResultsJSON({ success: true, participantData, rating: Number(rating) });
+  }
+
+  // === Optional local JSON file download ===
+  function downloadResultsJSON(results) {
+    const pid = results.participantData?.id || "anon";
+    const cond = results.participantData?.condition || "none";
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `mch_${pid}_${cond}_${timestamp}.json`;
+    const json = JSON.stringify(results, null, 2);
+
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>

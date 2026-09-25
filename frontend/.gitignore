@@ -12,7 +12,12 @@ node_modules
 dist
 dist-ssr
 coverage
+# NB: .dockerignore is a symlink to this file, and the two dialects differ. git matches
+# `*.local` at any depth, Docker only at the context root - so env/.env.local was ignored by
+# git but still copied into the image, where Vite inlined every VITE_* it defined into the
+# public bundle. The `**/` form is what excludes it from the build context.
 *.local
+**/*.local
 
 /cypress/videos/
 /cypress/screenshots/

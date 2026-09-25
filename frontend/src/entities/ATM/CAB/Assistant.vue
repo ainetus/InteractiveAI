@@ -133,8 +133,14 @@ function onHover(hovered: Recommendation<'ATM'>) {
     }
 }
 
-function onSelection(recommendation: Recommendation<'ATM'>) {
-  applyRecommendation(recommendation.actions[0])
+async function onSelection(recommendation: Recommendation<'ATM'>) {
+  try {
+    await applyRecommendation(recommendation.actions[0])
+  } catch {
+    // http plugin already shows an error modal — leave the card open so the user can retry
+    console.error('[ATM][apply] failed — leaving card open for retry')
+    return
+  }
   const activeCard = appStore.card('ATM')
   if (activeCard) cardsStore.resolveCriticality(activeCard)
   mapStore.resetPolylines()

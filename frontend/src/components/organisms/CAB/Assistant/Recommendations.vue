@@ -63,7 +63,7 @@
 </template>
 <script setup lang="ts" generic="E extends Entity">
 import { ThumbsDown } from 'lucide-vue-next'
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount, ref, watch } from 'vue'
 
 import { sendFeedback } from '@/api/services'
 import Button from '@/components/atoms/Button.vue'
@@ -91,6 +91,35 @@ const details = ref(false)
 onBeforeMount(() => {
   buttons.value = props.buttons
 })
+
+/**
+ * Stamp the moment the recommendations reach the screen.
+ *
+ * This is what the human decision time is measured from: ASKFORHELP is too
+ * early, since everything the recommendation service spends answering would be
+ * counted as the operator thinking. Recorded here rather than in each entity's
+ * Assistant so every use case is measured the same way, and only once per
+ * batch - the list is emptied before a new request, which re-arms it.
+ */
+const shown = ref(false)
+watch(
+  () => props.recommendations,
+  (recommendations) => {
+    if (!recommendations.length) {
+      shown.value = false
+      return
+    }
+    if (shown.value) return
+    shown.value = true
+    recordTraceForSession({
+      use_case: recommendations[0].use_case,
+      step: 'RECOMMENDATIONS',
+      date: new Date().toISOString(),
+      data: { recommendations: recommendations.map((recommendation) => recommendation.title) }
+    })
+  },
+  { immediate: true }
+)
 
 async function close(success: boolean) {
   if (success) {

@@ -160,6 +160,23 @@ export const useCardsStore = defineStore('cards', () => {
     cardsApi.remove(card.id)
   }
 
+  /**
+   * Deletes every card currently held, so the next session starts on a clean
+   * board instead of replaying the alerts of the previous one (the card
+   * subscription re-sends everything published in the last 24h).
+   *
+   * Deletions are attempted in parallel and never reject: the user is on their
+   * way out, so a card that cannot be deleted is counted, not popped up.
+   *
+   * @returns how many cards could not be deleted
+   */
+  async function removeAll() {
+    const ids = [...new Set(_cards.value.map((card) => card.processInstanceId))].filter(Boolean)
+    const results = await Promise.allSettled(ids.map((id) => cardsApi.removeEvent(id, true)))
+    _cards.value = []
+    return results.filter((result) => result.status === 'rejected').length
+  }
+
   /** Set the card's criticality to 'ND' (resolved) after the user confirms a recommendation. */
   function resolveCriticality<E extends Entity = Entity>(card: Card<E>) {
     if (card.data.criticality !== 'ND') {
@@ -168,5 +185,14 @@ export const useCardsStore = defineStore('cards', () => {
     }
   }
 
-  return { _cards, cards, subscribe, unsubscribe, acknowledge, remove, resolveCriticality }
+  return {
+    _cards,
+    cards,
+    subscribe,
+    unsubscribe,
+    acknowledge,
+    remove,
+    removeAll,
+    resolveCriticality
+  }
 })

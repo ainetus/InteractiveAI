@@ -127,12 +127,18 @@ export const useAuthStore = defineStore(
     /**
      * @param format trace export format
      * @param options `force: false` skips the export when the session recorded
-     *   no trace - used on session expiry so no empty file is downloaded
+     *   no trace - used on session expiry so no empty file is downloaded.
+     *   `openSummary: false` keeps the HTML report from taking over the tab,
+     *   which would hide the post-logout survey; the file is written regardless
      */
-    function logout(format: 'json' | 'csv' = 'json', options: { force?: boolean } = {}) {
+    function logout(
+      format: 'json' | 'csv' = 'json',
+      options: { force?: boolean; openSummary?: boolean } = {}
+    ) {
       try {
         exportTraceSession(format, {
           force: options.force ?? true,
+          openSummary: options.openSummary,
           userLogin: user.value?.userData.login
         })
       } catch (error) {

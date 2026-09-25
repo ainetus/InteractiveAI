@@ -98,8 +98,15 @@ export function remove(id: Card['id']) {
   return http.delete<null>(`/cardspub/cards/${id}`)
 }
 
-export function removeEvent(uid: Card['processInstanceId']) {
-  return http.delete<null>(`/cab_event/api/v1/event/${uid}`)
+/**
+ * Deletes the event *and* its card (the event-service drops `cabProcess.{uid}`
+ * from the card publication service on its way out).
+ *
+ * @param silent suppress the generic error modal - used by bulk deletions that
+ *   report once instead of one popup per card
+ */
+export function removeEvent(uid: Card['processInstanceId'], silent = false) {
+  return http.delete<null>(`/cab_event/api/v1/event/${uid}`, { _silent: silent })
 }
 
 export function acknowledge(card: Card) {
