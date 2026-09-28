@@ -1,6 +1,7 @@
 <template>
-  <Context :tabs="[$t('cab.tab.map')]">
+  <Context :tabs="[$t('cab.tab.map'), $t('ATM.pareto.title')]">
     <Map v-if="appStore.tab.context === 0" />
+    <ParetoFront v-if="appStore.tab.context === 1" />
   </Context>
 </template>
 
@@ -9,6 +10,7 @@ import { onBeforeMount, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
+import ParetoFront from '@/entities/ATM/CAB/ParetoFront.vue'
 import type { AirplaneContext, LegacyContext, ContextType } from '@/entities/ATM/types'
 import { useAppStore } from '@/stores/app'
 import { useMapStore } from '@/stores/components/map'

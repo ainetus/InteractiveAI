@@ -9,5 +9,17 @@
   "recommendations.button3": "Accomodation",
   "recommendations.description": "Information plan de vol",
   "recommendations.modal": "Vous êtes sur le point de recalculer un nouveau plan de vol pour vous rediriger vers {destination}. Souhaitez-vous continuer ?",
-  "recommendations.title": "Recommandations de plan de vol"
+  "recommendations.title": "Recommandations de plan de vol",
+  "ATM.pareto.title": "Front de Pareto",
+  "ATM.pareto.loading": "Chargement des politiques de l’agent…",
+  "ATM.pareto.error": "Impossible de charger le front de Pareto de l’agent.",
+  "ATM.pareto.empty": "L’agent n’a fourni aucune politique.",
+  "ATM.pareto.selected": "Checkpoint sélectionné",
+  "ATM.pareto.policy": "Politique {id}",
+  "ATM.pareto.rewards": "Récompenses",
+  "ATM.pareto.weights": "Poids des objectifs",
+  "ATM.pareto.help": "Sélectionnez un point pour changer le checkpoint de tous les avions à la prochaine décision de l’agent.",
+  "ATM.pareto.demo": "Démo : les cinq checkpoints sont des copies du même modèle. Les scores et les poids sont illustratifs ; le comportement est identique.",
+  "ATM.pareto.switching": "Chargement du checkpoint…",
+  "ATM.pareto.retry": "Réessayer"
 }

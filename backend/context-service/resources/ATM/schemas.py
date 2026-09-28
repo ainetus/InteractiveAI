@@ -11,9 +11,18 @@ class PlaneMetadataSchemaATM(MetadataSchema):
     Latitude = Float()
     Longitude = Float()
     wpList = List(Dict())
+    heading = Float(required=False)
+    in_los = fields.Boolean(required=False)
+
+class ShapeMetadataSchemaATM(Schema):
+    name = String(required=True)
+    kind = String(required=True)
+    coordinates = List(List(Float()), required=True)
+
 
 class MetadataSchemaATM(MetadataSchema):
     airplanes = List(fields.Nested(PlaneMetadataSchemaATM), required=True)
+    shapes = List(fields.Nested(ShapeMetadataSchemaATM), required=False)
     
     # Backward compatibility: optional fields for the single airplane case
     ApDest = Dict(required=False)

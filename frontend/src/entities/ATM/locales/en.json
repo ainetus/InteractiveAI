@@ -8,5 +8,17 @@
   "recommendations.button3": "Accomodation",
   "recommendations.description": "Flight plan information",
   "recommendations.modal": "You are about to recalculate a new flight plan to reroute to {destination}. Do you wish to continue?",
-  "recommendations.title": "Flight plans recommendations"
+  "recommendations.title": "Flight plans recommendations",
+  "ATM.pareto.title": "Pareto front",
+  "ATM.pareto.loading": "Loading agent policies…",
+  "ATM.pareto.error": "Unable to load the agent Pareto front.",
+  "ATM.pareto.empty": "The agent did not provide any policies.",
+  "ATM.pareto.selected": "Selected checkpoint",
+  "ATM.pareto.policy": "Policy {id}",
+  "ATM.pareto.rewards": "Rewards",
+  "ATM.pareto.weights": "Objective weights",
+  "ATM.pareto.help": "Select a point to switch the checkpoint controlling all aircraft at the next agent decision.",
+  "ATM.pareto.demo": "Demo: all five checkpoints are copies of the same model. Reward scores and weights are illustrative; behaviour is identical.",
+  "ATM.pareto.switching": "Loading checkpoint…",
+  "ATM.pareto.retry": "Retry"
 }
