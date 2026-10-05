@@ -14,7 +14,9 @@ DEFAULT_LOGGING = {
     'root': {
         'level': 'INFO',
         'handlers': ['wsgi']
-    }
+    },
+    # Avoid silently disabling loggers already set up elsewhere.
+    'disable_existing_loggers': False,
 }
 logging.config.dictConfig(DEFAULT_LOGGING)
 

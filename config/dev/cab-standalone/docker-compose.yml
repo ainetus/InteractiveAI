@@ -189,6 +189,8 @@ services:
       - TZ=UTC   # Set timezone to UTC
       - RL_AGENT_API_URL=${RL_AGENT_API_URL}
       - RL_AGENT_API_TOKEN=${RL_AGENT_API_TOKEN}
+      # A3S rollouts can take tens of seconds to answer.
+      - RL_AGENT_API_TIMEOUT=${RL_AGENT_API_TIMEOUT:-120}
     command: sh -c "./entrypoint.sh"
     ports:
       - 5400:5000

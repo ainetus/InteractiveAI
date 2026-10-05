@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-import { fetchCognitiveSnapshot } from '@/api/cognitive'
 import type { CognitiveSnapshot } from '@/api/cognitive'
+import { fetchCognitiveSnapshot } from '@/api/cognitive'
 import * as servicesApi from '@/api/services'
 import i18n from '@/plugins/i18n'
 import type { Card } from '@/types/cards'
@@ -132,9 +132,12 @@ export const useServicesStore = defineStore('services', () => {
       event: Card<E>['data']['metadata']
       context: Context<E>
       cognitive_snapshot?: CognitiveSnapshot
+      options?: { kpi_prediction_steps?: number }
     } = {
       event: getRootCard(event).data.metadata,
-      context: contextForAgent
+      context: contextForAgent,
+      // A3S rolls this out; other managers ignore it.
+      options: { kpi_prediction_steps: 6 }
     }
     if (hasCognitiveConsent()) {
       payload.cognitive_snapshot = await fetchCognitiveSnapshot()

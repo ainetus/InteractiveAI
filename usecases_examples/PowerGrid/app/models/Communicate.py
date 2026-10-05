@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from config.config import logging, set_pause, get_pause_status
 from app.models.recommendation_store import store as recommendation_store
+from app.models.env_serialization import build_environment_state
 
 class Communicate:
     """
@@ -227,7 +228,22 @@ class Communicate:
             authorization = True
         return url, authorization
 
-    def send_context_online(self, obs, scn_first_step, context_date, img_b64):
+    def environment_state_payload(self, obs, env_identity, recorder):
+        """Builds the `environment_state` envelope, or None if disabled/unavailable."""
+        if not env_identity or recorder is None or not len(recorder):
+            return None
+
+        context_config = self.outputs_config['Outputs']['Context']
+        if str(context_config.get('serialize_env_state', 'yes')).lower() != 'yes':
+            return None
+
+        return build_environment_state(
+            obs, env_identity, recorder,
+            float(context_config.get('max_state_mb', 32))
+        )
+
+    def send_context_online(self, obs, scn_first_step, context_date, img_b64,
+                            env_identity=None, recorder=None):
         """
         Sends the context online with the observation image.
 
@@ -236,6 +252,8 @@ class Communicate:
             scn_first_step: First step of the scenario.
             context_date: Date of the context.
             img_b64: Base64 encoded image.
+            env_identity: Environment identity from `build_env_identity`.
+            recorder: ReplayRecorder of actions since reset; published as `environment_state`.
         """
         if obs.current_step < scn_first_step or not self.cab_api_on:
             return
@@ -243,12 +261,17 @@ class Communicate:
         try:
             url = self.cab_url + \
                 self.outputs_config['Outputs']['Context']['context_port']
+            data = {
+                "observation": obs.to_json(),
+                "topology": img_b64
+            }
+            environment_state = self.environment_state_payload(
+                obs, env_identity or {}, recorder)
+            if environment_state is not None:
+                data["environment_state"] = environment_state
             payload = json.dumps({
                 "date": f"{context_date}",
-                "data": {
-                    "observation": obs.to_json(),
-                    "topology": img_b64
-                },
+                "data": data,
                 "use_case": "PowerGrid"
             })
             headers = {

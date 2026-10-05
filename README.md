@@ -66,6 +66,8 @@ git clone [repo-url]
 InteractiveAI offers versatile deployment options, leveraging either Docker or Kubernetes. The primary method entails initiating InteractiveAI via Docker to launch all services concurrently. However, recognizing potential resource strain in this mode, we've introduced alternative configurations. These configurations enable selective startup of essential services with minimal dependencies, catering to streamlined versions of certain APIs.
 Below are the steps to start all services. For other methods, please consult the developer guide.
 
+> **_NOTE:_** `./local_setup.sh` runs all the steps below (`./local_stop.sh` stops everything). With `--a3s`, recommendations come from a running [A3S](<A3S repo link>) instead of the expert agent.
+
 ### Running All Services (Dev Mode)
 
 1. **Set-up environment variables**

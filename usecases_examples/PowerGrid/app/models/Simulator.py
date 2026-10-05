@@ -11,6 +11,7 @@ import json
 import matplotlib
 matplotlib.use('agg')
 from app.models.Listener import Listener
+from app.models.env_serialization import ReplayRecorder, build_env_identity
 from config.config import logging, set_pause, get_pause_status
 from app.models.utils import (create_observation_image, get_alert_lines, search_chronic_num_from_name,
                    get_curent_lines_in_bad_kpi, get_curent_lines_lost,
@@ -35,6 +36,9 @@ class Simulator:
         self.env = None
         self.obs = None
         self.act = None
+        # Replay history published with the context, and the env it replays against.
+        self.replay_recorder = ReplayRecorder()
+        self.env_identity = {}
         self.listen = None
         self.local_assistant = None
         self.com = None
@@ -91,6 +95,9 @@ class Simulator:
             self.config['scenario_name'], self.env)
         self.env.set_id(id_scenario)  # Scenario choice
         self.obs = self.env.reset()
+        # Reset the replay history for this new episode.
+        self.replay_recorder.reset()
+        self.env_identity = build_env_identity(self.config)
         logging.info("Loaded scenario: %s \n",
                     self.env.chronics_handler.get_name())
         session['message'].append(f"Loaded scenario: {self.env.chronics_handler.get_name()}")
@@ -172,6 +179,9 @@ class Simulator:
             # is about to be applied actually takes effect.
             topo_before = self.obs.topo_vect.copy()
             line_status_before = self.obs.line_status.copy()
+
+            # Record before applying, so the replay history stays gap-free.
+            self.replay_recorder.record(act)
 
             # Beginning of step: observation update
             self.obs, _, done, info = self.env.step(act)
@@ -284,7 +294,9 @@ class Simulator:
                         com.send_context_online(self.obs,
                                                 self.config['scenario_first_step'],
                                                 context_date,
-                                                img_b64_current)
+                                                img_b64_current,
+                                                self.env_identity,
+                                                self.replay_recorder)
                         event_resolved_trigger = False
                         context_just_sent = True
 
@@ -307,7 +319,9 @@ class Simulator:
                                 com.send_context_online(self.obs,
                                                         self.config['scenario_first_step'],
                                                         context_date,
-                                                        img_b64_current)
+                                                        img_b64_current,
+                                                        self.env_identity,
+                                                        self.replay_recorder)
                                 context_just_sent = True
 
                         logging.info("Status: Overload detected on the network")
@@ -384,7 +398,9 @@ class Simulator:
                                 com.send_context_online(self.obs,
                                                         self.config['scenario_first_step'],
                                                         context_date,
-                                                        img_b64_current)
+                                                        img_b64_current,
+                                                        self.env_identity,
+                                                        self.replay_recorder)
                                 context_just_sent = True
 
                         logging.info("Status: AI agent raised an alarm")
@@ -420,7 +436,9 @@ class Simulator:
                                 com.send_context_online(self.obs,
                                                         self.config['scenario_first_step'],
                                                         context_date,
-                                                        img_b64_current)
+                                                        img_b64_current,
+                                                        self.env_identity,
+                                                        self.replay_recorder)
                                 context_just_sent = True
 
                         logging.info("Status: AI agent raised an alert")
@@ -454,7 +472,9 @@ class Simulator:
                                 com.send_context_online(self.obs,
                                                         self.config['scenario_first_step'],
                                                         context_date,
-                                                        img_b64_current)
+                                                        img_b64_current,
+                                                        self.env_identity,
+                                                        self.replay_recorder)
                                 context_just_sent = True
 
                         logging.info(
@@ -505,7 +525,9 @@ class Simulator:
                                 com.send_context_online(self.obs,
                                                         self.config['scenario_first_step'],
                                                         context_date,
-                                                        img_b64_current)
+                                                        img_b64_current,
+                                                        self.env_identity,
+                                                        self.replay_recorder)
                                 context_just_sent = True
 
                         logging.info("Status: Line loss detected: %s",

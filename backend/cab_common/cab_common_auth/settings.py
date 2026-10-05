@@ -30,6 +30,8 @@ DEFAULT_LOGGING = {
         }
     },
     "root": {"level": "DEBUG", "handlers": ["wsgi"]},
+    # Avoid silently disabling loggers already set up by the host service.
+    "disable_existing_loggers": False,
 }
 logging.config.dictConfig(DEFAULT_LOGGING)
 
