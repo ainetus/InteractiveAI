@@ -1,5 +1,5 @@
 import { fetchCognitiveSnapshot } from '@/api/cognitive'
-import type { CognitiveSnapshot } from '@/api/cognitive'
+import type { CognitiveFactorEntry, CognitiveSnapshot } from '@/api/cognitive'
 import type { Trace } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 
@@ -79,6 +79,67 @@ function saveSession(session: TraceSession) {
     // long session can fill the 5 MB store. Keep what is already recorded
     // instead of letting the write reject and stop the recording altogether.
     console.warn('Unable to persist the trace session (storage full?):', error)
+  }
+}
+
+const COGNITIVE_FACTORS = [
+  'cognitive_performance',
+  'stress_state',
+  'cognitive_performance_explainability',
+  'stress_explainability'
+] as const
+
+type CognitiveFactor = (typeof COGNITIVE_FACTORS)[number]
+
+/**
+ * A cognitive snapshot as stored in the session log: the four factors come
+ * from one reading and share its timestamp, so it is written once instead of
+ * on each of them. Should they ever differ, `timestamps` keeps them all.
+ */
+type LoggedCognitiveSnapshot = Record<CognitiveFactor, string | null> & {
+  timestamp?: string
+  timestamps?: Partial<Record<CognitiveFactor, string>>
+  error?: string
+}
+
+function compactCognitiveSnapshot(snapshot: CognitiveSnapshot): LoggedCognitiveSnapshot {
+  const logged = {} as LoggedCognitiveSnapshot
+  const timestamps: Partial<Record<CognitiveFactor, string>> = {}
+  for (const factor of COGNITIVE_FACTORS) {
+    logged[factor] = snapshot[factor]?.value ?? null
+    const timestamp = snapshot[factor]?.timestamp
+    if (timestamp) timestamps[factor] = timestamp
+  }
+  const distinct = new Set(Object.values(timestamps))
+  if (distinct.size === 1) logged.timestamp = [...distinct][0]
+  else if (distinct.size > 1) logged.timestamps = timestamps
+  if (snapshot.error) logged.error = snapshot.error
+  return logged
+}
+
+/** Back to the API's shape, for both the logged form and sessions recorded before it. */
+function readCognitiveSnapshot(raw: unknown): CognitiveSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const record = raw as Record<string, unknown>
+  if (!('timestamp' in record) && !('timestamps' in record)) {
+    // Old form, or a snapshot without any reading - factors are objects or null
+    const isOld = COGNITIVE_FACTORS.some(
+      (factor) => record[factor] !== null && typeof record[factor] === 'object'
+    )
+    if (isOld) return raw as CognitiveSnapshot
+  }
+  const logged = raw as LoggedCognitiveSnapshot
+  const entry = (factor: CognitiveFactor): CognitiveFactorEntry | null => {
+    const value = logged[factor]
+    if (value === null || value === undefined) return null
+    return { value, timestamp: logged.timestamps?.[factor] ?? logged.timestamp ?? '' }
+  }
+  return {
+    cognitive_performance: entry('cognitive_performance'),
+    stress_state: entry('stress_state'),
+    cognitive_performance_explainability: entry('cognitive_performance_explainability'),
+    stress_explainability: entry('stress_explainability'),
+    ...(logged.error && { error: logged.error })
   }
 }
 
@@ -487,7 +548,7 @@ function observationHtml(data: unknown): string {
 function cognitiveSnapshotHtml(data: unknown): string {
   if (!data || typeof data !== 'object') return ''
   const d = data as Record<string, unknown>
-  const snapshot = d.cognitive_snapshot as CognitiveSnapshot | null | undefined
+  const snapshot = readCognitiveSnapshot(d.cognitive_snapshot)
   if (!snapshot) return ''
 
   const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, error } = snapshot
@@ -821,7 +882,7 @@ export async function recordTraceForSession(
   let enrichedData: unknown = baseData
   if (hasCognitiveConsent()) {
     try {
-      const cognitiveSnapshot = await fetchCognitiveSnapshot()
+      const cognitiveSnapshot = compactCognitiveSnapshot(await fetchCognitiveSnapshot())
       enrichedData = { ...asRecord(baseData), cognitive_snapshot: cognitiveSnapshot }
     } catch (err: unknown) {
       // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
