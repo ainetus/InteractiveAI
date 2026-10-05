@@ -246,7 +246,15 @@ function normalizeEventType(eventType: string): string {
   return eventType
 }
 
-function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
+function buildStructuredTraces(recorded: StoredTrace[]): StructuredTrace[] {
+  // Traces are saved as their snapshots finish loading, not in the order they
+  // happened: an ASKFORHELP can land before the EVENT recorded with it. Sort by
+  // when they happened, the EVENT first on a tie, so it opens the group.
+  const flat = [...recorded].sort(
+    (a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime() ||
+      Number(b.step === 'EVENT') - Number(a.step === 'EVENT')
+  )
   // Index: card_id → structured event entry
   const eventByCardId: Record<string, StructuredEvent> = {}
   const result: StructuredTrace[] = []
