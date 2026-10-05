@@ -18,6 +18,14 @@ type TraceSession = {
   startedAt: string
   userLogin?: string
   traces: StoredTrace[]
+  /**
+   * Publish date of the card version (by `eventKey`) that an applied
+   * recommendation last resolved. Kept with the session rather than in the
+   * cards store so it survives a reload, whose card snapshot replays every card
+   * as new; a publish date, not the browser's clock, so it compares with the
+   * server's.
+   */
+  resolvedAt?: Record<string, string>
 }
 
 type ExportOptions = {
@@ -124,17 +132,37 @@ function eventKey(data: unknown): string | undefined {
  *  3. An ASKFORHELP opens a "current interaction group" linked to an EVENT via card_id.
  *  4. Subsequent FEEDBACK / AWARD traces are appended to that group until a new ASKFORHELP or EVENT appears.
  *  5. Traces that cannot be linked to any EVENT remain at the top level as-is.
+ *
+ * A card that comes back after being resolved gets a new EVENT (see
+ * `occurrence` in recordTraceForSession); it takes over the card_id, so what
+ * follows lands on it.
  */
+/**
+ * One ask-for-help -> apply cycle. An event can hold several: the operator may
+ * ask again without applying (that cycle is dropped), or apply a recommendation
+ * and later ask again on the same card (each apply is its own decision).
+ */
+type Decision = {
+  asked_at: string
+  /** null when the session predates the RECOMMENDATIONS trace. */
+  shown_at: string | null
+  applied_at: string
+  /** Time in ms between ASKFORHELP and AWARD. */
+  decision_time_ms: number
+  /**
+   * Time in ms between the applied recommendations appearing on screen and the
+   * operator applying one - the decision time with the agent's own latency
+   * taken out. null when shown_at is.
+   */
+  human_decision_time_ms: number | null
+}
+
 type StructuredEvent = StoredTrace & {
   interactions: StoredTrace[]
-  /** Time in ms between ASKFORHELP and AWARD. null when the user didn't choose a solution. */
+  decisions: Decision[]
+  /** Mean decision time over this event's decisions. null when the user didn't choose a solution. */
   decision_time_ms: number | null
-  /**
-   * Time in ms between the recommendations appearing on screen and the operator
-   * applying one - the decision time with the agent's own latency taken out.
-   * null when no solution was applied, or when the session predates the
-   * RECOMMENDATIONS trace.
-   */
+  /** Mean human decision time over this event's decisions. null when none could be measured. */
   human_decision_time_ms: number | null
 }
 
@@ -143,46 +171,73 @@ type StructuredTrace = StoredTrace | StructuredEvent
 type SessionKpis = {
   /** Total session duration in ms (endedAt − startedAt) */
   total_session_time_ms: number
-  /** Average decision time across ALL events (sum of decision times / total events). null if no events. */
-  avg_decision_time_ms: number | null
+  /** Number of applied recommendations, i.e. decisions the times below are taken over. */
+  decision_count: number
   /**
-   * Average human decision time, over the events where one could be measured
-   * (recommendations displayed *and* a solution applied) rather than over every
-   * event - an event the operator never acted on says nothing about how long
-   * they take to decide. null when no event qualifies.
+   * Mean / sample standard deviation of the decision time, over every decision
+   * of the session rather than over every event - an event the operator never
+   * acted on says nothing about how long they take to decide. The mean is null
+   * without decisions, the standard deviation with fewer than two.
    */
+  avg_decision_time_ms: number | null
+  std_decision_time_ms: number | null
+  /** Same as above for the human decision time, over the decisions where it could be measured. */
   avg_human_decision_time_ms: number | null
+  std_human_decision_time_ms: number | null
 }
 
 function isStructuredEvent(t: StructuredTrace): t is StructuredEvent {
   return 'interactions' in t
 }
 
-function computeDecisionTime(interactions: StoredTrace[]): number | null {
-  let askDate: string | undefined
-  let awardDate: string | undefined
-  for (let i = 0; i < interactions.length; i++) {
-    if (interactions[i].step === 'ASKFORHELP' && !askDate) askDate = interactions[i].date
-    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
+/**
+ * Split an event's interactions into ask-for-help -> apply cycles. A new
+ * ASKFORHELP restarts the cycle, so an ask the operator never acted on is not
+ * counted against the next one, and the human time runs from the
+ * recommendations that were on screen when they applied.
+ */
+function computeDecisions(interactions: StoredTrace[]): Decision[] {
+  const decisions: Decision[] = []
+  let askedAt: string | undefined
+  let shownAt: string | undefined
+  for (const interaction of interactions) {
+    if (interaction.step === 'ASKFORHELP') {
+      askedAt = interaction.date
+      shownAt = undefined
+    } else if (interaction.step === 'RECOMMENDATIONS' && askedAt) {
+      shownAt = interaction.date
+    } else if (interaction.step === 'AWARD' && askedAt) {
+      const appliedTime = new Date(interaction.date).getTime()
+      decisions.push({
+        asked_at: askedAt,
+        shown_at: shownAt ?? null,
+        applied_at: interaction.date,
+        decision_time_ms: appliedTime - new Date(askedAt).getTime(),
+        human_decision_time_ms: shownAt ? appliedTime - new Date(shownAt).getTime() : null
+      })
+      askedAt = undefined
+      shownAt = undefined
+    }
   }
-  if (!askDate || !awardDate) return null
-  return new Date(awardDate).getTime() - new Date(askDate).getTime()
+  return decisions
 }
 
-/**
- * How long the operator themselves took: from the recommendations being shown
- * to the apply. `decision_time_ms` starts one step earlier, at ASKFORHELP, so it
- * also carries however long the recommendation service took to answer.
- */
-function computeHumanDecisionTime(interactions: StoredTrace[]): number | null {
-  let shownDate: string | undefined
-  let awardDate: string | undefined
-  for (let i = 0; i < interactions.length; i++) {
-    if (interactions[i].step === 'RECOMMENDATIONS' && !shownDate) shownDate = interactions[i].date
-    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
-  }
-  if (!shownDate || !awardDate) return null
-  return new Date(awardDate).getTime() - new Date(shownDate).getTime()
+function mean(values: number[]): number | null {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+}
+
+/** Sample standard deviation (n - 1): the session is a sample of how the operator decides. */
+function standardDeviation(values: number[]): number | null {
+  const average = mean(values)
+  if (average === null || values.length < 2) return null
+  const squares = values.reduce((sum, value) => sum + (value - average) ** 2, 0)
+  return Math.sqrt(squares / (values.length - 1))
+}
+
+function humanTimes(decisions: Decision[]): number[] {
+  return decisions
+    .map((decision) => decision.human_decision_time_ms)
+    .filter((time): time is number => time !== null)
 }
 
 /** Map legacy event_type values to human-readable labels for export. */
@@ -204,6 +259,7 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
       const structured: StructuredEvent = {
         ...trace,
         interactions: [],
+        decisions: [],
         decision_time_ms: null,
         human_decision_time_ms: null
       }
@@ -242,8 +298,9 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
   // Compute per-event decision time KPIs
   for (const entry of result) {
     if (isStructuredEvent(entry)) {
-      entry.decision_time_ms = computeDecisionTime(entry.interactions)
-      entry.human_decision_time_ms = computeHumanDecisionTime(entry.interactions)
+      entry.decisions = computeDecisions(entry.interactions)
+      entry.decision_time_ms = mean(entry.decisions.map((decision) => decision.decision_time_ms))
+      entry.human_decision_time_ms = mean(humanTimes(entry.decisions))
     }
   }
 
@@ -292,6 +349,12 @@ function formatMs(ms: number | null): string {
   const min = Math.floor(totalSec / 60)
   const sec = totalSec % 60
   return min > 0 ? min + 'm ' + sec + 's' : sec + 's'
+}
+
+/** "mean ± std" for the KPI boxes; the ± part only once there are two values to spread. */
+function formatMeanStd(average: number | null, std: number | null): string {
+  if (average === null) return formatMs(null)
+  return std === null ? formatMs(Math.round(average)) : formatMs(Math.round(average)) + ' &plusmn; ' + formatMs(Math.round(std))
 }
 
 function escapeHtml(str: string): string {
@@ -534,9 +597,9 @@ function buildHtmlSummary(
 
   const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Average Total Decision Time </div></div>'
-  const humanDecided = events.filter(function (e) { return e.human_decision_time_ms !== null })
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Average Human Response Time </div></div>'
+  const decisionCount = ' (' + kpis.decision_count + ' decision' + (kpis.decision_count === 1 ? '' : 's') + ')'
+  html += '<div class="kpi-box"><div class="value">' + formatMeanStd(kpis.avg_decision_time_ms, kpis.std_decision_time_ms) + '</div><div class="label">Average Total Decision Time' + decisionCount + '</div></div>'
+  html += '<div class="kpi-box"><div class="value">' + formatMeanStd(kpis.avg_human_decision_time_ms, kpis.std_human_decision_time_ms) + '</div><div class="label">Average Human Response Time' + decisionCount + '</div></div>'
   html += '</div>'
 
   // Per-event details
@@ -553,6 +616,7 @@ function buildHtmlSummary(
     html += '<div class="card">'
     html += '<h3>' + stepBadge('EVENT') + ' Event #' + (ei + 1)
     if (eventId) html += ' <span class="tag">ID: ' + escapeHtml(eventId) + '</span>'
+    if (typeof d?.occurrence === 'number') html += ' <span class="tag">Occurrence #' + d.occurrence + '</span>'
     html += ' <span class="tag">' + escapeHtml(eventType) + '</span>'
     html += '</h3>'
     if (eventTitle) html += '<div style="font-size:15px;font-weight:600;margin:4px 0">' + escapeHtml(eventTitle) + '</div>'
@@ -562,11 +626,15 @@ function buildHtmlSummary(
     html += observationHtml(evt.data)
     html += cognitiveSnapshotHtml(evt.data)
 
-    // Decision time
-    if (evt.decision_time_ms !== null) {
-      html += '<div style="margin-top:8px;font-size:13px">&#9201; Total Decision Time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
-      if (evt.human_decision_time_ms !== null) {
-        html += '<div style="font-size:13px">&#128100; Human Response Time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
+    // Decision time, one line per applied recommendation
+    if (evt.decisions.length > 0) {
+      for (let di = 0; di < evt.decisions.length; di++) {
+        const decision = evt.decisions[di]
+        const prefix = evt.decisions.length > 1 ? 'Decision ' + (di + 1) + ' &middot; ' : ''
+        html += '<div style="margin-top:8px;font-size:13px">' + prefix + '&#9201; Total Decision Time: <b>' + formatMs(decision.decision_time_ms) + '</b></div>'
+        if (decision.human_decision_time_ms !== null) {
+          html += '<div style="font-size:13px">' + prefix + '&#128100; Human Response Time: <b>' + formatMs(decision.human_decision_time_ms) + '</b></div>'
+        }
       }
     } else {
       html += '<div class="no-solution" style="margin-top:8px">No solution selected</div>'
@@ -709,12 +777,25 @@ export async function recordTraceForSession(
       if (cardPublishTime < sessionTime) return
     }
 
+    // The same card arrives again on every update and on every snapshot replay
+    // (reload, re-subscription); only one thing makes it a new event: being
+    // published again after an applied recommendation resolved it. Comparing
+    // publish dates, not arrival, also catches a re-publish sent while no
+    // subscription was open - the replay that follows carries its date.
     const key = eventKey(trace.data)
     if (key) {
-      const alreadyRecorded = session.traces.some(
+      const occurrences = session.traces.filter(
         (item) => item.step === 'EVENT' && eventKey(item.data) === key
-      )
-      if (alreadyRecorded) return
+      ).length
+      if (occurrences > 0) {
+        const resolvedAt = session.resolvedAt?.[key]
+        if (!pubDate || !resolvedAt || new Date(pubDate) <= new Date(resolvedAt)) return
+        // Claimed before the awaits below, so a second update of the same card
+        // arriving meanwhile is not taken for yet another occurrence
+        delete session.resolvedAt![key]
+        saveSession(session)
+        trace = { ...trace, data: { ...asRecord(trace.data), occurrence: occurrences + 1 } }
+      }
     }
   }
 
@@ -750,12 +831,27 @@ export async function recordTraceForSession(
     }
   }
 
-  session.traces.push({
+  // Re-read: other traces may have been recorded while the snapshots above
+  // were fetched, and saving the copy loaded at the start would drop them
+  const latest = loadSession() ?? session
+  latest.traces.push({
     date: trace.date ? String(trace.date) : new Date().toISOString(),
     use_case: trace.use_case,
     step: trace.step,
     data: enrichedData
   })
+  saveSession(latest)
+}
+
+/**
+ * Record that the operator's applied recommendation resolved this version of
+ * the card, so the card being published again afterwards is a new event.
+ */
+export function markEventResolved(cardId: string, publishDate: number | string) {
+  const session = loadSession()
+  const key = eventKey({ card_id: cardId })
+  if (!session || !key) return
+  session.resolvedAt = { ...session.resolvedAt, [key]: new Date(publishDate).toISOString() }
   saveSession(session)
 }
 
@@ -790,20 +886,16 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
   // --- Session-level KPIs ---
   const totalSessionTimeMs = new Date(endedAt).getTime() - new Date(session.startedAt).getTime()
   const events = structured.filter(isStructuredEvent)
-  const totalEvents = events.length
-  const sumDecisionTime = events.reduce(
-    (sum, evt) => sum + (evt.decision_time_ms ?? 0),
-    0
-  )
-  const humanDecisionTimes = events
-    .map((evt) => evt.human_decision_time_ms)
-    .filter((time): time is number => time !== null)
+  const decisions = events.flatMap((evt) => evt.decisions)
+  const decisionTimes = decisions.map((decision) => decision.decision_time_ms)
+  const humanDecisionTimes = humanTimes(decisions)
   const kpis: SessionKpis = {
     total_session_time_ms: totalSessionTimeMs,
-    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null,
-    avg_human_decision_time_ms: humanDecisionTimes.length
-      ? humanDecisionTimes.reduce((sum, time) => sum + time, 0) / humanDecisionTimes.length
-      : null
+    decision_count: decisions.length,
+    avg_decision_time_ms: mean(decisionTimes),
+    std_decision_time_ms: standardDeviation(decisionTimes),
+    avg_human_decision_time_ms: mean(humanDecisionTimes),
+    std_human_decision_time_ms: standardDeviation(humanDecisionTimes)
   }
 
   // Build HTML summary before replacing event_context so the image is preserved in the HTML

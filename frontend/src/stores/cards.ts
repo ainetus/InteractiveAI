@@ -7,7 +7,7 @@ import eventBus from '@/plugins/eventBus'
 import i18n from '@/plugins/i18n'
 import { type Card, type CardEvent, CardOperationType } from '@/types/cards'
 import { type Entity } from '@/types/entities'
-import { recordTraceForSession } from '@/utils/traceSessionExport'
+import { markEventResolved, recordTraceForSession } from '@/utils/traceSessionExport'
 import { uuid } from '@/utils/utils'
 
 import { useAppStore } from './app'
@@ -77,27 +77,28 @@ export const useCardsStore = defineStore('cards', () => {
             const { data } = await cardsApi.get(cardEvent.card.id)
             hydratedCard = data.card
           }
-          if (cardEvent.type === CardOperationType.ADD || existingCard === -1) {
-            try {
-              // Use hydrated card for title/summary if available (SSE notification may not include titleTranslated)
-              const fullCard = hydratedCard ?? cardEvent.card
-              recordTraceForSession({
-                use_case: entity,
-                step: 'EVENT',
-                data: {
-                  card_id: cardEvent.card.id,
-                  process_instance_id: cardEvent.card.processInstanceId,
-                  start_date: new Date(cardEvent.card.startDate).toISOString(),
-                  publish_date: new Date(cardEvent.card.publishDate).toISOString(),
-                  title: fullCard.titleTranslated || fullCard.title?.parameters?.title || '',
-                  summary: fullCard.summaryTranslated || fullCard.summary?.parameters?.summary || '',
-                  metadata: (hydratedCard ?? cardEvent.card).data.metadata
-                },
-                date: new Date().toISOString()
-              })
-            } catch (error) {
-              console.warn('Unable to record EVENT trace for session export:', error)
-            }
+          // Every update goes to the recorder, which keeps a single event per card
+          // unless the card was re-published after being resolved (it comes back
+          // as an UPDATE of the same card, not as an ADD)
+          try {
+            // Use hydrated card for title/summary if available (SSE notification may not include titleTranslated)
+            const fullCard = hydratedCard ?? cardEvent.card
+            recordTraceForSession({
+              use_case: entity,
+              step: 'EVENT',
+              data: {
+                card_id: cardEvent.card.id,
+                process_instance_id: cardEvent.card.processInstanceId,
+                start_date: new Date(cardEvent.card.startDate).toISOString(),
+                publish_date: new Date(cardEvent.card.publishDate).toISOString(),
+                title: fullCard.titleTranslated || fullCard.title?.parameters?.title || '',
+                summary: fullCard.summaryTranslated || fullCard.summary?.parameters?.summary || '',
+                metadata: (hydratedCard ?? cardEvent.card).data.metadata
+              },
+              date: new Date().toISOString()
+            })
+          } catch (error) {
+            console.warn('Unable to record EVENT trace for session export:', error)
           }
           if (existingCard !== -1) {
             if (
@@ -179,6 +180,9 @@ export const useCardsStore = defineStore('cards', () => {
 
   /** Set the card's criticality to 'ND' (resolved) after the user confirms a recommendation. */
   function resolveCriticality<E extends Entity = Entity>(card: Card<E>) {
+    // The card in the list is the one kept up to date by the subscription
+    const latest = _cards.value.find((item) => item.id === card.id) ?? card
+    markEventResolved(card.id, latest.publishDate)
     if (card.data.criticality !== 'ND') {
       card.data.criticality = 'ND'
       eventBus.emit('notifications:ended', card)
