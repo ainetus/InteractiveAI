@@ -25,6 +25,7 @@ export class MapComponent implements OnInit {
   public agentNames: string[] = []
   public stations:   Array<{id: any, r: number, c: number, name: string, type?: string}> = []
 
+  public zoomLevel = 1.0
   private sessionRunning = false   // track whether a scenario session is active
   private pollTimer: any
 
@@ -128,6 +129,12 @@ export class MapComponent implements OnInit {
   }
 
   isAffectedAgent(i: number): boolean { return this.affectedIndices.has(i) }
+
+  onWheel(event: WheelEvent) {
+    event.preventDefault()
+    const delta = event.deltaY > 0 ? -0.1 : 0.1
+    this.zoomLevel = Math.min(3.0, Math.max(0.3, this.zoomLevel + delta))
+  }
   isSelectedAgent(i: number):  boolean { return this.selectedIndex === i }
 
   selectPlan(planIndex: number | undefined) {

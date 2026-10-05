@@ -2,7 +2,8 @@
   <Context
     :tabs="[
       'Kartenansicht',
-      'ZWL Diagramm'
+      'ZWL Diagramm',
+      'Link-Map'
     ]">
     <!-- Kartenansicht — Angular map view (DEFAULT, index 0) -->
     <div
@@ -56,6 +57,20 @@
         />
       </div>
     </div>
+    <!-- Link-Map — linearized route debug view (index 2) -->
+    <div
+      v-if="appStore.tab.context === 2"
+      style="display: flex; flex-direction: column; width: 100%; height: 100%;"
+    >
+      <div style="flex: 1; min-height: 0; overflow: hidden; position: relative;">
+        <iframe
+          src="http://localhost:4200/link-map"
+          style="width: 200%; height: 200%; border: none; transform: scale(0.5); transform-origin: top left; display: block;"
+          title="Link-Map"
+        />
+      </div>
+    </div>
+
   </Context>
 </template>
 

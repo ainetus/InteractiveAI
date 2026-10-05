@@ -27,14 +27,14 @@
         <div class="decision-description">{{ activeDecision?.description }}</div>
 
         <div class="kl-section-label">Zug auswählen:</div>
-        <div class="kl-train-list">
+        <div class="kl-train-list" v-if="!klAction || !activeDecision?.invalid_actions?.includes(klAction)">
           <button
             v-for="t in conflictTrains"
             :key="t"
             class="kl-train-btn"
             :class="{ 'kl-train-btn-active': klTrain === t }"
             @click="selectTrain(t)"
-          >🚆 {{ trainNames[t] || t }}</button>
+          >🚆 {{ activeDecision?.train_labels?.[t] || trainNames[t] || t }}</button>
           <span v-if="conflictTrains.length === 0" style="font-size:12px;opacity:0.5;">
             Keine betroffenen Züge gefunden.
           </span>
@@ -65,7 +65,10 @@
         </div>
 
         <!-- KPI preview for selected train+action -->
-        <div v-if="klTrain && klAction && previewKpis()" class="kl-kpi-preview">
+        <div v-if="klAction && activeDecision?.invalid_actions?.includes(klAction)" class="kl-invalid-action">
+          ⚠ Ungültige Aktion — diese Aktion ist in diesem Szenario nicht verfügbar.
+        </div>
+        <div v-else-if="klTrain && klAction && !activeDecision?.invalid_actions?.includes(klAction) && previewKpis()" class="kl-kpi-preview">
           <div class="kl-kpi-preview-title">Vorschau: Auswirkungen</div>
           <table class="kpi-table" style="margin-top:6px;">
             <tr>

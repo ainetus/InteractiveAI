@@ -9,10 +9,10 @@ Züge:
     IC 3  (Agent 2): Station 2 (15,10) → Station 4 (2,17)   dir=0 (Nord)
 """
 
-SCENARIO_1 = {
-    "id":   "scenario1",
-    "name": "Szenario 1 — Zugreihenfolge",
-    "map":  "maps/map1.json",
+SCENARIO_3 = {
+    "id":   "scenario3",
+    "name": "Szenario 3 — Zugreihenfolge",
+    "map":  "maps/map3.json",
 
     "agent_defs": [
         dict(start=(16, 2),  target=(2, 17), dir=0, dep=1,  arr=60, name="S 17"),

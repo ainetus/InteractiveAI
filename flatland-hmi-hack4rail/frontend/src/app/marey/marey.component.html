@@ -89,14 +89,16 @@
       <feColorMatrix type="hueRotate" [attr.values]="(i / trainRuns.length) * 360" />
     </filter>
     <g>
-      <polyline
-        [attr.points]="getPolylinePoints(train.coordinates)"
-        fill="none"
-        stroke="red"
-        stroke-width="3"
-        opacity="0.8"
-        [attr.style]="'filter: url(#hue-rotate-' + i + ')'"
-      />
+      @for (seg of getPolylineSegments(train.coordinates); track $index) {
+        <polyline
+          [attr.points]="getPolylinePoints(seg)"
+          fill="none"
+          stroke="red"
+          stroke-width="3"
+          opacity="0.8"
+          [attr.style]="'filter: url(#hue-rotate-' + i + ')'"
+        />
+      }
       <!-- Dots at each position — makes vertical movement visible -->
       @for (coord of train.coordinates; track $index) {
         <circle

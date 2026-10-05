@@ -18,19 +18,18 @@ export interface State {
 export class ControllerService {
   private resetEvent = new Subject<void>()
 
-  constructor(private http: HttpClient) {
-    // Removed auto-reset on load — simulation is controlled from SystemX
-  }
+  /** Emits when user selects a new link in the link-map dropdown. */
+  public readonly linkChange = new Subject<string>()
+
+  constructor(private http: HttpClient) {}
 
   public stepEnv(policyIndex: number = 0) {
-    // Tell Flask brain to start running (simulation is continuous)
     return firstValueFrom(
       this.http.post<any>(`${BACKEND_URL}/control`, { command: 'start' })
     ).then(() => 0)
   }
 
   public resetEnv() {
-    // Reset via Flask brain's control endpoint
     return firstValueFrom(
       this.http.post<any>(`${BACKEND_URL}/control`, { command: 'reset' })
     ).then((state) => {
@@ -41,5 +40,10 @@ export class ControllerService {
 
   public observeReset() {
     return this.resetEvent.asObservable()
+  }
+
+  /** Called by link-map component when user selects a link from the dropdown. */
+  public selectLink(link: string) {
+    this.linkChange.next(link)
   }
 }

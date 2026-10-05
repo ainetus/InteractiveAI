@@ -12,6 +12,26 @@ export interface Agent {
   moving: boolean
   target: [number, number]
   malfunction: number
+  handle?: number | string
+}
+
+export interface StationsResponse {
+  stationEdges: Record<string, [number, number][]>
+  stationGates: Record<string, Record<string, {
+    pins: Record<string, { name: string; node: [number, number] }>
+  }>>
+  stationStoppingPoints: Record<string, { node: [number, number]; trackNumber: number; trackName: string }[]>
+}
+
+export interface LinkMapResponse {
+  grid: number[][]
+  mapping: Array<[[number, number], [number, number]]>
+  levels: Array<[[number, number], number]>
+  incompleteCells: string[]
+}
+
+export interface Link {
+  label: string
 }
 
 @Injectable({
@@ -34,5 +54,22 @@ export class DataService {
 
   public getPlans() {
     return firstValueFrom(this.http.get<Array<Array<Record<string, Agent>>>>(`${BACKEND_URL}/plans`))
+  }
+
+  public getLinks() {
+    return firstValueFrom(this.http.get<Link[]>(`${BACKEND_URL}/links`))
+  }
+
+  public getLinkMap(linkId: string | number = 0) {
+    return firstValueFrom(this.http.get<LinkMapResponse>(`${BACKEND_URL}/link/${linkId}/map`))
+  }
+
+  public getStations(): Promise<StationsResponse> {
+    // Returns empty StationsResponse — link-map uses this for station overlays
+    return Promise.resolve({
+      stationEdges: {},
+      stationGates: {},
+      stationStoppingPoints: {},
+    })
   }
 }

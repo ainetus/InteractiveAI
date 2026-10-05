@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router'
 import { MapComponent } from './map/map.component'
 import { MareyComponent } from './marey/marey.component'
+import { LinkMapComponent } from './link-map/link-map.component'
 
 export const routes: Routes = [
-  { path: '',      redirectTo: 'map', pathMatch: 'full' },
-  { path: 'map',   component: MapComponent },
-  { path: 'marey', component: MareyComponent },
+  { path: '',        redirectTo: 'map', pathMatch: 'full' },
+  { path: 'map',     component: MapComponent },
+  { path: 'marey',   component: MareyComponent },
+  { path: 'link-map', component: LinkMapComponent },
 ]

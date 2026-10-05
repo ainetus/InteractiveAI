@@ -1,0 +1,120 @@
+
+<div class="controller">
+  <select [(ngModel)]="selectedLink" (ngModelChange)="onLinkChange()">
+    @for (linkOption of linkOptions; track $index) {
+    <option [value]="linkOption.value">{{ linkOption.label }}</option>
+    }
+  </select>
+</div>
+
+<div class="map">
+  <div class="environment">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+      <div class="row">
+        @for (col of row; let colIndex = $index; track $index) {
+          @let origPos = getOriginalPosition(rowIndex, colIndex);
+        <div class="cell" [class]="col.ground" [attr.data-row]="rowIndex" [attr.data-col]="colIndex" [attr.data-orig-row]="origPos?.[0]"
+             [attr.data-orig-col]="origPos?.[1]" [attr.data-transition]="col.transition" [title]="col.incompleteReason">
+            @if (col.pin) {
+            <div class="pin"></div>
+            } @else if (col.station) {
+            <div class="station"></div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <div class="stationarea">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+    <div class="stationarea-row">
+      @for (col of row; let colIndex = $index; track $index) {
+      @let origPos = getOriginalPosition(rowIndex, colIndex);
+      <div class="stationarea-cell" [attr.data-row]="rowIndex" [attr.data-col]="colIndex" [attr.data-orig-row]="origPos?.[0]"
+           [attr.data-orig-col]="origPos?.[1]">
+        @if (col.stationBuilding) {
+        <div class="station-building" [class]="col.stationBuilding"></div>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+  <div class="station-labels">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+    <div class="station-row">
+      @for (col of row; let colIndex = $index; track $index) {
+      @let origPos = getOriginalPosition(rowIndex, colIndex);
+      <div class="station-cell" [attr.data-row]="rowIndex" [attr.data-col]="colIndex" [attr.data-orig-row]="origPos?.[0]" [attr.data-orig-col]="origPos?.[1]">
+        @if (col.trackName) {
+        <div class="station-label">{{ col.trackName }}</div>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+  <div class="pin-labels">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+    <div class="pin-row">
+      @for (col of row; let colIndex = $index; track $index) {
+      @let origPos = getOriginalPosition(rowIndex, colIndex);
+      <div class="pin-cell" [attr.data-row]="rowIndex" [attr.data-col]="colIndex" [attr.data-orig-row]="origPos?.[0]" [attr.data-orig-col]="origPos?.[1]">
+        @if (col.pinLabel) {
+        <div class="pin-label">{{ col.pinLabel }}</div>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+  <div class="row-col-numbers">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+    @let isLastRow = $last;
+    <div class="rc-row">
+      @for (col of row; let colIndex = $index; track $index) {
+      <div class="rc-cell">
+        @if (colIndex === 0) {<span class="row-number">{{ rowIndex }}</span>}
+        @if ($last) {<span class="row-number-right">{{ rowIndex }}</span>}
+        @if (rowIndex === 0) {<span class="col-number">{{ colIndex }}</span>}
+        @if (isLastRow) {<span class="col-number-bottom">{{ colIndex }}</span>}
+      </div>
+      }
+    </div>
+    }
+  </div>
+  <div class="level-labels">
+    @for (row of mapClasses; let rowIndex = $index; track $index) {
+    <div class="level-row">
+      @for (col of row; let colIndex = $index; track $index) {
+      <div class="level-cell" [attr.data-row]="rowIndex" [attr.data-col]="colIndex">
+        @let level = getLevel(rowIndex, colIndex);
+        @if (level !== undefined) {
+        <div class="level-label">{{ level }}</div>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+  <div class="agents">
+    @for (agent of agents; let i = $index; track $index) {
+      @if (agent.position) {
+        @let pos = getZwlPosition(agent.position[0], agent.position[1]);
+        @if (pos) {
+          <div
+            class="agent"
+            [class]="rendererService.getAgentClasses(agent)"
+            [style.left]="pos[1] * 20 + 'px'"
+            [style.top]="pos[0] * 20 + 'px'"
+            [style.filter]="'hue-rotate(' + i / agents.length * 360 + 'deg)'"
+            [attr.data-row]="pos[0]"
+            [attr.data-col]="pos[1]"
+            [attr.data-orig-row]="agent.position[0]"
+            [attr.data-orig-col]="agent.position[1]"
+          >{{ agent.handle }}</div>
+        }
+      }
+    }
+  </div>
+</div>

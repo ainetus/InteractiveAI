@@ -1,135 +1,117 @@
 """
-scenario3.py — Szenario 3: Zugreihenfolge
+scenario3.py — Güterverkehr vs Personenverkehr
 
-Karte: maps/map3.json (25x25)
+Karte: maps/map3.json (15x20)
+
+Stationen:
+    Station 1: (7, 2)  — alle Züge Start
+    Station 2: (7, 17) — alle Züge Ziel
 
 Züge:
-    S 17  (Agent 0): Station 3 (16,2)  → Station 4 (2,17)   dir=0 (Nord)
-    S 18  (Agent 1): Station 1 (6,23)  → Station 3 (16,2)   dir=3 (West)
-    IC 3  (Agent 2): Station 2 (15,10) → Station 4 (2,17)   dir=0 (Nord)
+    Train0 = G 3:   dep=1  speed=0.5 (immer halbe Geschwindigkeit)
+    Train1 = IC 3:  dep=6
+    Train2 = IR 35: dep=8
+
+Entscheidungspunkt bei Timestep 12:
+    Option 1: IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit.
+    Option 2: G 3 biegt links ab (~Step 12), IC 3 + IR 35 überholen normal.
 """
 
 SCENARIO_3 = {
     "id":   "scenario3",
-    "name": "Szenario 3 — Zugreihenfolge",
+    "name": "Szenario 3 — Güterverkehr vs Personenverkehr",
     "map":  "maps/map3.json",
-
-    "agent_defs": [
-        dict(start=(16, 2),  target=(2, 17), dir=0, dep=1,  arr=60, name="S 17"),
-        dict(start=(6,  23), target=(16, 2), dir=3, dep=22, arr=77, name="S 18"),
-        dict(start=(15, 10), target=(2, 17), dir=0, dep=33, arr=68, name="IC 3"),
-    ],
-
-    # Co-learning: all 3 trains selectable, vorfahrt=priority, warten=invalid
-    "colearning_config": {
-        "trains":          ["Train_0", "Train_1", "Train_2"],
-        "actions":         ["vorfahrt", "warten"],
-        "invalid_actions": ["warten"],
-    },
-
-    # Marey link: start=Station1/S17-start (right end), end=Station4 (left end)
-    "marey_link": {"start": [16, 2], "end": [2, 17]},
 
     "events": [
         {
-            "timestep":         14,
-            "type":             "train_delay",
-            "train":            "Train_0",
-            "duration":         30,
-            "card_title":       "Betriebsstörung — S 17",
-            "card_description": (
-                "Auf der Strecke wurde ein Hindernis gemeldet. "
-                "S 17 muss an der aktuellen Position anhalten und den Streckenabschnitt sichern. "
-                "Geschätzte Wartezeit: 30 Zeitschritte. "
-                "Der Streckenunterhaltsdienst wurde verständigt."
-            ),
-        },
-        {
-            "timestep":         25,
-            "type":             "train_delay",
-            "train":            "Train_1",
-            "duration":         18,
-            "card_title":       "Signalstörung — S 18",
-            "card_description": (
-                "Im Streckenabschnitt von S 18 wurde eine Signalstörung gemeldet. "
-                "Der Zug muss gemäss Vorschrift auf Sicht fahren und an der nächsten "
-                "Haltestelle auf Freigabe warten. "
-                "Geschätzte Verzögerung: 18 Zeitschritte."
-            ),
-        },
-        {
-            "timestep":         40,
+            "timestep":         16,
             "type":             "info",
             "train":            "Train_0",
             "duration":         0,
             "push_card":        True,
-            "card_title":       "Dispositionskonflikt — Zugreihenfolge",
+            "card_title":       "Dispositionskonflikt — G 3 fährt langsam",
             "card_description": (
-                "Durch die Verspätungen von S 17 und S 18 ist die geplante Zugreihenfolge "
-                "nicht mehr einzuhalten. Bitte entscheiden Sie, welchem Zug Vorfahrt "
-                "gewährt werden soll."
+                "G 3 fährt mit halber Geschwindigkeit. "
+                "IC 3 und IR 35 nähern sich von hinten. "
+                "Entscheiden Sie, ob die Schnellzüge überholen oder folgen sollen."
             ),
         },
     ],
 
+    "agent_defs": [
+        dict(start=(7, 2), target=(7, 17), dir=1, dep=1, arr=40, name="G 3",    speed=0.5),
+        dict(start=(7, 2), target=(7, 17), dir=1, dep=12, arr=34, name="IC 3"),
+        dict(start=(7, 2), target=(7, 17), dir=1, dep=14, arr=36, name="IR 35"),
+    ],
+
     "decision_points": [
         {
-            "timestep":    40,
+            "timestep":    16,
             "description": (
-                "Aufgrund der Verspätungen von S 17 und S 18 ist die geplante "
-                "Zugreihenfolge im gemeinsamen Streckenabschnitt nicht mehr einzuhalten. "
-                "Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll."
+                "G 3 fährt mit halber Geschwindigkeit und blockiert den Streckenabschnitt. "
+                "Wie soll disponiert werden?"
             ),
             "options": [
                 {
-                    "label": "S 18 Vorfahrt — S 17 und IC 3 warten",
+                    "label": "IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit",
                     "kpis": {
-                        "local_delay":  33,
-                        "global_delay": 25,
-                        "energy":       76,
-                        "anschluss":    3,
-                    },
-                    "outcome": {
-                        "holds": {
-                            "Train_0": 18,   # S17 wartet 18 Schritte
-                            "Train_2": 22,   # IC3 wartet 22 Schritte
-                        },
-                        "scripted_actions": {
-                            "Train_1": [2]*14 + [3, 3, 3, 3, 3] + [2]*60,  # try right steps 54-58
-                        },
-                    },
-                },
-                {
-                    "label": "IC 3 Vorfahrt — S 17 folgt nach 5, S 18 wartet",
-                    "kpis": {
-                        "local_delay":  28,
-                        "global_delay": 20,
-                        "energy":       80,
+                        "local_delay":  20,
+                        "global_delay": 18,
+                        "energy":       85,
                         "anschluss":    2,
                     },
                     "outcome": {
-                        "holds": {
-                            "Train_0": 5,    # S17 wartet 5 Schritte
-                            "Train_1": 18,   # S18 wartet 18 Schritte
-                        }
+                        "scripted_actions": {
+                            "Train_1": [4, 2] * 30,
+                            "Train_2": [4, 2] * 30,
+                        },
                     },
                 },
                 {
-                    "label": "S 17 Vorfahrt — S 18 wartet, IC 3 wartet",
+                    "label": "G 3 weicht aus — IC 3 überholt, G 3 fährt vor IR 35",
                     "kpis": {
-                        "local_delay":  35,
-                        "global_delay": 28,
-                        "energy":       72,
-                        "anschluss":    3,
+                        "local_delay":  12,
+                        "global_delay": 7,
+                        "energy":       74,
+                        "anschluss":    1,
                     },
                     "outcome": {
-                        "holds": {
-                            "Train_1": 15,   # S18 wartet 15 Schritte
-                            "Train_2": 29,   # IC3 wartet 29 Schritte
-                        }
+                        "scripted_actions": {
+                            # G 3 biegt links ab (selbe wie Option C)
+                            "Train_0": [4, 2, 4, 1, 1, 1, 1] + [4, 2] * 26,
+                            # IR 35 wartet 6 Schritte bei Timestep 26 (Index 10 von Decision Step 16)
+                            "Train_2": [2] * 10 + [4] * 6 + [2] * 50,
+                        },
+                        # IC 3 fährt normal weiter
+                    },
+                },
+                {
+                    "label": "G 3 weicht aus — IC 3 + IR 35 überholen",
+                    "kpis": {
+                        "local_delay":  8,
+                        "global_delay": 4,
+                        "energy":       72,
+                        "anschluss":    0,
+                    },
+                    "outcome": {
+                        "scripted_actions": {
+                            "Train_0": [4, 2, 4, 1, 1, 1, 1] + [4, 2] * 26,
+                        },
+                        # IC 3 + IR 35 fahren normal weiter
                     },
                 },
             ],
-        }
+        },
     ],
+
+    "colearning_config": {
+        "trains":          ["Train_0", "Train_1", "Train_2"],
+        "actions":         ["vorfahrt"],
+        "invalid_actions": [],
+        "train_labels": {
+            "Train_0": "G 3 vorne",
+            "Train_1": "IC 3 dann G 3",
+            "Train_2": "IC 3 dann IR 35",
+        },
+    },
 }

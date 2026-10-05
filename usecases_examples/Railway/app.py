@@ -716,7 +716,12 @@ def _extract_target(agent):
 
 
 def _compute_marey_mapping(map_path, start_rc, end_rc):
-    """BFS through grid from start to end, returns {r,c: distance} mapping."""
+    """
+    Direction-aware BFS using Flatland's transition table.
+    d=0 North, d=1 East, d=2 South, d=3 West (direction of travel).
+    exits = (cell >> ((3-d)*4)) & 0xF  — bit3=N, bit2=E, bit1=S, bit0=W
+    Only cells on the main route (shortest path start→end) are returned.
+    """
     import json as _json
     from collections import deque
     try:
@@ -725,18 +730,115 @@ def _compute_marey_mapping(map_path, start_rc, end_rc):
         grid = raw["grid"]
     except Exception:
         return {}
+
     rows, cols = len(grid), len(grid[0])
-    dist = {start_rc: 0}
-    queue = deque([start_rc])
-    directions = [(-1,0),(0,1),(1,0),(0,-1)]
-    while queue:
-        r, c = queue.popleft()
-        for dr, dc in directions:
-            nr, nc = r+dr, c+dc
-            if 0 <= nr < rows and 0 <= nc < cols                and grid[nr][nc] != 0                and (nr, nc) not in dist:
-                dist[(nr, nc)] = dist[(r,c)] + 1
-                queue.append((nr, nc))
-    return {f"{r},{c}": d for (r,c), d in dist.items()}
+    move    = {0: (-1,0), 1: (0,1), 2: (1,0), 3: (0,-1)}
+    dir_bit = {0: 8,      1: 4,     2: 2,     3: 1}
+    INF     = 10 ** 9
+
+    def bfs(start):
+        dist_state = {}   # (r,c,d) -> min distance
+        dist_pos   = {}   # (r,c)   -> min distance over all directions
+        queue      = deque()
+        r0, c0 = start
+        dist_pos[(r0, c0)] = 0
+        cell0 = grid[r0][c0]
+        # Try all entry directions from start cell
+        for d_in in range(4):
+            exits = (cell0 >> ((3 - d_in) * 4)) & 0xF
+            for d_out, bit in dir_bit.items():
+                if exits & bit:
+                    dr, dc = move[d_out]
+                    nr, nc = r0 + dr, c0 + dc
+                    if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != 0:
+                        key = (nr, nc, d_out)
+                        if dist_state.get(key, INF) > 1:
+                            dist_state[key] = 1
+                            if dist_pos.get((nr, nc), INF) > 1:
+                                dist_pos[(nr, nc)] = 1
+                            queue.append((nr, nc, d_out, 1))
+        while queue:
+            r, c, d, dist = queue.popleft()
+            if dist_state.get((r, c, d), INF) < dist:
+                continue
+            cell  = grid[r][c]
+            exits = (cell >> ((3 - d) * 4)) & 0xF
+            for d_out, bit in dir_bit.items():
+                if exits & bit:
+                    dr, dc = move[d_out]
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != 0:
+                        nd  = dist + 1
+                        key = (nr, nc, d_out)
+                        if dist_state.get(key, INF) > nd:
+                            dist_state[key] = nd
+                            if dist_pos.get((nr, nc), INF) > nd:
+                                dist_pos[(nr, nc)] = nd
+                            queue.append((nr, nc, d_out, nd))
+        return dist_pos
+
+    dist_start = bfs(start_rc)
+    dist_end   = bfs(end_rc)
+    total = dist_start.get(end_rc)
+    if total is None:
+        return {}
+    return {
+        f"{r},{c}": d_s
+        for (r, c), d_s in dist_start.items()
+        if dist_end.get((r, c), INF) + d_s == total
+    }
+
+
+def _build_link_map(sc):
+    """Build linearized link-map data for the link-map component."""
+    marey = sc.get("marey_link", {})
+    if not marey:
+        return None
+    start_rc = tuple(marey["start"])
+    end_rc   = tuple(marey["end"])
+    map_path = sc.get("map", "")
+    if not map_path.endswith(".json"):
+        return None
+    mapping_dict = _compute_marey_mapping(map_path, start_rc, end_rc)
+    if not mapping_dict:
+        return None
+    # Sort route cells by distance from start
+    n = max(mapping_dict.values()) + 1
+    # 1×N grid of horizontal straight track (value=1025)
+    grid = [[1025] * n]
+    # mapping: [[orig_r, orig_c], [0, distance]]
+    mapping_arr = [
+        [[int(k.split(",")[0]), int(k.split(",")[1])], [0, v]]
+        for k, v in mapping_dict.items()
+    ]
+    return {"grid": grid, "mapping": mapping_arr, "levels": [], "incompleteCells": []}
+
+
+@app.route("/links")
+def get_links():
+    """Return available links (routes) for the link-map dropdown."""
+    sc = scenario_player.scenario if scenario_player else \
+         ALL_SCENARIOS.get(preview_scenario_id) if preview_scenario_id else None
+    marey = sc.get("marey_link", {}) if sc else {}
+    if not marey:
+        return jsonify([])
+    start, end = marey.get("start", []), marey.get("end", [])
+    return jsonify([{"label": f"Link 0 ({start} \u2192 {end})"}])
+
+
+@app.route("/link/<int:link_id>/map")
+def get_link_map(link_id):
+    """Return the linearized link-map grid and coordinate mapping."""
+    sc = scenario_player.scenario if scenario_player else \
+         ALL_SCENARIOS.get(preview_scenario_id) if preview_scenario_id else None
+    if sc is None:
+        return jsonify({"grid": [], "mapping": [], "levels": [], "incompleteCells": []})
+    data = _build_link_map(sc)
+    if data is None:
+        return jsonify({"grid": [], "mapping": [], "levels": [], "incompleteCells": []})
+    return jsonify(data)
+
+
 
 
 @app.route("/mapping")
@@ -879,7 +981,7 @@ def _push_resolved_event_card(scenario: dict):
         }
     }
     try:
-        r = requests.post("http://localhost:2102/cards", json=payload, timeout=5)
+        r = requests.post("http://localhost:2102/cards", json=payload, timeout=15)
         print(f"[scenario] Resolved card pushed → {r.status_code}")
         pid = payload.get("processInstanceId", "")
         if pid and pid not in pushed_process_instance_ids:
@@ -957,8 +1059,10 @@ def _push_scenario_event_card(event: dict):
         }
     }
     try:
-        r = requests.post("http://localhost:2102/cards", json=payload, timeout=5)
+        r = requests.post("http://localhost:2102/cards", json=payload, timeout=15)
         print("[scenario] Event card pushed:", event.get("card_title"), "→", r.status_code)
+        if r.status_code >= 400:
+            print("[scenario] Card error body:", r.text[:300])
         # Track processInstanceId for clearing via ND on next session start
         pid = payload.get("processInstanceId", "")
         if pid and pid not in pushed_process_instance_ids:
@@ -1362,7 +1466,17 @@ def colearning_action():
     matching_index  = None
     matching_option = None
 
-    for i, opt in enumerate(dp.get("options", [])):
+    # Use explicit train→option mapping if defined in colearning_config
+    train_to_option = cl_cfg.get("train_to_option", {})
+    if train_id in train_to_option:
+        idx = train_to_option[train_id]
+        opts = dp.get("options", [])
+        if 0 <= idx < len(opts):
+            matching_index  = idx
+            matching_option = opts[idx]
+
+    if matching_option is None:
+     for i, opt in enumerate(dp.get("options", [])):
         outcome = opt.get("outcome", {})
         if action == "warten" and outcome.get("hold_train") == train_id:
             matching_index  = i

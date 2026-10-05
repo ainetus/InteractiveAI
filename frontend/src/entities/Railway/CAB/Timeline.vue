@@ -398,18 +398,21 @@ let   experimentPollTimer   = null as any
 const showExperimentIntro   = ref<boolean>(false)
 
 const EXPERIMENT_SCENARIOS = [
-  { id: 'scenario1', name: 'Szenario 1 — Kreuzungskonflikt' },
-  { id: 'scenario2', name: 'Szenario 2 — Fahrt auf Sichtweite' },
-  { id: 'scenario3', name: 'Szenario 3 — Zugreihenfolge' },
+  { id: 'scenario1', name: 'Szenario 1 — Zugreihenfolge' },
+  { id: 'scenario2', name: 'Szenario 2 — Türstörung' },
+  { id: 'scenario3', name: 'Szenario 3 — Güterverkehr vs Personenverkehr' },
+  { id: 'scenario4', name: 'Szenario 4 — Verschobene Kreuzung' },
+  { id: 'scenario5', name: 'Szenario 5 — Fahrt auf Sichtweise' },
+  { id: 'scenario6', name: 'Szenario 6 — Anschlusskonflikt' },
 ]
 
 const SCENARIO_INTROS: Record<string, string> = {
-  scenario1: `Durch die Verspätung des Zuges IC 301 kann die geplante Zugkreuzung mit der S 420 nicht stattfinden, da nun zwei Züge zur gleichen Zeit zur Einbahnpassage kommen. Nun muss entschieden werden, welcher Zug Priorität bekommt.`,
-  scenario3: `Durch technische Störungen bei den Zügen S 17 und S 18 hat sich die ursprünglich geplante Zugreihenfolge auf dem gemeinsamen Streckenabschnitt verschoben. S 17 musste wegen eines Hindernisses auf der Strecke anhalten, und S 18 war von einer Signalstörung betroffen.\n\nDurch diese Verzögerungen kommt es nun zu einem Dispositionskonflikt: Alle drei Züge — S 17, S 18 und IC 3 — treffen annähernd gleichzeitig im Kreuzungsbereich ein, sodass die Reihenfolge neu festgelegt werden muss. Beurteilen Sie die Situation und entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.`,
-
-  scenario2: `Im Bereich Rüthi wurde eine Unregelmässigkeit der Fahrbahn festgestellt. Für den betroffenen Abschnitt gilt bis auf Weiteres eine Geschwindigkeitsbegrenzung von 40 km/h.
-
-Dadurch verspätet sich P 205, wodurch ein Konflikt mit P 312 und dem Güterzug G 501 auf dem Einspurabschnitt entsteht. Beurteilen Sie die Situation und formulieren Sie Ihre Dispositionshypothese. Welche Zugreihenfolge bzw. Massnahme würden Sie wählen?`,
+  scenario1: `Durch technische Störungen bei den Zügen S 17 und S 18 hat sich die ursprünglich geplante Zugreihenfolge auf dem gemeinsamen Streckenabschnitt verschoben. S 17 musste wegen eines Hindernisses auf der Strecke anhalten, und S 18 war von einer Signalstörung betroffen.\n\nDurch diese Verzögerungen kommt es nun zu einem Dispositionskonflikt: Alle drei Züge — S 17, S 18 und IC 3 — treffen annähernd gleichzeitig im Kreuzungsbereich ein, sodass die Reihenfolge neu festgelegt werden muss. Beurteilen Sie die Situation und entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.`,
+  scenario2: `An S 17 wurde eine Türstörung gemeldet. Der Zug muss an der aktuellen Position anhalten und auf Freigabe warten. Infolge der Verzögerung kommt es zu einem Dispositionskonflikt: IR 35 und S 17-2 nähern sich dem gemeinsamen Abschnitt gleichzeitig.\n\nEntscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.`,
+  scenario3: `Güterzug G 3 fährt auf demselben Streckenabschnitt wie IC 3 und IR 35, jedoch mit deutlich reduzierter Geschwindigkeit. Durch die unterschiedlichen Geschwindigkeiten entsteht ein Dispositionskonflikt: Die Schnellzüge holen G 3 ein und können den Streckenabschnitt nicht wie geplant passieren.\n\nEntscheiden Sie, wie die Situation aufgelöst werden soll.`,
+  scenario4: `IR 35 ist durch eine Signalstörung verzögert und nähert sich dem Kreuzungsabschnitt gleichzeitig mit G 4 und IC 3. Da alle drei Züge den eingleisigen Abschnitt nicht gleichzeitig befahren können, muss die Reihenfolge festgelegt werden.\n\nEntscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.`,
+  scenario6: `IC 3 meldet eine Betriebsstörung und wird verspätet am Kreuzungspunkt ankommen. S 12 nähert sich planmässig und müsste ohne Eingriff vor IC 3 passieren, was den Anschluss für umsteigende Passagiere gefährdet.\n\nEntscheiden Sie, ob S 12 auf IC 3 warten soll.`,
+  scenario5: `Im Bereich Rüthi wurde eine Unregelmässigkeit der Fahrbahn festgestellt. Für den betroffenen Abschnitt gilt bis auf Weiteres eine Geschwindigkeitsbegrenzung von 40 km/h.\n\nDadurch verspätet sich P 205, wodurch ein Konflikt mit P 312 und dem Güterzug G 501 auf dem Einspurabschnitt entsteht. Beurteilen Sie die Situation und formulieren Sie Ihre Dispositionshypothese. Welche Zugreihenfolge bzw. Massnahme würden Sie wählen?`,
 }
 const savedLogFile       = ref<string>('')
 const savedLogData       = ref<string>('')

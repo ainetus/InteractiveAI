@@ -4,6 +4,14 @@ import { Agent, Transitions } from './data.service'
 export interface MapCell {
   ground: string
   objects?: string
+  // Additional fields used by link-map component
+  pin?: boolean
+  station?: boolean
+  stationBuilding?: string
+  incompleteReason?: string
+  trackName?: string
+  pinLabel?: string
+  transition?: number
 }
 
 const BACKGROUND_CLASSES_WEIGHT = {
@@ -109,7 +117,13 @@ export class RendererService {
     return agent ? `direction_${agent.direction} ${agent.malfunction > 0 ? 'malfunction' : ''}` : ''
   }
 
-  public renderMap(transitions: Transitions, agents: Array<Agent>) {
+  public renderMap(
+    transitions: Transitions,
+    agents: Array<Agent>,
+    stations?: any,
+    showAgents?: boolean,
+    incompleteCells?: any,
+  ) {
     const targetsMap = new Map<string, boolean>()
     for (const agent of agents) {
       targetsMap.set(getLocationKey(agent.target[0], agent.target[1]), true)
@@ -122,7 +136,7 @@ export class RendererService {
         const cell = row[j]
         const ground = this.getMapClasses(cell)
         const objects = targetsMap.has(getLocationKey(i, j)) ? this.getTargetClasses(cell) : undefined
-        mapRow.push({ ground, objects })
+        mapRow.push({ ground, objects, transition: cell })
       }
       mapClasses.push(mapRow)
     }

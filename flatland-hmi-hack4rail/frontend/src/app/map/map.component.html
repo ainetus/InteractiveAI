@@ -1,3 +1,5 @@
+<div class="map-zoom-container" (wheel)="onWheel($event)">
+  <div [style.transform]="'scale(' + zoomLevel + ')'" [style.transform-origin]="'top left'" [style.display]="'inline-block'">
 <div class="map">
   <div class="environment">
     @for (row of mapClasses; track $index) {
@@ -25,8 +27,8 @@
         ></div>
         <div
           class="agent-label"
-          [style.left]="(agent.position[1] * 20 + 22) + 'px'"
-          [style.top]="(agent.position[0] * 20 + 2) + 'px'"
+          [style.left]="(agent.position[1] * 20 + 5) + 'px'"
+          [style.top]="(agent.position[0] * 20 - 10) + 'px'"
         >{{ agentNames[i] || 'Train_' + i }}</div>
       }
     }
@@ -42,5 +44,8 @@
         [title]="st.name"
       ></div>
     }
+  </div>
+</div>
+
   </div>
 </div>

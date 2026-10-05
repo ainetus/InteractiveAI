@@ -103,8 +103,11 @@ export class MareyComponent implements OnInit {
             if (!position) return { x: undefined as unknown as number, y: index }
             const key = `${position[0]},${position[1]}`
             const mappedX = positionMapping[key]
-            const x = mappedX !== undefined ? mappedX : position[1]
-            return { x, y: index }
+            // If mapping active and position not on route, hide it
+            if (Object.keys(positionMapping).length > 0 && mappedX === undefined) {
+              return { x: undefined as unknown as number, y: index }
+            }
+            return { x: mappedX !== undefined ? mappedX : position[1], y: index }
           })
           .filter((coord): coord is { x: number; y: number } => coord.x !== undefined),
       }))
@@ -131,8 +134,10 @@ export class MareyComponent implements OnInit {
               if (!position) return { x: undefined as unknown as number, y: this.timestep + index }
               const key = `${position[0]},${position[1]}`
               const mappedX = positionMapping[key]
-              const x = mappedX !== undefined ? mappedX : position[1]
-              return { x, y: this.timestep + index }
+              if (Object.keys(positionMapping).length > 0 && mappedX === undefined) {
+                return { x: undefined as unknown as number, y: this.timestep + index }
+              }
+              return { x: mappedX !== undefined ? mappedX : position[1], y: this.timestep + index }
             })
             .filter((coord, index): coord is { x: number; y: number } =>
               coord.x !== undefined && index < PLAN_CUTOFF
@@ -146,8 +151,14 @@ export class MareyComponent implements OnInit {
       try {
         const r = await fetch(`${BACKEND_URL}/mapping`)
         const d = await r.json()
-        if (d && Object.keys(d).length > 0) positionMapping = d
-        else positionMapping = {}
+        if (d && Object.keys(d).length > 0) {
+          positionMapping = d
+          // Update maxDistance from route length (overrides transitions fallback)
+          const vals = Object.values(positionMapping) as number[]
+          if (vals.length > 0) this.maxDistance = Math.max(...vals)
+        } else {
+          positionMapping = {}
+        }
       } catch {}
     }
     fetchMapping()
@@ -227,6 +238,27 @@ export class MareyComponent implements OnInit {
     return train.coordinates.filter(coord =>
       this.eventBands.some(b => b.train === train.name && coord.y >= b.start && coord.y <= b.end)
     )
+  }
+
+  /** Max x-jump (in route cells) before we lift the pen */
+  private readonly MAX_JUMP = 3
+
+  /** Split coordinates into segments wherever the x-axis jumps > MAX_JUMP cells */
+  getPolylineSegments(coordinates: TrainCoordinate[]): TrainCoordinate[][] {
+    if (coordinates.length === 0) return []
+    const segments: TrainCoordinate[][] = []
+    let current: TrainCoordinate[] = [coordinates[0]]
+    for (let i = 1; i < coordinates.length; i++) {
+      const jump = Math.abs(coordinates[i].x - coordinates[i - 1].x)
+      if (jump > this.MAX_JUMP) {
+        if (current.length > 1) segments.push(current)
+        current = [coordinates[i]]
+      } else {
+        current.push(coordinates[i])
+      }
+    }
+    if (current.length > 1) segments.push(current)
+    return segments
   }
 
   getPolylinePoints(coordinates: TrainCoordinate[]): string {

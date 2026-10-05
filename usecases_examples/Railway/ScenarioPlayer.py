@@ -58,6 +58,13 @@ class ScenarioPlayer:
 
         # Holds — {train_id: steps_remaining}
         self._holds = {}
+        # Per-train speed factors (set from agent_defs speed field)
+        self._speed_factors: dict = {}
+        self._prev_positions: dict = {}  # track last position per train for speed simulation
+        for i, ag in enumerate(self.scenario.get("agent_defs", [])):
+            spd = ag.get("speed", 1.0)
+            if spd < 1.0:
+                self._speed_factors[f"Train_{i}"] = spd
 
         # Load environment
         map_path = scenario["map"]
@@ -194,6 +201,8 @@ class ScenarioPlayer:
                 result["active_decision"] = {
                     "timestep":   self.active_decision.get("timestep", 0),
                     "description": self.active_decision.get("description", ""),
+                    "invalid_actions": self.scenario.get("colearning_config", {}).get("invalid_actions", []),
+                    "train_labels": self.scenario.get("colearning_config", {}).get("train_labels", {}),
                     "options": [
                         {
                             "index":  i,
@@ -269,6 +278,25 @@ class ScenarioPlayer:
         except Exception as e:
             print("[ScenarioPlayer] step error:", e)
             return
+
+        # Apply periodic holds for trains with speed < 1.0
+        # Only fires when the agent actually moved (position changed), not during hold steps
+        with self.lock:
+            for i, agent in enumerate(self.env.agents):
+                train_id = f"Train_{i}"
+                if train_id not in self._speed_factors:
+                    continue
+                if agent.position is None:
+                    continue
+                prev_pos = self._prev_positions.get(train_id)
+                curr_pos = tuple(agent.position) if agent.position else None
+                # Agent moved (or just spawned) → apply hold
+                if curr_pos != prev_pos and train_id not in self._holds:
+                    spd = self._speed_factors[train_id]
+                    hold_steps = round(1.0 / spd) - 1
+                    if hold_steps > 0:
+                        self._holds[train_id] = hold_steps
+                self._prev_positions[train_id] = curr_pos
 
         with self.lock:
             self.step = step + 1
