@@ -26,6 +26,18 @@ export class MapComponent implements OnInit {
   public stations:   Array<{id: any, r: number, c: number, name: string, type?: string}> = []
 
   public zoomLevel = 1.0
+  public zoomOrigin = 'top left'
+  public mapLoading = false
+  private _loadingTimer: any = null
+
+  showLoading(ms = 1500) {
+    this.mapLoading = true
+    this.mapClasses = []
+    this.stations = []
+    this.agents = []
+    if (this._loadingTimer) clearTimeout(this._loadingTimer)
+    this._loadingTimer = setTimeout(() => { this.mapLoading = false }, ms)  // fallback timeout
+  }
   private sessionRunning = false   // track whether a scenario session is active
   private pollTimer: any
 
@@ -41,11 +53,11 @@ export class MapComponent implements OnInit {
     this.stateService.getPlans().subscribe(plans => { this.plans = plans })
 
     // Render map when transitions update
-    this.stateService.getTransitions().subscribe(transitions =>
+    this.stateService.getTransitions().subscribe(transitions => {
       firstValueFrom(this.stateService.getAgents()).then(agents => {
         this.mapClasses = this.rendererService.renderMap(transitions, agents)
       })
-    )
+    })
 
     // Only update agent overlays when a session is running — prevents rogue trains in preview mode
     this.stateService.getAgents().subscribe(agents => {
@@ -134,6 +146,12 @@ export class MapComponent implements OnInit {
     event.preventDefault()
     const delta = event.deltaY > 0 ? -0.1 : 0.1
     this.zoomLevel = Math.min(3.0, Math.max(0.3, this.zoomLevel + delta))
+    // Keep zoom origin at mouse position
+    const container = (event.currentTarget as HTMLElement)
+    const rect = container.getBoundingClientRect()
+    const xPct = ((event.clientX - rect.left) / rect.width * 100).toFixed(1) + '%'
+    const yPct = ((event.clientY - rect.top) / rect.height * 100).toFixed(1) + '%'
+    this.zoomOrigin = xPct + ' ' + yPct
   }
   isSelectedAgent(i: number):  boolean { return this.selectedIndex === i }
 

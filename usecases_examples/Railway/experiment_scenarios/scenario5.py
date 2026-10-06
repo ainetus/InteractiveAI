@@ -1,7 +1,7 @@
 """
-scenario2.py — Szenario 2: Fahrt auf Sichtweite
+scenario5.py — Szenario 5: Fahrt auf Sichtweite
 
-Karte: maps/map2.json (25×25)
+Karte: maps/map5.json (25×25)
 
 Züge (alle Richtung Norden, dir=0):
     P 205 (Agent 0): Station 1 (17,2)  → Station 4 (6,22)  dep=1

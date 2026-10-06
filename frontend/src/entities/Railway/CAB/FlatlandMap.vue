@@ -17,10 +17,7 @@
         Step {{ step }}
       </div>
 
-      <!-- Conflict indicator overlay -->
-      <div v-if="hasConflict" class="flatland-conflict-badge">
-        ⚠ Conflict detected
-      </div>
+      <!-- Conflict indicator removed -->
     </div>
 
     <!-- Simulation controls -->
@@ -75,11 +72,9 @@ onUnmounted(() => clearInterval(speedLockTimer))
 const imageUrl      = ref<string>('')
 const step          = ref<number>(0)
 const running       = ref<boolean>(false)
-const hasConflict   = ref<boolean>(false)
 const speed         = ref<number>(1)
 const scenarioActive = ref<boolean>(false)
 const sessionId      = ref<string>('')
-const scenarioName   = ref<string>('')
 
 let renderInterval: ReturnType<typeof setInterval> | null = null
 let stateInterval: ReturnType<typeof setInterval> | null = null
@@ -104,17 +99,7 @@ async function pollState() {
   }
 }
 
-// Poll conflicts every 2 seconds to update the badge
-async function pollConflicts() {
-  try {
-    const res = await fetch(`${BRAIN_URL}/conflicts`)
-    if (!res.ok) return
-    const data = await res.json()
-    hasConflict.value = data.conflict !== null
-  } catch {
-    // fail silently
-  }
-}
+
 
 async function sendCommand(command: string) {
   try {
@@ -152,7 +137,6 @@ async function startSession() {
     })
     const data = await res.json()
     sessionId.value      = data.session_id
-    scenarioName.value   = data.scenario_name || ''
     scenarioActive.value = true
     running.value        = false
   } catch (e) {
@@ -169,7 +153,6 @@ onMounted(() => {
   startRenderPolling()
   stateInterval = setInterval(() => {
     pollState()
-    pollConflicts()
   }, 1000)
   // Initial state load
   pollState()

@@ -790,7 +790,11 @@ def _compute_marey_mapping(map_path, start_rc, end_rc):
 
 
 def _build_link_map(sc):
-    """Build linearized link-map data for the link-map component."""
+    """Build linearized link-map data for the link-map component.
+    Main route cells → level 0 (white).
+    Side route cells → level -1 (above main) or +1 (below main) → shown in yellow.
+    """
+    import json as _json
     marey = sc.get("marey_link", {})
     if not marey:
         return None
@@ -799,19 +803,75 @@ def _build_link_map(sc):
     map_path = sc.get("map", "")
     if not map_path.endswith(".json"):
         return None
+
+    # Load grid to find ALL reachable cells
+    try:
+        with open(map_path, "r") as f:
+            raw = _json.load(f)
+        grid_data = raw["grid"]
+    except Exception:
+        return None
+
     mapping_dict = _compute_marey_mapping(map_path, start_rc, end_rc)
     if not mapping_dict:
         return None
-    # Sort route cells by distance from start
+
+    # Compute main route row range for level assignment
+    main_rows = [int(k.split(",")[0]) for k in mapping_dict.keys()]
+    main_row_min = min(main_rows)
+    main_row_max = max(main_rows)
+    main_row_mid = (main_row_min + main_row_max) / 2
+
+    # Find ALL reachable non-zero cells (BFS from start, ignoring direction)
+    from collections import deque
+    rows, cols = len(grid_data), len(grid_data[0])
+    visited = {start_rc: 0}
+    queue = deque([start_rc])
+    while queue:
+        r, c = queue.popleft()
+        for dr, dc in [(-1,0),(0,1),(1,0),(0,-1)]:
+            nr, nc = r+dr, c+dc
+            if 0 <= nr < rows and 0 <= nc < cols and grid_data[nr][nc] != 0 and (nr,nc) not in visited:
+                visited[(nr,nc)] = visited[(r,c)] + 1
+                queue.append((nr,nc))
+
+    # Side cells: reachable but NOT on main route
+    main_keys = set(mapping_dict.keys())
+    levels = []
+    for (r, c), dist in visited.items():
+        key = f"{r},{c}"
+        if key not in main_keys:
+            # Find nearest main route column (x position)
+            nearest_x = min(mapping_dict.values(),
+                key=lambda x: abs(x - dist), default=0)
+            # Level: -1 if above main route, +1 if below
+            level = -1 if r < main_row_mid else 1
+            levels.append([[r, c], [level, nearest_x]])
+
+    # Levels format: [[orig_r, orig_c], level_int]
+    # Grid needs rows for each level: row 0 = level -1 (above), row 1 = main, row 2 = level +1 (below)
     n = max(mapping_dict.values()) + 1
-    # 1×N grid of horizontal straight track (value=1025)
-    grid = [[1025] * n]
-    # mapping: [[orig_r, orig_c], [0, distance]]
-    mapping_arr = [
-        [[int(k.split(",")[0]), int(k.split(",")[1])], [0, v]]
+    grid_3row = [
+        [1025] * n,  # row 0 = above main (level -1) → yellow
+        [1025] * n,  # row 1 = main route (level 0)
+        [1025] * n,  # row 2 = below main (level +1) → yellow
+    ]
+
+    # Main route at row 1
+    mapping_3row = [
+        [[int(k.split(",")[0]), int(k.split(",")[1])], [1, v]]
         for k, v in mapping_dict.items()
     ]
-    return {"grid": grid, "mapping": mapping_arr, "levels": [], "incompleteCells": []}
+
+    # Side cells with correct format
+    levels_fixed = []
+    for item in levels:
+        (r, c), (level, nearest_x) = item[0], item[1]
+        link_row = 0 if level == -1 else 2
+        mapping_3row.append([[r, c], [link_row, nearest_x]])
+        levels_fixed.append([[r, c], level])
+
+    return {"grid": grid_3row, "mapping": mapping_3row, "levels": levels_fixed, "incompleteCells": []}
 
 
 @app.route("/links")

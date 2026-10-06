@@ -128,6 +128,21 @@
               </tr>
             </thead>
             <tbody>
+              <tr class="option-row">
+                <td class="kpi-label">Aktion</td>
+                <td
+                  v-for="(opt, i) in activeDecision.options"
+                  :key="i"
+                >
+                  <button
+                    class="btn-option"
+                    :class="{ 'btn-option-selected': selectedOption === i }"
+                    @click="selectOption(i)"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </td>
+              </tr>
               <tr>
                 <td class="kpi-label">Lok. Verspätung</td>
                 <td
@@ -176,21 +191,6 @@
                   </span>
                 </td>
               </tr>
-              <tr class="option-row">
-                <td class="kpi-label">Aktion</td>
-                <td
-                  v-for="(opt, i) in activeDecision.options"
-                  :key="i"
-                >
-                  <button
-                    class="btn-option"
-                    :class="{ 'btn-option-selected': selectedOption === i }"
-                    @click="selectOption(i)"
-                  >
-                    {{ opt.label }}
-                  </button>
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
@@ -228,7 +228,7 @@
         <div class="scenario-subtitle">
           Alle Entscheidungen gespeichert. Nächstes Szenario wird geladen...
         </div>
-        <button class="btn-primary" @click="nextScenario">Next Scenario</button>
+
       </div>
 
       <!-- SESSION COMPLETE -->
@@ -298,7 +298,6 @@ const showConfirmModal   = ref<boolean>(false)
 const trainNames         = ref<Record<string,string>>({})
 const kpisByTrain        = ref<Record<string,any>>({})
 const colearningError    = ref<string>('')
-const helpRequested      = ref<boolean>(false)
 // CoLearning mode state
 const mode           = ref<string>('recommendation')
 const conflictTrains = ref<string[]>([])
@@ -380,7 +379,6 @@ async function confirmDecision() {
       decisionError.value = data.error
       console.error('Decision error:', data.error)
     } else {
-      console.log('Decision applied:', data)
       applied.value        = true
       selectedOption.value = null
       state.value          = 'running'
@@ -519,7 +517,6 @@ async function findAndActivateEventCard(timestep: number): Promise<string> {
 }
 
 function askForHelp() {
-  helpRequested.value = true
   // Log ASKFORHELP step when user explicitly requests help
   try {
     sendTrace({
@@ -600,12 +597,13 @@ onUnmounted(() => { stopPolling() })
   font-size: 13px;
   background: rgba(255,255,255,0.05);
   border-radius: 6px;
-  padding: 10px;
-  line-height: 1.5;
+  padding: 6px 10px;
+  line-height: 1.4;
 }
 
 /* KPI table */
-.kpi-table-wrapper { overflow-x: auto; margin-top: 12px; }
+.kpi-table-wrapper {
+  margin-top: 4px; overflow-x: auto; margin-top: 12px; }
 .kpi-table {
   width: 100%;
   border-collapse: collapse;
@@ -613,13 +611,13 @@ onUnmounted(() => { stopPolling() })
 }
 .kpi-table th {
   background: rgba(255,255,255,0.08);
-  padding: 6px 10px;
+  padding: 4px 8px;
   text-align: center;
   font-weight: bold;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 .kpi-table td {
-  padding: 6px 10px;
+  padding: 3px 8px;
   text-align: center;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
@@ -632,7 +630,7 @@ onUnmounted(() => { stopPolling() })
 .kpi-table th.selected {
   background: rgba(100,160,255,0.1);
 }
-.option-row td { padding-top: 10px; }
+.option-row td { padding-top: 4px; }
 
 .score-good   { color: #6bff6b; font-weight: bold; }
 .score-medium { color: #ffd06b; font-weight: bold; }

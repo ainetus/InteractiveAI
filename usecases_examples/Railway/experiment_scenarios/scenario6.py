@@ -19,6 +19,7 @@ SCENARIO_6 = {
     "id":   "scenario6",
     "name": "Szenario 6 — Anschlusskonflikt",
     "map":  "maps/map6.json",
+    "marey_link": {"start": [8, 1], "end": [8, 17]},
 
     "agent_defs": [
         dict(start=(8,  1), target=(8, 17), dir=1, dep=1,  arr=20, name="IC 3"),

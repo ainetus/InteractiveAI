@@ -56,7 +56,7 @@
         <div class="tl-start-row">
           <button
             class="scenario-btn scenario-btn-load"
-            :disabled="!selectedScenario || sessionActive || sessionLoading || experimentActive"
+            :disabled="!selectedScenario || sessionActive || sessionStarting || experimentActive"
             @click="loadScenario"
             style="width: auto; align-self: flex-start; white-space: nowrap;"
           >▶ Laden &amp; Starten</button>
@@ -140,7 +140,7 @@
   <!-- ── Experiment scenario intro ── -->
   <div v-if="showExperimentIntro" class="reflection-overlay">
     <div class="reflection-modal" style="max-width:640px; width:90vw;">
-      <div class="reflection-title">📋 Szenario-Einführung — Run {{ experimentRunIndex + 1 }}/6</div>
+      <div class="reflection-title">📋 Szenario-Einführung — Run {{ experimentRunIndex + 1 }}/{{ experimentRuns.length }}</div>
       <div class="reflection-subtitle" style="white-space:pre-line; line-height:1.7; margin-top:8px; font-size:15px;">
         {{ SCENARIO_INTROS[experimentRuns[experimentRunIndex]?.scenario] }}
       </div>
@@ -155,7 +155,7 @@
   <!-- ── Experiment running banner ── -->
   <div v-if="experimentActive && experimentStep === 2" class="test-banner">
     <div class="test-banner-info">
-      <span style="font-weight:600;">Experiment {{ experimentRunIndex + 1 }}/6</span>
+      <span style="font-weight:600;">Experiment {{ experimentRunIndex + 1 }}/{{ experimentRuns.length }}</span>
       <span style="margin-left:12px;">{{ experimentRuns[experimentRunIndex]?.name }}</span>
       <span style="margin-left:8px; opacity:0.6; font-size:12px;">
         — {{ experimentRuns[experimentRunIndex]?.mode === 'colearning' ? 'Co-Learning' : 'Recommendation' }}
@@ -348,13 +348,10 @@ const BRAIN_URL  = import.meta.env.VITE_RAILWAY_SIMU || 'http://localhost:5001'
 const cardsStore = useCardsStore()
 
 async function forceMapRefresh() {
-  // Signal Angular to re-fetch transitions
-  try {
-    await fetch(`${BRAIN_URL}/control`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command: 'reset' }),
-    })
-  } catch {}
+  // Notify Angular ZWL iframes to re-fetch transitions
+  document.querySelectorAll('iframe').forEach(f =>
+    f.contentWindow?.postMessage({ type: 'scenario_started' }, '*')
+  )
 }
 
 function clearRailwayNotifications() {
@@ -368,7 +365,7 @@ function clearRailwayNotifications() {
 const scenarios          = ref<{ id: string; name: string }[]>([])
 const selectedScenario   = ref<string>('')
 const sessionActive      = ref<boolean>(false)
-const sessionLoading     = ref<boolean>(false)
+const sessionStarting    = ref<boolean>(false)
 const mode               = ref<string>('recommendation')
 const acronym            = ref<string>('')
 
@@ -639,7 +636,8 @@ async function fetchScenarios() {
 }
 
 async function loadScenario() {
-  if (!selectedScenario.value) return
+  if (!selectedScenario.value || sessionStarting.value) return
+  sessionStarting.value = true
   clearRailwayNotifications()
   error.value = ''
   try {
@@ -668,7 +666,7 @@ async function loadScenario() {
   } catch {
     error.value = 'Failed to connect to Flask brain.'
   } finally {
-    sessionLoading.value = false
+    sessionStarting.value = false
   }
 }
 
@@ -753,9 +751,14 @@ watch([experimentActive, experimentStep, experimentRunIndex], () => {
 function buildExperimentRuns(firstMode: string) {
   const other = firstMode === 'colearning' ? 'recommendation' : 'colearning'
   const shuffle = (arr: typeof EXPERIMENT_SCENARIOS) => [...arr].sort(() => Math.random() - 0.5)
+  // Split scenarios: first half in firstMode, second half in other mode
+  const shuffled = shuffle(EXPERIMENT_SCENARIOS)
+  const half = Math.ceil(shuffled.length / 2)
+  const firstHalf  = shuffled.slice(0, half)
+  const secondHalf = shuffled.slice(half)
   return [
-    ...shuffle(EXPERIMENT_SCENARIOS).map(s => ({ scenario: s.id, mode: firstMode, name: s.name })),
-    ...shuffle(EXPERIMENT_SCENARIOS).map(s => ({ scenario: s.id, mode: other,     name: s.name })),
+    ...firstHalf.map(s  => ({ scenario: s.id, mode: firstMode, name: s.name })),
+    ...secondHalf.map(s => ({ scenario: s.id, mode: other,     name: s.name })),
   ]
 }
 
@@ -788,6 +791,8 @@ async function runNextExperimentSession() {
     const data = await res.json()
     if (!data.session_id) { error.value = 'Experiment: Sitzung konnte nicht gestartet werden.'; return }
     sessionActive.value = true
+    // Notify Angular ZWL to refresh map
+    document.querySelectorAll('iframe').forEach(f => f.contentWindow?.postMessage({ type: 'scenario_started' }, '*'))
     try {
       await fetch(`${BRAIN_URL}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: 'speed', value: 0.5 }) })
@@ -824,6 +829,24 @@ async function runNextExperimentSession() {
 }
 
 async function submitExperimentReflection() {
+  // Save log for this run before advancing
+  const reflectionAnswers = experimentQuestions.value.map(q => ({
+    frage:   q.text,
+    antwort: q.answer,
+  }))
+  try {
+    await fetch(`${BRAIN_URL}/experiment/log`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        participant_id:     experimentAcronym.value,
+        started_at:         new Date().toISOString(),
+        type:               'experiment',
+        reflection_answers: reflectionAnswers,
+      }),
+    })
+  } catch {}
+
   experimentRunIndex.value++
   experimentStep.value = 2
   const nextRun = experimentRuns.value[experimentRunIndex.value]

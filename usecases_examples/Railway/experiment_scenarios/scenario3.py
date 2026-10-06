@@ -21,6 +21,7 @@ SCENARIO_3 = {
     "id":   "scenario3",
     "name": "Szenario 3 — Güterverkehr vs Personenverkehr",
     "map":  "maps/map3.json",
+    "marey_link": {"start": [7, 1], "end": [7, 18]},
 
     "events": [
         {

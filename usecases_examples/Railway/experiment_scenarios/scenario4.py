@@ -11,14 +11,15 @@ Stationen:
 
 Züge:
     Train0 = IR35: Station1 (6,16) → Station4 (6,2)  dir=3 (West) dep=1
-    Train1 = G4:   Station3 (7,1)  → Station2 (7,17) dir=1 (Ost)  dep=10
-    Train2 = IC3:  Station3 (7,1)  → Station2 (7,17) dir=1 (Ost)  dep=17
+    Train1 = G4:   Station5 (9,0)  → Station2 (7,17) dir=0 (Nord) dep=17
+    Train2 = IC3:  Station5 (9,0)  → Station2 (7,17) dir=0 (Nord) dep=20
 """
 
 SCENARIO_4 = {
     "id":   "scenario4",
     "name": "Szenario 4 — Verschobene Kreuzung",
     "map":  "maps/map4.json",
+    "marey_link": {"start": [6, 18], "end": [6, 0]},
 
     "agent_defs": [
         dict(start=(6, 16), target=(6,  2), dir=3, dep=1,  arr=20, name="IR 35"),
@@ -52,7 +53,7 @@ SCENARIO_4 = {
             ),
             "options": [
                 {
-                    "label": "G 4 + IC 3 zuerst — IR 35 wartet 17 Schritte",
+                    "label": "G 4 + IC 3 zuerst — IR 35 wartet 15 Schritte",
                     "kpis": {
                         "local_delay":  16,
                         "global_delay": 8,
@@ -60,7 +61,7 @@ SCENARIO_4 = {
                         "anschluss":    1,
                     },
                     "outcome": {
-                        # IR35 wartet 15 Schritte ab Decision Step 22
+                        # IR35 wartet 15 Schritte ab Decision Step 22 (Gesamtverzögerung: 5+17+15=37)
                         "holds": {"Train_0": 15},
                     },
                 },

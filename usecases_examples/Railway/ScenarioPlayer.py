@@ -132,16 +132,7 @@ class ScenarioPlayer:
             option  = self.active_decision["options"][option_index]
             outcome = option.get("outcome", {})
 
-            # Apply hold if defined
-            hold_train = outcome.get("hold_train")
-            hold_steps = outcome.get("hold_steps", 0)
-            if hold_train and hold_steps > 0:
-                self._holds[hold_train] = hold_steps
-            # Support holding multiple trains with same duration
-            for t in outcome.get("hold_trains", []):
-                if hold_steps > 0:
-                    self._holds[t] = hold_steps
-            # Support per-train hold durations via holds dict
+            # Apply holds — per-train hold durations
             for t, steps in outcome.get("holds", {}).items():
                 if steps > 0:
                     self._holds[t] = steps
@@ -356,14 +347,10 @@ class ScenarioPlayer:
                 handle = int(train_id.replace("Train_", ""))
                 if scripted_step < len(action_seq):
                     actions[handle] = action_seq[scripted_step]
-
             self._scripted_step += 1
-            # Clear scripted actions when exhausted
-            max_len = max(
-                (len(seq) for seq in self._scripted_actions.values()),
-                default=0
-            )
-            if self._scripted_step >= max_len:
+            # Clear only when ALL sequences are exhausted
+            if all(self._scripted_step >= len(seq)
+                   for seq in self._scripted_actions.values()):
                 self._scripted_actions = None
                 self._scripted_step    = 0
 

@@ -12,6 +12,11 @@ echo "======================================================"
 echo " InteractiveAI Railway — Starting..."
 echo "======================================================"
 
+# Check if already running
+if docker ps --filter "name=frontend" --filter "status=running" --format "{{.Names}}" 2>/dev/null | grep -q "frontend"; then
+    echo "      Services already running - skipping Docker startup."
+else
+
 # Step 1: Docker
 echo ""
 echo "[1/4] Starting Docker services..."
@@ -19,8 +24,15 @@ export USER_ID=1000
 export USER_GID=1000
 export SPRING_PROFILES_ACTIVE=docker
 export VITE_RAILWAY_SIMU=http://localhost:5001
+export CONFIG_PATH="$SCRIPT_DIR/config/dev/cab-standalone"
+export RL_AGENT_API_URL=http://host.docker.internal:5123/api/v1/recommendation
+export RL_AGENT_API_TOKEN=
+export VITE_POWERGRID_SIMU=
+export VITE_ATM_SIMU=
+export VITE_COGNITIVE_TOKEN=
 
 docker compose \
+    --env-file "$SCRIPT_DIR/config/dev/cab-standalone/.env" \
     -f "$SCRIPT_DIR/config/dev/cab-standalone/docker-compose.yml" \
     -f "$SCRIPT_DIR/config/dev/cab-standalone/docker-compose-hub.yml" \
     up -d
@@ -45,8 +57,40 @@ docker exec cab-standalone-mongodb-1 mongo operator-fabric \
 echo ""
 echo "[3/4] Loading business configuration..."
 cd "$SCRIPT_DIR"
-bash resources/loadTestConf.sh 2>&1 | grep -E "201|bundle|error|Error" | head -5
-echo "      Configuration loaded."
+
+# Create .env file for Docker Compose
+cat > config/dev/cab-standalone/.env << 'ENV'
+CONFIG_PATH=./config/dev/cab-standalone
+USER_ID=1000
+USER_GID=1000
+SPRING_PROFILES_ACTIVE=docker
+VITE_RAILWAY_SIMU=http://localhost:5001
+RL_AGENT_API_URL=http://host.docker.internal:5123/api/v1/recommendation
+RL_AGENT_API_TOKEN=
+VITE_POWERGRID_SIMU=
+VITE_ATM_SIMU=
+VITE_COGNITIVE_TOKEN=
+ENV
+
+# Load bundle and assign perimeters via API
+TOKEN=$(curl -s -X POST "http://localhost:3200/auth/token"     -d "username=admin&password=test&grant_type=password&client_id=opfab-client"     | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+
+if [ -n "$TOKEN" ]; then
+    cd resources/bundles/cab-bundle
+    tar -czf /tmp/cab-bundle.tar.gz .
+    cd "$SCRIPT_DIR"
+    curl -s -X POST "http://localhost:3200/businessconfig/processes"         -H "Authorization: Bearer $TOKEN"         -F "file=@/tmp/cab-bundle.tar.gz;type=application/gzip" > /dev/null
+    curl -s -X PUT "http://localhost:3200/users/groups/Dispatcher/perimeters"         -H "Authorization: Bearer $TOKEN"         -H "Content-Type: application/json"         -d '["cabProcess"]' > /dev/null
+    curl -s -X PUT "http://localhost:3200/users/groups/Planner/perimeters"         -H "Authorization: Bearer $TOKEN"         -H "Content-Type: application/json"         -d '["cabProcess"]' > /dev/null
+    echo "      Business config loaded and perimeters assigned."
+else
+    echo "      WARNING: Could not get auth token. Run setup_config manually if cards don'''t appear."
+fi
+
+# Also try loadTestConf.sh for full config
+bash resources/loadTestConf.sh > /dev/null 2>&1 || true
+
+fi
 
 # Step 4: Flask and Angular in background
 echo ""

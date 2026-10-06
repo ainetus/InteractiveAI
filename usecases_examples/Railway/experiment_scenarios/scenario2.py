@@ -25,6 +25,7 @@ SCENARIO_2 = {
     "id":   "scenario2",
     "name": "Szenario 2 — Türstörung",
     "map":  "maps/map2.json",
+    "marey_link": {"start": [9, 1], "end": [6, 18]},
 
     "agent_defs": [
         dict(start=(8,  1), target=(6, 16), dir=0, dep=1,  arr=35, name="S 17"),

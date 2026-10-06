@@ -1,5 +1,5 @@
 """
-scenario3.py — Szenario 3: Zugreihenfolge
+scenario1.py — Szenario 1: Zugreihenfolge
 
 Karte: maps/map3.json (25x25)
 
@@ -34,6 +34,7 @@ SCENARIO_1 = {
         {
             "timestep":         14,
             "type":             "train_delay",
+            "push_card":        True,
             "train":            "Train_0",
             "duration":         30,
             "card_title":       "Betriebsstörung — S 17",
@@ -47,6 +48,7 @@ SCENARIO_1 = {
         {
             "timestep":         25,
             "type":             "train_delay",
+            "push_card":        True,
             "train":            "Train_1",
             "duration":         18,
             "card_title":       "Signalstörung — S 18",

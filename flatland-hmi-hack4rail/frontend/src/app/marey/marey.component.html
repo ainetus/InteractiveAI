@@ -1,17 +1,6 @@
 <svg [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style="display:block;">
 
-  <!-- Event warning labels (no red band) -->
-  @if (eventBands.length > 0) {
-    @for (band of eventBands; track $index) {
-      <text
-        [attr.x]="marginLeft + chartWidth - 4"
-        [attr.y]="marginTop + (band.start / maxTime) * chartHeight - 4"
-        fill="rgba(255,80,80,0.8)"
-        font-size="9"
-        text-anchor="end"
-      >⚠ event</text>
-    }
-  }
+  <!-- Event warning labels removed -->
 
   <!-- Grid lines vertical (distance) -->
   <g stroke="#e9ecef" stroke-width="0.5">

@@ -174,6 +174,8 @@ export class MareyComponent implements OnInit {
     setInterval(fetchMapping, 4000)
 
     this.controllerService.observeReset().subscribe(() => {
+      positionMapping = {}   // clear stale mapping immediately on reset
+      this.maxDistance = 1
       this.trainRuns = []
       this.plannedRuns = []
       this.timestep = 0

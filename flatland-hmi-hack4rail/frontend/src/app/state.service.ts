@@ -7,7 +7,7 @@ import { ControllerService, State } from './controller.service'
   providedIn: 'root',
 })
 export class StateService {
-  private transitions    = new ReplaySubject<Transitions>(1)
+  private transitions    = new Subject<Transitions>()  // no cache — prevents stale map flash
   private agents         = new ReplaySubject<Array<Agent>>(1)
   private state          = new ReplaySubject<State>(1)
   private interval?: number
@@ -36,9 +36,26 @@ export class StateService {
     this.dataService.getTransitions().then((transitions) => {
       this.transitions.next(transitions)
     })
+
+    // Listen for scenario-start message from parent Vue app (Timeline.vue)
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'scenario_started') {
+        // Burst-poll transitions every 300ms for 3 seconds to catch map ASAP
+        let attempts = 0
+        const burst = setInterval(() => {
+          this.dataService.getTransitions().then(t => {
+            this.transitions.next(t)
+            attempts++
+            if (attempts >= 10) clearInterval(burst)
+          })
+        }, 300)
+      }
+    })
     this.dataService.getHistory().then((history) => {
       this.history.next(history)
     })
+
+    // Track session state to detect scenario changes
 
     // Poll history and agents every second
     setInterval(() => {
@@ -47,19 +64,14 @@ export class StateService {
         if (history.length > 0) {
           const agents = Object.values(history[history.length - 1])
           this.agents.next(agents)
+        } else {
+          // History empty = session reset — clear agents so stale names don't show
+          this.agents.next([])
         }
       })
     }, 1000)
 
-    // Poll links every 3s
-    setInterval(() => {
-      this.dataService.getLinks()
-        .then(links => this.links.next(links))
-        .catch(() => this.links.next([]))
-    }, 3000)
-    this.dataService.getLinks()
-      .then(links => this.links.next(links))
-      .catch(() => this.links.next([]))
+    // Links polling removed — link-map feature disabled
 
     // When selectedLink changes, fetch the link-map data
     this.selectedLink.subscribe(link => {
@@ -70,25 +82,14 @@ export class StateService {
       }
     })
 
-    // Poll link-map every 4s when a link is selected
-    setInterval(() => {
-      const link = this.selectedLink.getValue()
-      if (link !== '') {
-        this.dataService.getLinkMap(link)
-          .then(data => this.linkMap.next(data))
-          .catch(() => {})
-      }
-    }, 4000)
+    // Link-map polling removed — link-map feature disabled
 
     // React to link selection from link-map dropdown
     this.controllerService.linkChange.subscribe(link => {
       this.setSelectedLink(link)
     })
 
-    // Load stations once
-    this.dataService.getStations()
-      .then(s => this.stations.next(s))
-      .catch(() => this.stations.next({ stationEdges: {}, stationGates: {}, stationStoppingPoints: {} }))
+    // Stations load removed — link-map feature disabled
   }
 
   // --- Existing observables ---
@@ -115,6 +116,10 @@ export class StateService {
 
   /** Called by controller when user selects a link in the dropdown. */
   public setSelectedLink(link: string) { this.selectedLink.next(link) }
+
+  private _replayTime = new BehaviorSubject<number | null>(null)
+  /** Replay time — not implemented; always null in our setup. */
+  public getReplayTime() { return this._replayTime.asObservable() }
 
   // --- Simulation control ---
 
