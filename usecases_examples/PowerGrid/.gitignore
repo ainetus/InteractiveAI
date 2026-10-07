@@ -11,6 +11,9 @@ full_scn_jan_28_1.txt
 # Scenario folder
 #env_ICAPS_input_data_test/
 
+# Trained failure-forecast deployment artifacts (distributed separately)
+Ressources/failure_forecast/*.pkl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
