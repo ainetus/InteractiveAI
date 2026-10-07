@@ -10,6 +10,8 @@ class RecommendationAsk(Schema):
     # only when the operator has consented. Declared so it survives schema
     # validation and is forwarded verbatim to the RL agent.
     cognitive_snapshot = Dict()
+    # Ids of the agents to ask (see AgentOut); all of them when absent or empty.
+    agents = List(String())
 
 
 class RecommendationOut(Schema):
@@ -20,6 +22,14 @@ class RecommendationOut(Schema):
     agent_type = String()
     actions = List(Dict())
     kpis = Dict(allow_none=True)
+    # Which agent made the recommendation, when the use case has several
+    agent_id = String()
+    agent_name = String()
+
+
+class AgentOut(Schema):
+    id = String()
+    name = String()
 
 
 class ProcedureOut(Schema):

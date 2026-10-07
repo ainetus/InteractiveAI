@@ -189,6 +189,16 @@ services:
       - TZ=UTC   # Set timezone to UTC
       - RL_AGENT_API_URL=${RL_AGENT_API_URL}
       - RL_AGENT_API_TOKEN=${RL_AGENT_API_TOKEN}
+      # Names shown to the operator, who picks the agents at the start of a session
+      - RL_AGENT_NAME=${RL_AGENT_NAME:-Deep Expert}
+      # Optional further agents (RL_AGENT_<n>_..., up to 9), offered next to the
+      # first one; unset URL = no such agent
+      - RL_AGENT_2_API_URL=${RL_AGENT_2_API_URL:-}
+      - RL_AGENT_2_API_TOKEN=${RL_AGENT_2_API_TOKEN:-}
+      - RL_AGENT_2_NAME=${RL_AGENT_2_NAME:-CurriculumAgent}
+      - RL_AGENT_3_API_URL=${RL_AGENT_3_API_URL:-}
+      - RL_AGENT_3_API_TOKEN=${RL_AGENT_3_API_TOKEN:-}
+      - RL_AGENT_3_NAME=${RL_AGENT_3_NAME:-GNN agent}
     command: sh -c "./entrypoint.sh"
     ports:
       - 5400:5000

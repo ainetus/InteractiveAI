@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from .exceptions import InvalidUseCase
 from .models import UseCaseModel, db
 from .schemas import (
+    AgentOut,
     ProcedureOut,
     RecommendationAsk,
     RecommendationOut,
@@ -68,6 +69,35 @@ class RecommendationView(MethodView):
 
         # Return the result as JSON
         return jsonify(result)
+
+
+class AgentsView(MethodView):
+    @api_bp.output(AgentOut(many=True))
+    @protected
+    def get(self):
+        """List the recommendation agents of the use case."""
+        request_use_case = request.args.get("use_case")
+        token_use_case_list = get_use_cases()
+        if len(token_use_case_list) > 1 and not request_use_case:
+            return abort(
+                400,
+                "User registred for more than one entity, specify use_case",
+            )
+        use_case_name = request_use_case or token_use_case_list[0]
+
+        from flask import current_app
+
+        try:
+            manager = current_app.use_case_factory.get_recommendation_manager(
+                use_case_name
+            )
+        except InvalidUseCase as invalid_use_case:
+            logger.error(f"Invalid use case {use_case_name} detected")
+            raise invalid_use_case
+
+        # Use cases with a single, built-in agent have nothing to choose from
+        get_agents = getattr(manager, "get_agents", None)
+        return jsonify(get_agents() if get_agents else [])
 
 
 class ProcedureView(MethodView):
@@ -198,6 +228,7 @@ api_bp.add_url_rule("/health", view_func=HealthCheck.as_view("health"))
 api_bp.add_url_rule(
     "/recommendation", view_func=RecommendationView.as_view("recommendation")
 )
+api_bp.add_url_rule("/agents", view_func=AgentsView.as_view("agents"))
 api_bp.add_url_rule("/procedure", view_func=ProcedureView.as_view("procedure"))
 
 
