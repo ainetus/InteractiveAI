@@ -7,15 +7,23 @@ import eventBus from '@/plugins/eventBus'
 import i18n from '@/plugins/i18n'
 import { type Card, type CardEvent, CardOperationType } from '@/types/cards'
 import { type Entity } from '@/types/entities'
-import { recordTraceForSession } from '@/utils/traceSessionExport'
+import { markEventResolved, recordTraceForSession } from '@/utils/traceSessionExport'
 import { uuid } from '@/utils/utils'
 
 import { useAppStore } from './app'
 
 const { t } = i18n.global
 
+const RECONNECT_BASE_MS = 1000
+const RECONNECT_MAX_MS = 15000
+const STABLE_STREAM_MS = 30000
+
 export const useCardsStore = defineStore('cards', () => {
   const _cards = ref<Card[]>([])
+  /** Whether the card stream should be open - false once `unsubscribe` is called. */
+  let _streaming = false
+  let _reconnects = 0
+  let _reconnectTimer: number | undefined
 
   function cards<E extends Entity>(entity: E, hasBeenAcknowledged: boolean | 'all' = false) {
     return _cards.value.filter<Card<E>>(
@@ -77,27 +85,28 @@ export const useCardsStore = defineStore('cards', () => {
             const { data } = await cardsApi.get(cardEvent.card.id)
             hydratedCard = data.card
           }
-          if (cardEvent.type === CardOperationType.ADD || existingCard === -1) {
-            try {
-              // Use hydrated card for title/summary if available (SSE notification may not include titleTranslated)
-              const fullCard = hydratedCard ?? cardEvent.card
-              recordTraceForSession({
-                use_case: entity,
-                step: 'EVENT',
-                data: {
-                  card_id: cardEvent.card.id,
-                  process_instance_id: cardEvent.card.processInstanceId,
-                  start_date: new Date(cardEvent.card.startDate).toISOString(),
-                  publish_date: new Date(cardEvent.card.publishDate).toISOString(),
-                  title: fullCard.titleTranslated || fullCard.title?.parameters?.title || '',
-                  summary: fullCard.summaryTranslated || fullCard.summary?.parameters?.summary || '',
-                  metadata: (hydratedCard ?? cardEvent.card).data.metadata
-                },
-                date: new Date().toISOString()
-              })
-            } catch (error) {
-              console.warn('Unable to record EVENT trace for session export:', error)
-            }
+          // Every update goes to the recorder, which keeps a single event per card
+          // unless the card was re-published after being resolved (it comes back
+          // as an UPDATE of the same card, not as an ADD)
+          try {
+            // Use hydrated card for title/summary if available (SSE notification may not include titleTranslated)
+            const fullCard = hydratedCard ?? cardEvent.card
+            recordTraceForSession({
+              use_case: entity,
+              step: 'EVENT',
+              data: {
+                card_id: cardEvent.card.id,
+                process_instance_id: cardEvent.card.processInstanceId,
+                start_date: new Date(cardEvent.card.startDate).toISOString(),
+                publish_date: new Date(cardEvent.card.publishDate).toISOString(),
+                title: fullCard.titleTranslated || fullCard.title?.parameters?.title || '',
+                summary: fullCard.summaryTranslated || fullCard.summary?.parameters?.summary || '',
+                metadata: (hydratedCard ?? cardEvent.card).data.metadata
+              },
+              date: new Date().toISOString()
+            })
+          } catch (error) {
+            console.warn('Unable to record EVENT trace for session export:', error)
           }
           if (existingCard !== -1) {
             if (
@@ -126,7 +135,25 @@ export const useCardsStore = defineStore('cards', () => {
       }
     }
 
+    // One stream at a time: close one already open (the navbar's notification
+    // button resubscribes) so its reconnect loop does not run next to this one
+    clearTimeout(_reconnectTimer)
+    cardsApi.unsubscribe()
+    _streaming = true
+    _open(entity, handler)
+  }
+
+  /**
+   * Opens the card stream - the range request replays the cards of the last
+   * day, the notification one stays open for what comes next - and opens it
+   * again if it drops. Nothing else would: the stream used to end silently and
+   * every card published afterwards was missed until a page reload. The replay
+   * brings those back, and the session recorder already tells a replay from a
+   * new event.
+   */
+  async function _open(entity: Entity, handler: (cardEvent: CardEvent) => void) {
     const id = uuid()
+    const openedAt = Date.now()
     cardsApi.subscribe(
       {
         clientId: id,
@@ -135,16 +162,27 @@ export const useCardsStore = defineStore('cards', () => {
       },
       handler
     )
-    cardsApi.subscribe(
-      {
-        clientId: id,
-        notification: 'true'
-      },
-      handler
-    )
+    const end = await cardsApi.subscribe({ clientId: id, notification: 'true' }, handler)
+    if (!_streaming || (end !== 'closed' && end !== 'error')) return
+
+    const appStore = useAppStore()
+    appStore.status.notifications.state = 'OFFLINE'
+    // A stream that held for a while starts the backoff over
+    if (Date.now() - openedAt > STABLE_STREAM_MS) _reconnects = 0
+    const delay = Math.min(RECONNECT_BASE_MS * 2 ** _reconnects, RECONNECT_MAX_MS)
+    _reconnects++
+    console.warn(`Card stream ${end} after ${Math.round((Date.now() - openedAt) / 1000)}s, reopening in ${delay}ms`)
+    _reconnectTimer = window.setTimeout(() => {
+      _reconnectTimer = undefined
+      if (_streaming) _open(entity, handler)
+    }, delay)
   }
 
   function unsubscribe() {
+    _streaming = false
+    _reconnects = 0
+    clearTimeout(_reconnectTimer)
+    _reconnectTimer = undefined
     cardsApi.unsubscribe()
   }
 
@@ -179,6 +217,9 @@ export const useCardsStore = defineStore('cards', () => {
 
   /** Set the card's criticality to 'ND' (resolved) after the user confirms a recommendation. */
   function resolveCriticality<E extends Entity = Entity>(card: Card<E>) {
+    // The card in the list is the one kept up to date by the subscription
+    const latest = _cards.value.find((item) => item.id === card.id) ?? card
+    markEventResolved(card.id, latest.publishDate)
     if (card.data.criticality !== 'ND') {
       card.data.criticality = 'ND'
       eventBus.emit('notifications:ended', card)

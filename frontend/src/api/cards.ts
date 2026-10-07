@@ -5,9 +5,20 @@ import { useAuthStore } from '@/stores/auth'
 import type { Card, CardEvent } from '@/types/cards'
 import { handleSessionExpired } from '@/utils/session'
 
-let controller: AbortController = new AbortController()
+/** Every open card stream, so `unsubscribe` closes all of them and not just the last one opened. */
+const controllers = new Set<AbortController>()
 
 const { t } = i18n.global
+
+/**
+ * How a card stream ended - the caller reconnects only on `closed` and `error`.
+ *  - `closed`: the server or the network ended the stream
+ *  - `error`: it could not be read (network failure mid-stream)
+ *  - `aborted`: we closed it (`unsubscribe`)
+ *  - `replaced`: the server handed it to a newer connection of the same user
+ *  - `unauthorized`: the session is gone, already handled
+ */
+export type StreamEnd = 'closed' | 'error' | 'aborted' | 'replaced' | 'unauthorized'
 
 export async function subscribe(
   config: {
@@ -18,41 +29,52 @@ export async function subscribe(
   },
   handler: (card: CardEvent) => void,
   retried = false
-) {
+): Promise<StreamEnd> {
   const authStore = useAuthStore()
   const appStore = useAppStore()
-  controller = new AbortController()
-  const response = await fetch(
-    import.meta.env.VITE_API +
-      '/cards/cardSubscription?' +
-      new URLSearchParams({
-        ...config,
-        version: 'SNAPSHOT'
-      }),
-    {
-      headers: {
-        Authorization: `Bearer ${authStore.token?.access_token}`
-      },
-      method: 'GET',
-      signal: controller.signal
+  const controller = new AbortController()
+  controllers.add(controller)
+  try {
+    const response = await fetch(
+      import.meta.env.VITE_API +
+        '/cards/cardSubscription?' +
+        new URLSearchParams({
+          ...config,
+          version: 'SNAPSHOT'
+        }),
+      {
+        headers: {
+          Authorization: `Bearer ${authStore.token?.access_token}`
+        },
+        method: 'GET',
+        signal: controller.signal
+      }
+    )
+    // This request bypasses the axios interceptors, so the token dance lives here
+    if (response.status === 401) {
+      controllers.delete(controller)
+      if (!retried && (await authStore.refresh())) return subscribe(config, handler, true)
+      appStore.status.notifications.state = 'OFFLINE'
+      handleSessionExpired()
+      return 'unauthorized'
     }
-  )
-  // This request bypasses the axios interceptors, so the token dance lives here
-  if (response.status === 401) {
-    if (!retried && (await authStore.refresh())) return subscribe(config, handler, true)
-    appStore.status.notifications.state = 'OFFLINE'
-    handleSessionExpired()
-    return response
-  }
-  const reader = response.body!.getReader()
-  const decoder = new TextDecoder('utf-8')
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    const raw = decoder.decode(value)
-    for (const payload of raw.split('\n'))
-      if (payload.slice(0, 5) === 'data:') {
+    if (!response.ok || !response.body) return 'error'
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    // A network chunk ends wherever it ends - a card is often split over
+    // several, so the unfinished last line is kept for the next one rather than
+    // parsed (and dropped) on its own.
+    let pending = ''
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) break
+      const lines = (pending + decoder.decode(value, { stream: true })).split('\n')
+      pending = lines.pop() ?? ''
+      for (const line of lines) {
+        const payload = line.endsWith('\r') ? line.slice(0, -1) : line
+        if (payload.slice(0, 5) !== 'data:') continue
         const data = payload.slice(5)
         switch (data) {
           case 'INIT':
@@ -71,15 +93,24 @@ export async function subscribe(
               data: t(`modal.error.DISCONNECT_USER_DUE_TO_NEW_CONNECTION`),
               type: 'info'
             })
-            break
+            return 'replaced'
           default:
             try {
               handler(JSON.parse(data) as CardEvent)
-            } catch (err) {}
+            } catch (error) {
+              console.warn('Unreadable card event, skipped:', error, data.slice(0, 200))
+            }
         }
       }
+    }
+    return 'closed'
+  } catch (error) {
+    if (controller.signal.aborted) return 'aborted'
+    console.warn('Card stream failed:', error)
+    return 'error'
+  } finally {
+    controllers.delete(controller)
   }
-  return response
 }
 
 export function isSubscriptionActive() {
@@ -114,5 +145,5 @@ export function acknowledge(card: Card) {
 }
 
 export function unsubscribe() {
-  controller.abort()
+  for (const controller of controllers) controller.abort()
 }

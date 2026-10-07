@@ -57,13 +57,23 @@ export const useServicesStore = defineStore('services', () => {
           _context.value = data[0]
         }
         const res = data.find((el): el is FullContext<E> => el.use_case === entity)
+
+        // The first poll of a session records what was already there, so a
+        // context published before login is not replayed as if it had just
+        // happened. It has to be recorded even when there is nothing yet ('' =
+        // no context at login, `null` = not yet recorded): a freshly deployed
+        // stack starts empty, and treating the first context the scenario
+        // produces as this pre-existing one swallowed it - the operator saw no
+        // context at all until they logged out and back in, which cleared the
+        // baseline and let the *next* run through.
+        if (localStorage.getItem('context') === null)
+          localStorage.setItem('context', res?.id_context ?? '')
+
         // If context is not available, return
         if (!res) {
           appStore.status.context.state = 'OFFLINE'
           return
         }
-        // If there is no previous context, set it
-        if (!localStorage.getItem('context')) localStorage.setItem('context', res.id_context)
         // If previous and current context are different, we can store it and callback
         if (
           localStorage.getItem('context') !== res.id_context &&
