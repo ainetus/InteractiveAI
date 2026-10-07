@@ -26,6 +26,13 @@ type TraceSession = {
    * server's.
    */
   resolvedAt?: Record<string, string>
+  /** Recommendation agents the operator chose to work with at the start of the session. */
+  agentChoice?: AgentChoice
+}
+
+export type AgentChoice = {
+  ids: string[]
+  names: string[]
 }
 
 type ExportOptions = {
@@ -216,6 +223,8 @@ type Decision = {
    * taken out. null when shown_at is.
    */
   human_decision_time_ms: number | null
+  /** The operator chose to do nothing rather than apply one of the recommendations. */
+  do_nothing: boolean
 }
 
 type StructuredEvent = StoredTrace & {
@@ -274,7 +283,8 @@ function computeDecisions(interactions: StoredTrace[]): Decision[] {
         shown_at: shownAt ?? null,
         applied_at: interaction.date,
         decision_time_ms: appliedTime - new Date(askedAt).getTime(),
-        human_decision_time_ms: shownAt ? appliedTime - new Date(shownAt).getTime() : null
+        human_decision_time_ms: shownAt ? appliedTime - new Date(shownAt).getTime() : null,
+        do_nothing: asRecord(interaction.data).do_nothing === true
       })
       askedAt = undefined
       shownAt = undefined
@@ -598,6 +608,7 @@ function awardHtml(trace: StoredTrace): string {
   const kpis = d.kpis as Record<string, unknown> | undefined
   let html = '<div style="margin:6px 0 6px 16px;padding:8px 12px;background:#ecfdf5;border-left:3px solid #059669;border-radius:4px">'
   html += '<strong style="color:#059669">' + escapeHtml(safeValue(title)) + '</strong>'
+  if (typeof d.agent_name === 'string') html += '<div style="font-size:12px;color:#6b7280;margin-top:2px">Agent: <b>' + escapeHtml(d.agent_name) + '</b></div>'
   if (desc) html += '<div style="font-size:13px;color:#374151;margin-top:2px">' + escapeHtml(safeValue(desc)) + '</div>'
   if (kpis) {
     html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">'
@@ -657,6 +668,7 @@ function buildHtmlSummary(
   html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span>'
   html += '<button type="button" class="copy-btn" data-copy="' + escapeHtml(session.sessionId) + '" onclick="copyValue(this)" title="Copy the session id">Copy</button></div>'
   html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">' + formatTime(session.startedAt) + ' &rarr; ' + formatTime(endedAt) + '</div>'
+  if (session.agentChoice) html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">Agents: <b>' + escapeHtml(session.agentChoice.names.join(' + ')) + '</b></div>'
   html += '</div>'
 
   // KPIs
@@ -664,7 +676,8 @@ function buildHtmlSummary(
   html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.total_session_time_ms) + '</div><div class="label">Total Session Time</div></div>'
   html += '<div class="kpi-box"><div class="value">' + String(events.length) + '</div><div class="label">Events Handled</div></div>'
 
-  const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
+  // Events where an agent's recommendation was applied - doing nothing instead is a decision, not assistance
+  const resolved = events.filter(function (e) { return e.decisions.some(function (d) { return !d.do_nothing }) })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
   const decisionCount = ' (' + kpis.decision_count + ' decision' + (kpis.decision_count === 1 ? '' : 's') + ')'
   html += '<div class="kpi-box"><div class="value">' + formatMeanStd(kpis.avg_decision_time_ms, kpis.std_decision_time_ms) + '</div><div class="label">Average Total Decision Time' + decisionCount + '</div></div>'
@@ -700,7 +713,8 @@ function buildHtmlSummary(
       for (let di = 0; di < evt.decisions.length; di++) {
         const decision = evt.decisions[di]
         const prefix = evt.decisions.length > 1 ? 'Decision ' + (di + 1) + ' &middot; ' : ''
-        html += '<div style="margin-top:8px;font-size:13px">' + prefix + '&#9201; Total Decision Time: <b>' + formatMs(decision.decision_time_ms) + '</b></div>'
+        const choice = decision.do_nothing ? ' <span class="tag">Do nothing</span>' : ''
+        html += '<div style="margin-top:8px;font-size:13px">' + prefix + '&#9201; Total Decision Time: <b>' + formatMs(decision.decision_time_ms) + '</b>' + choice + '</div>'
         if (decision.human_decision_time_ms !== null) {
           html += '<div style="font-size:13px">' + prefix + '&#128100; Human Response Time: <b>' + formatMs(decision.human_decision_time_ms) + '</b></div>'
         }
@@ -823,6 +837,17 @@ function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'htm
  */
 export function currentTraceSessionId(): string | undefined {
   return loadSession()?.sessionId
+}
+
+/** The agents chosen for this session, if the operator has chosen yet. */
+export function sessionAgentChoice(): AgentChoice | undefined {
+  return loadSession()?.agentChoice
+}
+
+export function setSessionAgentChoice(choice: AgentChoice) {
+  const session = loadSession() ?? createSession()
+  session.agentChoice = choice
+  saveSession(session)
 }
 
 export function startTraceSession(userLogin?: string) {
@@ -988,6 +1013,7 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
       userLogin: session.userLogin,
       startedAt: session.startedAt,
       endedAt,
+      ...(session.agentChoice && { agents: session.agentChoice.names }),
       kpis,
       traces: structured
     },

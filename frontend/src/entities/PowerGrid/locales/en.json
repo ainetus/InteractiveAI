@@ -17,5 +17,18 @@
   "PowerGrid.kpis.redispatching_volume": "Redispatch volume",
   "PowerGrid.kpis.renewable_energy_share": "Proportion of renewable",
   "PowerGrid.kpis.total_consumption": "Total consumption",
-  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation"
+  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation",
+  "PowerGrid.kpis.uncertainty": "Uncertainty",
+  "PowerGrid.uncertainty.low": "low",
+  "PowerGrid.uncertainty.medium": "medium",
+  "PowerGrid.uncertainty.high": "high",
+  "PowerGrid.kpis.agent": "Agent",
+  "PowerGrid.agents.choice.title": "Choose your recommendation agent",
+  "PowerGrid.agents.choice.text": "It will propose actions for the whole session. You can't change it until you log out.",
+  "PowerGrid.do_nothing": "Do nothing",
+  "PowerGrid.do_nothing.confirm": "Continue the simulation without applying any of the recommendations?",
+  "PowerGrid.do_nothing.description": "Operator's choice: continue the simulation without any action",
+  "PowerGrid.do_nothing.no_context": "The grid state is not available yet, try again in a few seconds.",
+  "PowerGrid.agents.choice.all": "All agents",
+  "PowerGrid.agents.choice.start": "Start the session"
 }

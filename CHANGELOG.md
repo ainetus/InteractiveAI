@@ -1,6 +1,19 @@
 # Changelog
 
 
+## Unreleased
+
+### Added
+
+- PowerGrid: several recommendation agents. At the start of a session the operator chooses Deep Expert, CurriculumAgent, the GNN agent or all of them; each recommendation shows the agent that made it.
+- PowerGrid: uncertainty KPI in the recommendations table, for agents that estimate it (CurriculumAgent).
+- PowerGrid: "Do nothing" option to resume the simulation without applying any recommendation.
+- Session export: the agents chosen for the session, the agent of each recommendation, and "Do nothing" decisions (not counted as assistance).
+
+### Changed
+
+- Agents are configured with `RL_AGENT_<n>_API_URL`, `RL_AGENT_<n>_API_TOKEN` and `RL_AGENT_<n>_NAME` (agent 1 keeps `RL_AGENT_API_URL`); an agent without a URL is left out.
+
 ## 1.4.2 (2026-10-07)
 
 ### Added

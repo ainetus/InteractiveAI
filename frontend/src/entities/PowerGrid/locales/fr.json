@@ -17,5 +17,18 @@
   "PowerGrid.kpis.distance_from_reference_topology": "Distance à la topologie de référence",
   "PowerGrid.kpis.curtailment_volume": "Volume de curtailment",
   "PowerGrid.kpis.redispatching_volume": "Volume de redispatching",
-  "PowerGrid.kpis.type_of_the_reco": "Type de la parade"
+  "PowerGrid.kpis.type_of_the_reco": "Type de la parade",
+  "PowerGrid.kpis.uncertainty": "Incertitude",
+  "PowerGrid.uncertainty.low": "faible",
+  "PowerGrid.uncertainty.medium": "moyenne",
+  "PowerGrid.uncertainty.high": "élevée",
+  "PowerGrid.kpis.agent": "Agent",
+  "PowerGrid.agents.choice.title": "Choisissez votre agent de recommandation",
+  "PowerGrid.agents.choice.text": "Il proposera des actions pendant toute la session. Vous ne pourrez le changer qu'après vous être déconnecté.",
+  "PowerGrid.do_nothing": "Ne rien faire",
+  "PowerGrid.do_nothing.confirm": "Poursuivre la simulation sans appliquer aucune des recommandations ?",
+  "PowerGrid.do_nothing.description": "Choix de l'opérateur : poursuivre la simulation sans aucune action",
+  "PowerGrid.do_nothing.no_context": "L'état du réseau n'est pas encore disponible, réessayez dans quelques secondes.",
+  "PowerGrid.agents.choice.all": "Tous les agents",
+  "PowerGrid.agents.choice.start": "Démarrer la session"
 }

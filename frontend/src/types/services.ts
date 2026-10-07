@@ -8,6 +8,14 @@ export type Recommendation<E extends Entity = Entity> = {
   title: string
   actions: Action<E>[]
   kpis?: { [key: string]: any }
+  /** Which agent made it, when the use case has several */
+  agent_id?: Agent['id']
+  agent_name?: string
+}
+
+export type Agent = {
+  id: string
+  name: string
 }
 
 export type FullContext<E extends Entity = Entity> = {

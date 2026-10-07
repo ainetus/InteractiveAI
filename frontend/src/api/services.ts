@@ -6,15 +6,22 @@ import { useServicesStore } from '@/stores/services'
 import type { Card } from '@/types/cards'
 import type { Action, Context, Entity } from '@/types/entities'
 import type { Procedure } from '@/types/procedure'
-import type { FullContext, Recommendation, Trace } from '@/types/services'
+import type { Agent, FullContext, Recommendation, Trace } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
 export function getRecommendation<E extends Entity = Entity>(payload: {
   event: Card<E>['data']['metadata']
   context: Context<E>
   cognitive_snapshot?: CognitiveSnapshot
+  /** Ids of the agents to ask; all of them when absent */
+  agents?: Agent['id'][]
 }) {
   return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
+}
+
+/** The recommendation agents of a use case - empty when it has a single, built-in one. */
+export function getAgents(useCase: Entity) {
+  return http.get<Agent[]>('/cab_recommendation/api/v1/agents', { params: { use_case: useCase } })
 }
 
 export function getContext<E extends Entity = Entity>() {

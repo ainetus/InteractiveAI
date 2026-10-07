@@ -112,7 +112,12 @@ export const useServicesStore = defineStore('services', () => {
     return _contextPID.value
   }
 
-  async function getRecommendation<E extends Entity>(event: Card<E>, context = _context.value) {
+  /** @param agents ids of the agents to ask, all of them when absent */
+  async function getRecommendation<E extends Entity>(
+    event: Card<E>,
+    context = _context.value,
+    agents?: string[]
+  ) {
     if (!context) {
       const appStore = useAppStore()
       appStore.addModal({
@@ -142,9 +147,11 @@ export const useServicesStore = defineStore('services', () => {
       event: Card<E>['data']['metadata']
       context: Context<E>
       cognitive_snapshot?: CognitiveSnapshot
+      agents?: string[]
     } = {
       event: getRootCard(event).data.metadata,
-      context: contextForAgent
+      context: contextForAgent,
+      ...(agents?.length && { agents })
     }
     if (hasCognitiveConsent()) {
       payload.cognitive_snapshot = await fetchCognitiveSnapshot()

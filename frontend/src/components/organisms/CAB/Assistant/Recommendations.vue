@@ -115,7 +115,13 @@ watch(
       use_case: recommendations[0].use_case,
       step: 'RECOMMENDATIONS',
       date: new Date().toISOString(),
-      data: { recommendations: recommendations.map((recommendation) => recommendation.title) }
+      data: {
+        recommendations: recommendations.map((recommendation) => recommendation.title),
+        // Same order as `recommendations`, for use cases with several agents
+        ...(recommendations.some((recommendation) => recommendation.agent_name) && {
+          agent_names: recommendations.map((recommendation) => recommendation.agent_name ?? null)
+        })
+      }
     })
   },
   { immediate: true }
