@@ -1,6 +1,29 @@
 # Changelog
 
 
+## Unreleased
+
+### Added
+
+- PowerGrid: several recommendation agents. At the start of a session the operator chooses Deep Expert, CurriculumAgent, the GNN agent or all of them; each recommendation shows the agent that made it.
+- PowerGrid: uncertainty KPI in the recommendations table, for agents that estimate it (CurriculumAgent).
+- PowerGrid: "Do nothing" option to resume the simulation without applying any recommendation.
+- PowerGrid: post-logout survey replaced by the AI4REALNET power grid evaluation, in French (6 questionnaires: ATAI, agreement score, significance of human revisions, decision novelty, operator deskilling, long-term adoption).
+- Session export: the agents chosen for the session, the agent of each recommendation, and "Do nothing" decisions (not counted as assistance).
+
+### Fixed
+
+- The side and bottom panels resize by dragging in every browser (Firefox included); a collapsed panel keeps its content, e.g. the recommendations shown.
+- PowerGrid: asking for recommendations no longer fails with a network error when an agent is slow (the GNN agent, 15 s or more): no request waits for the agents any more, so nothing on the way can cut it.
+
+### Changed
+
+- Agents are configured with `RL_AGENT_<n>_API_URL`, `RL_AGENT_<n>_API_TOKEN` and `RL_AGENT_<n>_NAME` (agent 1 keeps `RL_AGENT_API_URL`); an agent without a URL is left out.
+- Deep Expert proposes 3 recommendations when it is the session's only agent and 1 next to the others (`RL_AGENT[_<n>]_NUM_RECO` / `_NUM_RECO_SHARED`, sent as `num_reco`). Recommendations with the same title get a number.
+- Each agent has its own response timeout, `RL_AGENT_<n>_TIMEOUT` (30 s by default, 60 s for the GNN agent); nginx allows 120 s on `/cab_recommendation/`.
+- PowerGrid: each agent's recommendations are shown as soon as it answers, with the agents still working or that gave no answer. The frontend starts a job (`POST /cab_recommendation/api/v1/recommendation/jobs`) and polls it (`GET .../jobs/<id>`); jobs are kept in the recommendation database (new tables, created at startup) for an hour. `POST /recommendation` is unchanged.
+- The agent call log gives each agent's response time.
+
 ## 1.4.2 (2026-10-07)
 
 ### Added

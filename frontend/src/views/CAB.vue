@@ -1,21 +1,21 @@
 <template>
   <div class="cab-container">
     <div class="cab-container-upper">
-      <div v-if="appStore.panels.left" ref="leftPanel" style="width: 320px; max-width: 40vw">
+      <div v-show="appStore.panels.left" ref="leftPanel" style="width: 320px; max-width: 40vw">
         <Notifications class="cab-notifications" />
       </div>
-      <div v-else class="cab-notifications cab-panel cab-section-placeholder">
+      <div v-if="!appStore.panels.left" class="cab-notifications cab-panel cab-section-placeholder">
         <h1>{{ $t('cab.notifications.main') }}</h1>
       </div>
       <div
         class="cab-handle left"
-        draggable="true"
         :class="{ active: active === 'left' }"
-        @drag="resize($event, 'left')"
-        @dragstart="dragStart($event, 'left')"
-        @dragend="dragEnd"
-        @click="appStore.panels.left = !appStore.panels.left"
-        @mousedown.middle="reset('left')"
+        :title="$t('cab.handle')"
+        @pointerdown="dragStart($event, 'left')"
+        @pointermove="drag($event, 'left')"
+        @pointerup="dragEnd"
+        @pointercancel="dragEnd"
+        @dblclick="toggle('left')"
         @contextmenu.prevent="reset('left')">
         <GripVertical width="16" />
       </div>
@@ -24,39 +24,39 @@
       </main>
       <div
         class="cab-handle right"
-        draggable="true"
         :class="{ active: active === 'right' }"
-        @drag="resize($event, 'right')"
-        @dragstart="dragStart($event, 'right')"
-        @dragend="dragEnd"
-        @click="appStore.panels.right = !appStore.panels.right"
-        @mousedown.middle="reset('right')"
+        :title="$t('cab.handle')"
+        @pointerdown="dragStart($event, 'right')"
+        @pointermove="drag($event, 'right')"
+        @pointerup="dragEnd"
+        @pointercancel="dragEnd"
+        @dblclick="toggle('right')"
         @contextmenu.prevent="reset('right')">
         <GripVertical width="16" />
       </div>
-      <div v-if="appStore.panels.right" ref="rightPanel" style="width: 320px; max-width: 40vw">
+      <div v-show="appStore.panels.right" ref="rightPanel" style="width: 320px; max-width: 40vw">
         <Assistant class="cab-assistant" />
       </div>
-      <div v-else class="cab-assistant cab-panel cab-section-placeholder">
+      <div v-if="!appStore.panels.right" class="cab-assistant cab-panel cab-section-placeholder">
         <h1>{{ $t('cab.assistant') }}</h1>
       </div>
     </div>
     <div
       class="cab-handle bottom"
-      draggable="true"
       :class="{ active: active === 'bottom' }"
-      @drag="resize($event, 'bottom')"
-      @dragstart="dragStart($event, 'bottom')"
-      @dragend="dragEnd"
-      @click="appStore.panels.bottom = !appStore.panels.bottom"
-      @mousedown.middle="reset('bottom')"
+      :title="$t('cab.handle')"
+      @pointerdown="dragStart($event, 'bottom')"
+      @pointermove="drag($event, 'bottom')"
+      @pointerup="dragEnd"
+      @pointercancel="dragEnd"
+      @dblclick="toggle('bottom')"
       @contextmenu.prevent="reset('bottom')">
       <GripHorizontal height="16" />
     </div>
-    <div v-if="appStore.panels.bottom" ref="bottomPanel" style="height: 240px; max-height: 60vh">
+    <div v-show="appStore.panels.bottom" ref="bottomPanel" style="height: 240px; max-height: 60vh">
       <Timeline class="cab-timelines" />
     </div>
-    <div v-else class="cab-timelines cab-panel cab-section-placeholder">
+    <div v-if="!appStore.panels.bottom" class="cab-timelines cab-panel cab-section-placeholder">
       <h1>{{ $t('cab.timeline') }}</h1>
     </div>
   </div>
@@ -110,45 +110,69 @@ const rightPanel = ref<HTMLDivElement>()
 const bottomPanel = ref<HTMLDivElement>()
 const active = ref('')
 
-function dragStart(ev: DragEvent, value: 'left' | 'right' | 'bottom') {
-  active.value = value
-  const img = new Image()
-  ev.dataTransfer!.setDragImage(img, 0, 0)
+type Panel = 'left' | 'right' | 'bottom'
+
+/** Pointer movement, in px, under which a press on a handle is not a drag. */
+const DRAG_THRESHOLD = 4
+let dragging: { panel: Panel; x: number; y: number; moved: boolean } | undefined
+
+/*
+ * Resizing follows the pointer rather than HTML5 drag and drop: Firefox reports
+ * every `drag` event at (0, 0), so the panels never resized there and a press
+ * on a handle only toggled the panel. Pointer capture keeps the moves coming
+ * to the handle even when the pointer runs ahead of it.
+ */
+function dragStart(ev: PointerEvent, panel: Panel) {
+  if (ev.button !== 0) return
+  ev.preventDefault()
+  ;(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId)
+  dragging = { panel, x: ev.clientX, y: ev.clientY, moved: false }
+  active.value = panel
+}
+
+function drag(ev: PointerEvent, panel: Panel) {
+  if (dragging?.panel !== panel) return
+  if (!dragging.moved) {
+    if (Math.hypot(ev.clientX - dragging.x, ev.clientY - dragging.y) < DRAG_THRESHOLD) return
+    dragging.moved = true
+  }
+  resize(ev.clientX, ev.clientY, panel)
 }
 
 function dragEnd() {
+  dragging = undefined
   active.value = ''
 }
 
-function resize(ev: DragEvent, panel: 'left' | 'right' | 'bottom') {
-  if (ev.clientX && ev.clientY) {
-    const width = document.body.clientWidth
-    const height = document.body.clientHeight
+/** Sizes a panel to the pointer; below a minimum it collapses, above it reopens. */
+function resize(x: number, y: number, panel: Panel) {
+  const width = document.body.clientWidth
+  const height = document.body.clientHeight
+  window.requestAnimationFrame(() => {
     switch (panel) {
       case 'left':
-        window.requestAnimationFrame(() => {
-          appStore.panels.left = ev.clientX > 120
-          if (leftPanel.value) leftPanel.value.style.width = ev.clientX - 8 + 'px'
-        })
+        appStore.panels.left = x > 120
+        if (leftPanel.value) leftPanel.value.style.width = x - 8 + 'px'
         break
       case 'right':
-        window.requestAnimationFrame(() => {
-          appStore.panels.right = width - ev.clientX - 16 > 120
-          if (rightPanel.value) rightPanel.value.style.width = width - ev.clientX - 16 + 'px'
-        })
+        appStore.panels.right = width - x - 16 > 120
+        if (rightPanel.value) rightPanel.value.style.width = width - x - 16 + 'px'
         break
-
       case 'bottom':
-        window.requestAnimationFrame(() => {
-          appStore.panels.bottom = height - ev.clientY - 16 > 96
-          if (bottomPanel.value) bottomPanel.value.style.height = height - ev.clientY - 16 + 'px'
-        })
+        appStore.panels.bottom = height - y - 16 > 96
+        if (bottomPanel.value) bottomPanel.value.style.height = height - y - 16 + 'px'
         break
     }
-  }
+  })
 }
 
-function reset(panel: 'left' | 'right' | 'bottom') {
+/** Collapses or reopens a panel; one collapsed by dragging reopens at its default size. */
+function toggle(panel: Panel) {
+  if (appStore.panels[panel]) appStore.panels[panel] = false
+  else reset(panel)
+}
+
+function reset(panel: Panel) {
   switch (panel) {
     case 'left':
       appStore.panels.left = true
@@ -234,6 +258,8 @@ onBeforeRouteLeave(() => {
         inset calc(var(--unit) * -0.25) calc(var(--unit) * -0.25) calc(var(--unit) * 0.5)
           color-mix(in srgb, var(--color-background), #ccc 20%);
     }
+    user-select: none;
+    touch-action: none;
     &.left,
     &.right {
       cursor: col-resize;
