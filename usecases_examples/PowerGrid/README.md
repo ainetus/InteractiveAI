@@ -64,7 +64,35 @@ When using Docker, dependencies are installed inside the image automatically.
 ```commandline
 cd InteractiveAI/usecases_examples/PowerGrid
 pip install -r requirements-app.txt
+pip install -r requirements-forecast.txt
 ```
+
+The overload failure forecast also requires these trained artifacts in
+`Ressources/failure_forecast/`:
+
+```text
+mean_forecaster.pkl
+aleatoric_forecaster.pkl
+failure_classifier.pkl
+failure_classifier_metadata.json
+```
+
+The current classifier covers the 10 selected transmission lines recorded in
+`failure_classifier_metadata.json`. Each overload triggers one child event with
+predictions for all 10 lines. Keep all four files from the same training run
+together; mixing model generations is rejected when the simulator starts.
+
+For a local validation with artifacts stored elsewhere, set
+`FAILURE_FORECAST_ARTIFACT_DIR` to that directory before starting the
+simulator. The default remains `Ressources/failure_forecast`.
+
+The simulator keeps the required one-hour, one-day, and one-week observation
+history in memory. When an overload event is accepted by InteractiveAI, the
+simulator builds the one-hour-ahead grid state, disconnects each of the 10
+trained lines independently, and publishes a second event whose
+`parent_event_id` is the overload event ID. The event KPIs contain
+`failure_probability`, `failure_probability_pct`, and `failure_prediction` for
+each trained line.
 
 # 2 Run the simulator
 
