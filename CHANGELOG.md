@@ -10,6 +10,7 @@
 - PowerGrid: "Do nothing" option to resume the simulation without applying any recommendation.
 - PowerGrid: post-logout survey replaced by the AI4REALNET power grid evaluation, in French (6 questionnaires: ATAI, agreement score, significance of human revisions, decision novelty, operator deskilling, long-term adoption).
 - Session export: the agents chosen for the session, the agent of each recommendation, and "Do nothing" decisions (not counted as assistance).
+- Cognitive state: Task Capacity (INESC TEC factors 110, its value, and 111, its explanation), read with the other factors. It is sent to the agents in `cognitive_snapshot` (`task_capacity`, `task_capacity_explainability`) and recorded in the session export.
 
 ### Fixed
 
@@ -23,6 +24,11 @@
 - Each agent has its own response timeout, `RL_AGENT_<n>_TIMEOUT` (30 s by default, 60 s for the GNN agent); nginx allows 120 s on `/cab_recommendation/`.
 - PowerGrid: each agent's recommendations are shown as soon as it answers, with the agents still working or that gave no answer. The frontend starts a job (`POST /cab_recommendation/api/v1/recommendation/jobs`) and polls it (`GET .../jobs/<id>`); jobs are kept in the recommendation database (new tables, created at startup) for an hour. `POST /recommendation` is unchanged.
 - The agent call log gives each agent's response time.
+- PowerGrid: the uncertainty row of the recommendations table now shows **Confidence** (100 % minus the agent's uncertainty, with its confidence level).
+- PowerGrid: agents' French "Poursuivre" titles are shown as "Continue".
+- PowerGrid: the unused "Use the study tool" button next to Apply is removed.
+- While the session loads, "No context available" reads "Please wait a few seconds while the session is loading…" (and the same when asking for recommendations too early).
+- Session export: times are in French local time with their offset (e.g. `2026-10-26T13:22:08.123+01:00`, +2 in summer) instead of UTC, in the JSON, the HTML report and the file name.
 
 ## 1.4.2 (2026-10-07)
 

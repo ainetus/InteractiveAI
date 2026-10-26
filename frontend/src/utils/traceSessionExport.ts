@@ -93,13 +93,15 @@ const COGNITIVE_FACTORS = [
   'cognitive_performance',
   'stress_state',
   'cognitive_performance_explainability',
-  'stress_explainability'
+  'stress_explainability',
+  'task_capacity',
+  'task_capacity_explainability'
 ] as const
 
 type CognitiveFactor = (typeof COGNITIVE_FACTORS)[number]
 
 /**
- * A cognitive snapshot as stored in the session log: the four factors come
+ * A cognitive snapshot as stored in the session log: the factors come
  * from one reading and share its timestamp, so it is written once instead of
  * on each of them. Should they ever differ, `timestamps` keeps them all.
  */
@@ -146,8 +148,46 @@ function readCognitiveSnapshot(raw: unknown): CognitiveSnapshot | undefined {
     stress_state: entry('stress_state'),
     cognitive_performance_explainability: entry('cognitive_performance_explainability'),
     stress_explainability: entry('stress_explainability'),
+    task_capacity: entry('task_capacity'),
+    task_capacity_explainability: entry('task_capacity_explainability'),
     ...(logged.error && { error: logged.error })
   }
+}
+
+/**
+ * Times are recorded in UTC (toISOString) and exported in the time zone of the
+ * experiments, with the offset written out: 2026-10-26T13:22:08.123+01:00.
+ * Not a fixed "+2 h": France is UTC+2 in summer and UTC+1 in winter.
+ */
+const EXPORT_TIME_ZONE = 'Europe/Paris'
+const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
+
+function exportTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: EXPORT_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value])
+  )
+  const wall = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second)
+  const offset = Math.round((wall - Math.floor(date.getTime() / 1000) * 1000) / 60000)
+  const sign = offset < 0 ? '-' : '+'
+  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, '0')
+  const ms = String(date.getUTCMilliseconds()).padStart(3, '0')
+  return (
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.${ms}` +
+    `${sign}${pad(offset / 60)}:${pad(offset % 60)}`
+  )
 }
 
 /** Narrow an unknown trace payload to something spreadable. */
@@ -446,7 +486,7 @@ function escapeHtml(str: string): string {
 
 function formatTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString()
+    return new Date(iso).toLocaleString(undefined, { timeZone: EXPORT_TIME_ZONE })
   } catch {
     return iso
   }
@@ -561,7 +601,7 @@ function cognitiveSnapshotHtml(data: unknown): string {
   const snapshot = readCognitiveSnapshot(d.cognitive_snapshot)
   if (!snapshot) return ''
 
-  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, error } = snapshot
+  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, task_capacity: tc, task_capacity_explainability: tcExp, error } = snapshot
 
   let html = '<div style="margin:8px 0;padding:8px 12px;background:#f0f4ff;border-left:3px solid #6366f1;border-radius:4px;font-size:13px">'
   html += '<div style="font-weight:600;color:#4338ca;margin-bottom:6px">&#129504; User\'s cognitive informations </div>'
@@ -592,9 +632,20 @@ function cognitiveSnapshotHtml(data: unknown): string {
     html += '<div style="margin-bottom:3px;color:#9ca3af">Cognitive Performance Explainability: —</div>'
   }
   if (ssExp) {
-    html += '<div><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
   } else {
-    html += '<div style="color:#9ca3af">Stress Explainability: —</div>'
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Stress Explainability: —</div>'
+  }
+  // Sessions recorded before Task Capacity existed have none
+  if (tc) {
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Task Capacity:</span> <b>' + escapeHtml(tc.value) + '</b> <span style="color:#9ca3af;font-size:11px">' + escapeHtml(tc.timestamp) + '</span></div>'
+  } else {
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Task Capacity: —</div>'
+  }
+  if (tcExp) {
+    html += '<div><span style="color:#6b7280">Task Capacity Explainability:</span> ' + escapeHtml(tcExp.value) + '</div>'
+  } else {
+    html += '<div style="color:#9ca3af">Task Capacity Explainability: —</div>'
   }
   html += '</div>'
   return html
@@ -826,7 +877,7 @@ function download(content: string, mimeType: string, fileName: string) {
 }
 
 function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'html') {
-  const started = session.startedAt.replace(/:/g, '-').replace('.', '-')
+  const started = exportTime(session.startedAt).replace(/:/g, '-').replace('.', '-')
   const user = session.userLogin ?? 'unknown'
   return `historic-session-${user}-${started}.${extension}`
 }
@@ -919,6 +970,8 @@ export async function recordTraceForSession(
           stress_state: null,
           cognitive_performance_explainability: null,
           stress_explainability: null,
+          task_capacity: null,
+          task_capacity_explainability: null,
           error: `Failed to get cognitive factors: ${message}`
         }
       }
@@ -1017,7 +1070,8 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
       kpis,
       traces: structured
     },
-    null,
+    // Times in French local time rather than UTC (see exportTime)
+    (_key, value) => (typeof value === 'string' && UTC_ISO.test(value) ? exportTime(value) : value),
     2
   )
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))
