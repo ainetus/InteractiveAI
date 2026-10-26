@@ -36,7 +36,6 @@
           </div>
         </template>
         <template #button>
-          <Button color="secondary">{{ $t('recommendations.button.secondary') }}</Button>
           <Button color="secondary" @click="confirmDoNothing">
             {{ $t('PowerGrid.do_nothing') }}
           </Button>
@@ -170,9 +169,9 @@ async function fetchRecommendations() {
 onBeforeUnmount(() => request?.abort())
 
 /**
- * KPI rows of the comparison table. `uncertainty` (the agent's epistemic
- * uncertainty, in %) only comes from agents that estimate it, so its row is
- * shown only when one of the recommendations has it.
+ * KPI rows of the comparison table. `confidence` is derived from the agent's
+ * epistemic uncertainty (in %), which only agents that estimate it send, so
+ * its row is shown only when one of the recommendations has it.
  */
 const kpiRows = computed(() => [
   // Which agent made each recommendation, as soon as there is a choice of agents
@@ -180,9 +179,12 @@ const kpiRows = computed(() => [
   'efficiency_of_the_reco',
   'type_of_the_reco',
   ...(recommendations.value.some((recommendation) => isNumber(recommendation.kpis?.uncertainty))
-    ? ['uncertainty']
+    ? ['confidence']
     : [])
 ])
+
+/** The agent's levels for its uncertainty, read the other way round. */
+const CONFIDENCE_LEVEL: Record<string, string> = { low: 'high', medium: 'medium', high: 'low' }
 
 // Not the global isFinite, which takes null for 0
 function isNumber(value: unknown): value is number {
@@ -192,12 +194,19 @@ function isNumber(value: unknown): value is number {
 function formatKpi(key: string, recommendation: Recommendation) {
   const kpis = recommendation.kpis
   if (key === 'agent') return recommendation.agent_name ?? '—'
-  const value = kpis?.[key]
-  if (key === 'uncertainty') {
-    if (!isNumber(value)) return '—'
-    const level = kpis?.epistemic_uncertainty_level
-    return `${value.toFixed(1)} %` + (level ? ` (${t(`PowerGrid.uncertainty.${level}`, level)})` : '')
+  if (key === 'confidence') {
+    // Shown as confidence: 100 % minus the uncertainty, with the agent's own
+    // confidence level (high uncertainty = low confidence)
+    const uncertainty = kpis?.uncertainty
+    if (!isNumber(uncertainty)) return '—'
+    const level =
+      kpis?.epistemic_confidence_level ?? CONFIDENCE_LEVEL[kpis?.epistemic_uncertainty_level]
+    return (
+      `${(100 - uncertainty).toFixed(1)} %` +
+      (level ? ` (${t(`PowerGrid.confidence.${level}`, level)})` : '')
+    )
   }
+  const value = kpis?.[key]
   return isFinite(value) ? value.toFixed(4) : value
 }
 

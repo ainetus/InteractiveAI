@@ -10,6 +10,10 @@ from settings import logger
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Titles some agents still send in French, shown in English like the rest
+TITLE_TRANSLATIONS = {"Poursuivre": "Continue"}
+
+
 def _int_or_none(value):
     return int(value) if value not in (None, "") else None
 
@@ -132,6 +136,7 @@ class PowerGridManager(BaseRecommendationManager):
             # agent can propose two actions under the same one (Deep Expert,
             # rank 0 and 1 at the same substation): number the repeats
             title = parade.get("title", "")
+            title = TITLE_TRANSLATIONS.get(title.strip(), title)
             seen_titles[title] = seen_titles.get(title, 0) + 1
             if seen_titles[title] > 1:
                 title = f"{title} ({seen_titles[title]})"

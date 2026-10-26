@@ -154,6 +154,42 @@ function readCognitiveSnapshot(raw: unknown): CognitiveSnapshot | undefined {
   }
 }
 
+/**
+ * Times are recorded in UTC (toISOString) and exported in the time zone of the
+ * experiments, with the offset written out: 2026-10-26T13:22:08.123+01:00.
+ * Not a fixed "+2 h": France is UTC+2 in summer and UTC+1 in winter.
+ */
+const EXPORT_TIME_ZONE = 'Europe/Paris'
+const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
+
+function exportTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: EXPORT_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value])
+  )
+  const wall = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second)
+  const offset = Math.round((wall - Math.floor(date.getTime() / 1000) * 1000) / 60000)
+  const sign = offset < 0 ? '-' : '+'
+  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, '0')
+  const ms = String(date.getUTCMilliseconds()).padStart(3, '0')
+  return (
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.${ms}` +
+    `${sign}${pad(offset / 60)}:${pad(offset % 60)}`
+  )
+}
+
 /** Narrow an unknown trace payload to something spreadable. */
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
@@ -450,7 +486,7 @@ function escapeHtml(str: string): string {
 
 function formatTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString()
+    return new Date(iso).toLocaleString(undefined, { timeZone: EXPORT_TIME_ZONE })
   } catch {
     return iso
   }
@@ -841,7 +877,7 @@ function download(content: string, mimeType: string, fileName: string) {
 }
 
 function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'html') {
-  const started = session.startedAt.replace(/:/g, '-').replace('.', '-')
+  const started = exportTime(session.startedAt).replace(/:/g, '-').replace('.', '-')
   const user = session.userLogin ?? 'unknown'
   return `historic-session-${user}-${started}.${extension}`
 }
@@ -1034,7 +1070,8 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
       kpis,
       traces: structured
     },
-    null,
+    // Times in French local time rather than UTC (see exportTime)
+    (_key, value) => (typeof value === 'string' && UTC_ISO.test(value) ? exportTime(value) : value),
     2
   )
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))

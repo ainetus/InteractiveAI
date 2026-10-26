@@ -24,6 +24,11 @@
 - Each agent has its own response timeout, `RL_AGENT_<n>_TIMEOUT` (30 s by default, 60 s for the GNN agent); nginx allows 120 s on `/cab_recommendation/`.
 - PowerGrid: each agent's recommendations are shown as soon as it answers, with the agents still working or that gave no answer. The frontend starts a job (`POST /cab_recommendation/api/v1/recommendation/jobs`) and polls it (`GET .../jobs/<id>`); jobs are kept in the recommendation database (new tables, created at startup) for an hour. `POST /recommendation` is unchanged.
 - The agent call log gives each agent's response time.
+- PowerGrid: the uncertainty row of the recommendations table now shows **Confidence** (100 % minus the agent's uncertainty, with its confidence level).
+- PowerGrid: agents' French "Poursuivre" titles are shown as "Continue".
+- PowerGrid: the unused "Use the study tool" button next to Apply is removed.
+- While the session loads, "No context available" reads "Please wait a few seconds while the session is loading…" (and the same when asking for recommendations too early).
+- Session export: times are in French local time with their offset (e.g. `2026-10-26T13:22:08.123+01:00`, +2 in summer) instead of UTC, in the JSON, the HTML report and the file name.
 
 ## 1.4.2 (2026-10-07)
 
