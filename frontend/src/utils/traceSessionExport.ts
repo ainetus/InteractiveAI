@@ -93,13 +93,15 @@ const COGNITIVE_FACTORS = [
   'cognitive_performance',
   'stress_state',
   'cognitive_performance_explainability',
-  'stress_explainability'
+  'stress_explainability',
+  'task_capacity',
+  'task_capacity_explainability'
 ] as const
 
 type CognitiveFactor = (typeof COGNITIVE_FACTORS)[number]
 
 /**
- * A cognitive snapshot as stored in the session log: the four factors come
+ * A cognitive snapshot as stored in the session log: the factors come
  * from one reading and share its timestamp, so it is written once instead of
  * on each of them. Should they ever differ, `timestamps` keeps them all.
  */
@@ -146,6 +148,8 @@ function readCognitiveSnapshot(raw: unknown): CognitiveSnapshot | undefined {
     stress_state: entry('stress_state'),
     cognitive_performance_explainability: entry('cognitive_performance_explainability'),
     stress_explainability: entry('stress_explainability'),
+    task_capacity: entry('task_capacity'),
+    task_capacity_explainability: entry('task_capacity_explainability'),
     ...(logged.error && { error: logged.error })
   }
 }
@@ -561,7 +565,7 @@ function cognitiveSnapshotHtml(data: unknown): string {
   const snapshot = readCognitiveSnapshot(d.cognitive_snapshot)
   if (!snapshot) return ''
 
-  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, error } = snapshot
+  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, task_capacity: tc, task_capacity_explainability: tcExp, error } = snapshot
 
   let html = '<div style="margin:8px 0;padding:8px 12px;background:#f0f4ff;border-left:3px solid #6366f1;border-radius:4px;font-size:13px">'
   html += '<div style="font-weight:600;color:#4338ca;margin-bottom:6px">&#129504; User\'s cognitive informations </div>'
@@ -592,9 +596,20 @@ function cognitiveSnapshotHtml(data: unknown): string {
     html += '<div style="margin-bottom:3px;color:#9ca3af">Cognitive Performance Explainability: —</div>'
   }
   if (ssExp) {
-    html += '<div><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
   } else {
-    html += '<div style="color:#9ca3af">Stress Explainability: —</div>'
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Stress Explainability: —</div>'
+  }
+  // Sessions recorded before Task Capacity existed have none
+  if (tc) {
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Task Capacity:</span> <b>' + escapeHtml(tc.value) + '</b> <span style="color:#9ca3af;font-size:11px">' + escapeHtml(tc.timestamp) + '</span></div>'
+  } else {
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Task Capacity: —</div>'
+  }
+  if (tcExp) {
+    html += '<div><span style="color:#6b7280">Task Capacity Explainability:</span> ' + escapeHtml(tcExp.value) + '</div>'
+  } else {
+    html += '<div style="color:#9ca3af">Task Capacity Explainability: —</div>'
   }
   html += '</div>'
   return html
@@ -919,6 +934,8 @@ export async function recordTraceForSession(
           stress_state: null,
           cognitive_performance_explainability: null,
           stress_explainability: null,
+          task_capacity: null,
+          task_capacity_explainability: null,
           error: `Failed to get cognitive factors: ${message}`
         }
       }

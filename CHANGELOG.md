@@ -10,6 +10,7 @@
 - PowerGrid: "Do nothing" option to resume the simulation without applying any recommendation.
 - PowerGrid: post-logout survey replaced by the AI4REALNET power grid evaluation, in French (6 questionnaires: ATAI, agreement score, significance of human revisions, decision novelty, operator deskilling, long-term adoption).
 - Session export: the agents chosen for the session, the agent of each recommendation, and "Do nothing" decisions (not counted as assistance).
+- Cognitive state: Task Capacity (INESC TEC factors 110, its value, and 111, its explanation), read with the other factors. It is sent to the agents in `cognitive_snapshot` (`task_capacity`, `task_capacity_explainability`) and recorded in the session export.
 
 ### Fixed
 
