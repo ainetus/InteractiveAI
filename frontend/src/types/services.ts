@@ -11,6 +11,8 @@ export type Recommendation<E extends Entity = Entity> = {
   /** Which agent made it, when the use case has several */
   agent_id?: Agent['id']
   agent_name?: string
+  /** Unique within a request; two agents can propose the same title */
+  recommendation_id?: string
 }
 
 export type Agent = {

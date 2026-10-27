@@ -25,6 +25,8 @@ class RecommendationOut(Schema):
     # Which agent made the recommendation, when the use case has several
     agent_id = String()
     agent_name = String()
+    # Unique within a request: two agents can propose the same title
+    recommendation_id = String()
 
 
 class AgentOut(Schema):

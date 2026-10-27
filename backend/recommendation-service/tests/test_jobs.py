@@ -16,6 +16,11 @@ REQUEST = {"event": {"event_type": "KPI"}, "context": {"observation": {}}}
 @pytest.fixture
 def powergrid(app, client, monkeypatch):
     """The PowerGrid use case with a fast agent and a slow one, logged in."""
+    # Only these two: agents configured where the tests run must not join in
+    for number in range(3, 10):
+        monkeypatch.delenv(f"RL_AGENT_{number}_API_URL", raising=False)
+    for name in ("RL_AGENT_NUM_RECO", "RL_AGENT_NUM_RECO_SHARED", "RL_AGENT_2_NUM_RECO", "RL_AGENT_2_NUM_RECO_SHARED"):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("RL_AGENT_API_URL", "http://fast/api/v1/recommendation")
     monkeypatch.setenv("RL_AGENT_NAME", "Fast")
     monkeypatch.setenv("RL_AGENT_2_API_URL", "http://slow/api/v1/recommendation")
@@ -81,15 +86,18 @@ def test_job_shows_each_agent_as_it_answers(client, powergrid, agents):
     job = poll(client, job["id"], lambda j: j["agents"][0]["status"] == "done")
     assert job["status"] == "running"
     assert job["agents"][1]["status"] == "pending"
-    assert [r["title"] for r in job["recommendations"]] == ["Fast reco · Fast"]
+    assert [r["title"] for r in job["recommendations"]] == ["Fast reco"]
+    # The agent is not in the title (it could bias the operator) but stays
+    # in the data, for the session log, with an id the UI can tell apart
     assert job["recommendations"][0]["agent_name"] == "Fast"
+    assert job["recommendations"][0]["recommendation_id"]
 
     slow_release.set()
     job = poll(client, job["id"], lambda j: j["status"] == "done")
     assert [a["status"] for a in job["agents"]] == ["done", "done"]
     assert [r["title"] for r in job["recommendations"]] == [
-        "Fast reco · Fast",
-        "Slow reco · Slow",
+        "Fast reco",
+        "Slow reco",
     ]
     # The agents get the request as before, without "agents"
     assert all(body == REQUEST for _, body in calls)
@@ -113,7 +121,7 @@ def test_agent_that_fails_is_reported(client, powergrid, agents, monkeypatch):
     response = client.post("/api/v1/recommendation/jobs", headers=HEADERS, json=REQUEST)
     job = poll(client, response.json["id"], lambda j: j["status"] == "done")
     assert [a["status"] for a in job["agents"]] == ["done", "failed"]
-    assert [r["title"] for r in job["recommendations"]] == ["Fast reco · Fast"]
+    assert [r["title"] for r in job["recommendations"]] == ["Fast reco"]
 
 
 def test_agent_past_its_deadline_is_reported_failed(client, powergrid, agents):
@@ -139,4 +147,25 @@ def test_synchronous_recommendation_is_unchanged(client, powergrid, agents, monk
     response = client.post("/api/v1/recommendation", headers=HEADERS, json=REQUEST)
     assert response.status_code == 200
     # The agent that fails gives no recommendation, as before
-    assert [r["title"] for r in response.json] == ["Fast reco · Fast"]
+    assert [r["title"] for r in response.json] == ["Fast reco"]
+
+
+def test_same_title_from_two_agents_is_kept_twice(client, powergrid, monkeypatch):
+    """No agent name in the titles: two agents' "Continue" stay apart by id."""
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"title": "Continue", "actions": [{}]}]
+
+    monkeypatch.setattr(
+        "resources.PowerGrid.manager.requests.post", lambda url, json, **kwargs: Response()
+    )
+    response = client.post("/api/v1/recommendation", headers=HEADERS, json=REQUEST)
+    assert response.status_code == 200
+    recommendations = response.json
+    assert [r["title"] for r in recommendations] == ["Continue", "Continue"]
+    assert [r["agent_name"] for r in recommendations] == ["Fast", "Slow"]
+    assert len({r["recommendation_id"] for r in recommendations}) == 2

@@ -21,7 +21,6 @@
   "PowerGrid.confidence.low": "faible",
   "PowerGrid.confidence.medium": "moyenne",
   "PowerGrid.confidence.high": "élevée",
-  "PowerGrid.kpis.agent": "Agent",
   "PowerGrid.agents.choice.title": "Choisissez votre agent de recommandation",
   "PowerGrid.agents.choice.text": "Il proposera des actions pendant toute la session. Vous ne pourrez le changer qu'après vous être déconnecté.",
   "PowerGrid.do_nothing": "Ne rien faire",
@@ -30,6 +29,6 @@
   "PowerGrid.do_nothing.no_context": "L'état du réseau n'est pas encore disponible, réessayez dans quelques secondes.",
   "PowerGrid.agents.choice.all": "Tous les agents",
   "PowerGrid.agents.choice.start": "Démarrer la session",
-  "PowerGrid.agents.waiting": "En attente de {agents}…",
-  "PowerGrid.agents.failed": "Pas de réponse de {agents}"
+  "PowerGrid.agents.waiting": "En attente d'un agent… | En attente de {count} agents…",
+  "PowerGrid.agents.failed": "Un agent n'a pas répondu | {count} agents n'ont pas répondu"
 }

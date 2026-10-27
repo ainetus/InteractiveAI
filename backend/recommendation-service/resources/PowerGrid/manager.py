@@ -129,9 +129,13 @@ class PowerGridManager(BaseRecommendationManager):
         parades = self._get_rl_parades(agent, self._payload_for(agent, payload, alone))
 
         seen_titles = {}
-        for parade in parades:
+        for index, parade in enumerate(parades):
+            # Which agent made it is kept for the session log, but not shown:
+            # the operator could be biased by the name (see the title below)
             parade["agent_id"] = agent["id"]
             parade["agent_name"] = agent["name"]
+            # Unique within a request, so the UI can tell two agents' "Continue" apart
+            parade["recommendation_id"] = f"{agent['id']}-{index}"
             # The platform tells recommendations apart by title, and an
             # agent can propose two actions under the same one (Deep Expert,
             # rank 0 and 1 at the same substation): number the repeats
@@ -140,9 +144,8 @@ class PowerGridManager(BaseRecommendationManager):
             seen_titles[title] = seen_titles.get(title, 0) + 1
             if seen_titles[title] > 1:
                 title = f"{title} ({seen_titles[title]})"
-            # ... and two agents can propose the same one ("Continue")
-            if len(self.agents) > 1:
-                title = f"{title} · {agent['name']}"
+            # No agent name in the title: the UI numbers a title proposed by
+            # two agents instead ("Continue (2)")
             parade["title"] = title
         return parades
 

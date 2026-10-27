@@ -29,6 +29,10 @@
 - PowerGrid: the unused "Use the study tool" button next to Apply is removed.
 - While the session loads, "No context available" reads "Please wait a few seconds while the session is loading…" (and the same when asking for recommendations too early).
 - Session export: times are in French local time with their offset (e.g. `2026-10-26T13:22:08.123+01:00`, +2 in summer) instead of UTC, in the JSON, the HTML report and the file name.
+- PowerGrid: agents are no longer named to the operator, to avoid biasing them: no agent row in the recommendations table, no agent name in titles (a title proposed by two agents is numbered, "Continue (2)"), and neutral waiting messages ("Waiting for 2 more agents…"). The agent of each recommendation is still recorded in the session export.
+- PowerGrid: the Confidence row is shown only when the session uses a single agent.
+- PowerGrid: the unused "Use the analysis tool" button is removed.
+- Survey: new version of the agreement score questionnaire (one statement at first, optional comment).
 
 ## 1.4.2 (2026-10-07)
 

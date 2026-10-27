@@ -10,16 +10,15 @@
       <Event
         v-if="appStore.tab.assistant === 1 && appStore.card('PowerGrid')"
         :card="appStore.card('PowerGrid')!"
-        :primary-action="primaryAction"
-        :secondary-action="() => {}">
+        :primary-action="primaryAction">
         {{ appStore.card('PowerGrid')!.titleTranslated }}
       </Event>
       <template v-if="appStore.tab.assistant === 2 && appStore.card('PowerGrid')">
         <p v-if="pendingAgents.length" class="cab-agents-status">
-          {{ $t('PowerGrid.agents.waiting', { agents: pendingAgents.join(', ') }) }}
+          {{ $t('PowerGrid.agents.waiting', { count: pendingAgents.length }, pendingAgents.length) }}
         </p>
         <p v-if="failedAgents.length" class="cab-agents-status failed">
-          {{ $t('PowerGrid.agents.failed', { agents: failedAgents.join(', ') }) }}
+          {{ $t('PowerGrid.agents.failed', { count: failedAgents.length }, failedAgents.length) }}
         </p>
       </template>
       <Recommendations
@@ -153,9 +152,9 @@ async function fetchRecommendations() {
     agents: agentChoice.value?.ids,
     signal: current.signal,
     onUpdate: (job) => {
-      const added = job.recommendations.filter((recommendation) => !seen.has(recommendation.title))
-      added.forEach((recommendation) => seen.add(recommendation.title))
-      if (added.length) recommendations.value = [...recommendations.value, ...added]
+      const added = job.recommendations.filter((recommendation) => !seen.has(idOf(recommendation)))
+      added.forEach((recommendation) => seen.add(idOf(recommendation)))
+      if (added.length) recommendations.value = [...recommendations.value, ...withUniqueTitles(added)]
       const named = (status: string) =>
         job.agents.filter((agent) => agent.status === status).map((agent) => agent.name)
       pendingAgents.value = named('pending')
@@ -174,14 +173,36 @@ onBeforeUnmount(() => request?.abort())
  * its row is shown only when one of the recommendations has it.
  */
 const kpiRows = computed(() => [
-  // Which agent made each recommendation, as soon as there is a choice of agents
-  ...(agents.value.length > 1 ? ['agent'] : []),
+  // No row naming the agent of each recommendation: it could bias the operator
   'efficiency_of_the_reco',
   'type_of_the_reco',
-  ...(recommendations.value.some((recommendation) => isNumber(recommendation.kpis?.uncertainty))
+  // Only with a single agent: next to agents that have no confidence to show,
+  // the one that has would stand out
+  ...((agentChoice.value?.ids.length ?? agents.value.length) <= 1 &&
+  recommendations.value.some((recommendation) => isNumber(recommendation.kpis?.uncertainty))
     ? ['confidence']
     : [])
 ])
+
+/** A recommendation's identity: titles can repeat across agents. */
+function idOf(recommendation: Recommendation) {
+  return recommendation.recommendation_id ?? recommendation.title
+}
+
+/**
+ * Agents' names are not shown, so two agents proposing the same title would be
+ * indistinguishable - and the panel tells recommendations apart by title.
+ * Repeats are numbered as they arrive: "Continue", "Continue (2)".
+ */
+function withUniqueTitles(added: Recommendation<'PowerGrid'>[]) {
+  const titles = new Set(recommendations.value.map((recommendation) => recommendation.title))
+  return added.map((recommendation) => {
+    let title = recommendation.title
+    for (let n = 2; titles.has(title); n++) title = `${recommendation.title} (${n})`
+    titles.add(title)
+    return title === recommendation.title ? recommendation : { ...recommendation, title }
+  })
+}
 
 /** The agent's levels for its uncertainty, read the other way round. */
 const CONFIDENCE_LEVEL: Record<string, string> = { low: 'high', medium: 'medium', high: 'low' }
@@ -193,7 +214,6 @@ function isNumber(value: unknown): value is number {
 
 function formatKpi(key: string, recommendation: Recommendation) {
   const kpis = recommendation.kpis
-  if (key === 'agent') return recommendation.agent_name ?? '—'
   if (key === 'confidence') {
     // Shown as confidence: 100 % minus the uncertainty, with the agent's own
     // confidence level (high uncertainty = low confidence)
