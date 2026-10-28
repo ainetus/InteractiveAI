@@ -278,7 +278,7 @@
             id: "agreement_score_power_grid_table",
             type: "slider-table",
             text: "Je suis d'accord avec la recommandation de l'assistant numérique (Événement n°) dans la mesure suivante (Score, 0–100):",
-            initialStatementCount: 3,
+            initialStatementCount: 1,
             maxStatementCount: 100,
             min: 0,
             max: 100,
@@ -286,6 +286,12 @@
             //unit: '',
             keyColumnHeader: "Événement",
             valueColumnHeader: "Score"
+          },
+          {
+            id: "agreement_score_power_grid_comment",
+            type: "text",
+            text: "Commentaire (facultatif) :",
+            optional: true
           }
         ]
       }
@@ -767,7 +773,7 @@
             const el = document.querySelector(`input[name="${item.id}"]`);
             if (el) val = el.value;
           }
-          if (val === null || val === "") valid = false;
+          if ((val === null || val === "") && !item.optional) valid = false;
           sectionResult.responses[item.id] = val;
         });
         results.push(sectionResult);

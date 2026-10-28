@@ -24,6 +24,10 @@ these questionnaires. They are copied unmodified, with the same paths (they
 already post to `window.parent`); the chain itself is declared in
 `surveychainer.html` rather than vendoring that second chainer.
 
+`agreement-score-power-grid-fr.html` is a later version than that commit,
+received from the authors by email (2026-10-26): one statement shown at first
+instead of three, and an optional comment field.
+
 | File | Origin in clarkborst/hmisurveys (`ai4realnet`) |
 | --- | --- |
 | `ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` |
