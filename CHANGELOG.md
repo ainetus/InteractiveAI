@@ -1,7 +1,13 @@
 # Changelog
 
 
-## 1.5.2 (2026-10-28)
+## Unreleased
+
+### Fixed
+
+- The recommendation service crashed at startup in the 1.5.0 image (`No module named 'psycopg'`): SQLAlchemy was not pinned and the build picked up 2.1, whose default PostgreSQL driver is not installed. Pinned to 2.0.54.
+
+## 1.5.0 (2026-10-28)
 
 ### Added
 
