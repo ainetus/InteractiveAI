@@ -1,4 +1,5 @@
 import time
+import os
 from datetime import datetime, timedelta, timezone
 import grid2op
 from grid2op.Chronics.handlers import PerfectForecastHandler, CSVHandler
@@ -8,9 +9,11 @@ from lightsim2grid import LightSimBackend
 import numpy as np
 import toml
 import json
+from pathlib import Path
 import matplotlib
 matplotlib.use('agg')
 from app.models.Listener import Listener
+from app.models.failure_forecast import FailureForecastService
 from config.config import logging, set_pause, get_pause_status
 from app.models.utils import (create_observation_image, get_alert_lines, search_chronic_num_from_name,
                    get_curent_lines_in_bad_kpi, get_curent_lines_lost,
@@ -39,6 +42,7 @@ class Simulator:
         self.local_assistant = None
         self.com = None
         self.agent_reco = None
+        self.failure_forecast = None
         self.socketio = socketio
 
     def load_and_edit_config(self, params=None):
@@ -94,6 +98,23 @@ class Simulator:
         logging.info("Loaded scenario: %s \n",
                     self.env.chronics_handler.get_name())
         session['message'].append(f"Loaded scenario: {self.env.chronics_handler.get_name()}")
+
+        artifact_dir = Path(os.environ.get(
+            'FAILURE_FORECAST_ARTIFACT_DIR',
+            self.config.get(
+                'failure_forecast_artifact_dir',
+                'Ressources/failure_forecast'
+            )
+        ))
+        try:
+            self.failure_forecast = FailureForecastService(artifact_dir)
+            self.failure_forecast.record_observation(self.obs)
+            logging.info(
+                "Failure forecast artifacts loaded from %s", artifact_dir
+            )
+        except Exception as exc:
+            self.failure_forecast = None
+            logging.error("Failure forecast is unavailable: %s", exc)
 
         assistant_path = self.config['assistant_path']
         assistant_seed = int(self.config['assistant_seed'])
@@ -175,6 +196,8 @@ class Simulator:
 
             # Beginning of step: observation update
             self.obs, _, done, info = self.env.step(act)
+            if self.failure_forecast is not None:
+                self.failure_forecast.record_observation(self.obs)
 
             # Confirm whether a recommendation received from InteractiveAI was
             # actually applied to the simulation on this step.
@@ -328,15 +351,56 @@ class Simulator:
                         if not img_b64_current:
                             img_b64_current = create_observation_image(self.env,
                                                                        self.obs)
-                        com.send_event_online(context_date,
-                                              self.config['scenario_first_step'],
-                                              self.listen.trigger_kpis(
-                                                  self.obs, act),
-                                              self.obs, self.listen.current_issues,
-                                              img_b64_current,
-                                              line_name=get_curent_lines_in_bad_kpi(
-                                                  self.obs),
-                                              case_overload=True)
+                        overloaded_line = get_curent_lines_in_bad_kpi(self.obs)
+                        forecast_line = overloaded_line.rsplit(":", 1)[-1]
+                        overload_response = com.send_event_online(
+                            context_date,
+                            self.config['scenario_first_step'],
+                            self.listen.trigger_kpis(self.obs, act),
+                            self.obs,
+                            self.listen.current_issues,
+                            img_b64_current,
+                            line_name=overloaded_line,
+                            case_overload=True
+                        )
+                        parent_event_id = None
+                        if isinstance(overload_response, dict):
+                            parent_event_id = (
+                                overload_response.get("id_event")
+                                or overload_response.get("id")
+                            )
+                        if parent_event_id and self.failure_forecast is not None:
+                            try:
+                                forecast = self.failure_forecast.predict(
+                                    self.env,
+                                    self.obs,
+                                    forecast_line
+                                )
+                                com.send_failure_forecast_event(
+                                    context_date,
+                                    self.config['scenario_first_step'],
+                                    forecast,
+                                    parent_event_id,
+                                    self.obs,
+                                    overloaded_line,
+                                    img_b64_current
+                                )
+                                logging.info(
+                                    "Failure forecast for line %s: %s",
+                                    overloaded_line,
+                                    forecast
+                                )
+                            except Exception as exc:
+                                logging.error(
+                                    "Failure forecast failed for line %s: %s",
+                                    overloaded_line,
+                                    exc
+                                )
+                        elif self.failure_forecast is not None:
+                            logging.error(
+                                "Failure forecast event was not sent because "
+                                "the overload event ID was unavailable"
+                            )
                         
                     if (self.obs.current_step < self.config['scenario_first_step']) or (com.cab_api_on is False):
                         # Use cached XD_Silly (local)
