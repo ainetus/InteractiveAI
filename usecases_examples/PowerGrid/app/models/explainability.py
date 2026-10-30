@@ -223,7 +223,7 @@ def _failure_paths(
 
 
 def translate_rule_to_sentence(rule_code: str, line_name: str) -> str:
-    """Describe every branch that produces a rule-based failure prediction."""
+    """Describe every branch that produces a rule-based predicted probability of failure."""
     function = validate_rule(rule_code)
     paths = _failure_paths(list(function.body), [])
     line_name = str(line_name).removeprefix("line_")

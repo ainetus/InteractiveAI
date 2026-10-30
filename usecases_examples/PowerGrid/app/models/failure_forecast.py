@@ -480,9 +480,9 @@ def build_failure_forecast_event(
 
     return {
         "criticality": "HIGH",
-        "title": "Predicted failure probabilities by line",
+        "title": "Predicted probability of failure by line",
         "description": (
-            f"One-hour-ahead failure predictions triggered by overload on "
+            f"One-hour-ahead predicted probabilities of failure triggered by overload on "
             f"line {line_name}."
         ),
         "start_date": f"{context_date}",
