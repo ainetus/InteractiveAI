@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Experience Questionnaire (UEQ)</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+            line-height: 1.4;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        p {
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            margin: 0 auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+        .left-label, .right-label {
+            width: 180px;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .item-number {
+            width: 40px;
+            font-size: 13px;
+        }
+        .radio-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+        .radio-group input[type="radio"] {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        button {
+            display: block;
+            margin: 25px auto;
+            padding: 10px 20px;
+            background-color: #0077cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        #results {
+            display: none;
+            width: 80%;
+            margin: 30px auto;
+        }
+        .results-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .results-table th {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<section id="part1">
+<h1>User Experience Questionnaire - Short (UEQ-S)</h1>
+<p>
+    Please select one option per row.
+    The questionnaire consists of pairs of contrasting attributes that may apply to the product or system. The circles between the attributes represent
+    gradations between the opposites. You can express your agreement with the attributes by ticking the circle that most closely reflects your impression.<br><br>
+    Please decide spontaneously.
+    Don’t think too long about your decision to make sure that you convey your original impression.
+</p>
+
+<!-- Participant info fields (shown only if ParticipantID == true) -->
+<div id="participantInfo" style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+    <label for="pid"><strong>Participant ID:</strong></label>
+    <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+    <label for="cond"><strong>Condition ID:</strong></label>
+    <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+</div>
+
+<table id="ueqTable">
+    <thead>
+    <tr>
+        <th></th>
+        <th colspan="7"></th>
+        <th></th>
+        <th>#</th>
+    </tr>
+    </thead>
+    <tbody id="ueqBody"></tbody>
+</table>
+
+<button id="submitBtn">Submit</button>
+
+</section>
+
+<section id="resultsSection" class="hidden">
+<div id="results">
+    <h2>Results</h2>
+    <table class="results-table" id="resultsTable">
+        <thead><tr><th>Item</th><th>Score</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>Subscale Means</h3>
+    <table class="results-table" id="subscaleTable">
+        <thead><tr><th>Subscale</th><th>Mean Score</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+</section>
+
+<script>
+    // ===============================================================
+    // === CONFIGURATION =============================================
+    // ===============================================================
+
+    // === Global options ===
+    const fileDownload = false;       // Set to true to auto-download JSON
+    const ParticipantID = false;      // Set to true to show Participant/Condition fields
+
+    // UEQ-S items (Schrepp et al, 2017) – 8 bipolar adjective pairs
+    const ueqItems = [
+        { left: "obstructive", right: "supportive" },         // Efficiency
+        { left: "complicated", right: "easy" },               // Perspicuity
+        { left: "inefficient", right: "efficient" },          // Efficiency
+        { left: "confusing", right: "clear" },                // Perspicuity
+        { left: "boring", right: "exciting" },                // Stimulation
+        { left: "not interesting", right: "interesting" },    // Stimulation
+        { left: "conventional", right: "inventive" },         // Novelty
+        { left: "usual", right: "leading edge" }              // Novelty
+    ];
+
+    const responses = new Array(ueqItems.length).fill(null);
+
+    const tbody = document.getElementById("ueqBody");
+
+    // ===============================================================
+    // === BUILD TABLE ===============================================
+    // ===============================================================
+
+    ueqItems.forEach((item, i) => {
+        const tr = document.createElement("tr");
+
+        const tdLeft = document.createElement("td");
+        tdLeft.textContent = item.left;
+        tdLeft.className = "left-label";
+        tr.appendChild(tdLeft);
+
+        const tdScale = document.createElement("td");
+        tdScale.colSpan = 7;
+        const group = document.createElement("div");
+        group.className = "radio-group";
+
+        for (let v = 1; v <= 7; v++) {
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = `q${i}`;
+            input.value = v;
+            input.addEventListener("change", e => responses[i] = parseInt(e.target.value));
+            group.appendChild(input);
+        }
+        tdScale.appendChild(group);
+        tr.appendChild(tdScale);
+
+        const tdRight = document.createElement("td");
+        tdRight.textContent = item.right;
+        tdRight.className = "right-label";
+        tr.appendChild(tdRight);
+
+        const tdNum = document.createElement("td");
+        tdNum.textContent = i + 1;
+        tdNum.className = "item-number";
+        tr.appendChild(tdNum);
+
+        tbody.appendChild(tr);
+    });
+
+    // === Show participant fields if enabled ===
+    if (ParticipantID) {
+        document.getElementById("participantInfo").style.display = "block";
+    }
+
+    // ===============================================================
+    // === SUBMIT RESULTS ============================================
+    // ===============================================================
+
+    document.getElementById("submitBtn").addEventListener("click", () => {
+        if (responses.some(v => v === null || Number.isNaN(v))) {
+            alert("Please answer all items before submitting.");
+            return;
+        }
+
+        // === Capture optional participant info ===
+        let participantData = {};
+        if (ParticipantID) {
+            participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+            participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+        }
+
+        if (ParticipantID && (participantData.id === "anon" || participantData.condition === "none")) {
+            alert("Please enter both Participant ID and Condition ID.");
+            return;
+        }
+
+        // Hide the survey section and clear results page
+        document.getElementById("ueqTable").style.display = "none";
+        document.getElementById("submitBtn").style.display = "none";
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+
+        document.getElementById("part1").style.display = "none";
+        const resultsSection = document.getElementById("resultsSection");
+        resultsSection.style.display = "block";
+
+        const scored = ueqItems.map((q, i) => {
+            const raw = Number(responses[i]);
+            return { raw };
+        });
+
+        // Compute per-item and per-subscale results
+        const results = ueqItems.map((q, i) => ({
+            left: q.left,
+            right: q.right,
+            score: scored[i].raw
+        }));
+
+        const pragmatic = [0, 1, 2, 3].map(i => scored[i].raw);
+        const hedonic = [4, 5, 6, 7].map(i => scored[i].raw);
+
+        const pragmaticMean = pragmatic.reduce((a,b) => a + b, 0) / pragmatic.length;
+        const hedonicMean = hedonic.reduce((a,b) => a + b, 0) / hedonic.length;
+        const overall = (pragmaticMean + hedonicMean) / 2;
+
+        if(!fileDownload) {
+            // Build clean summary page
+            const resultsPage = document.getElementById("results");
+            resultsPage.style.display = "block";
+            resultsPage.innerHTML = `
+    <h2>User Experience Results Summary</h2>
+    <p>The table below shows the mean ratings (1–7) per UEQ dimension.</p>
+    <table class="results">
+      <tr><th>Factor</th><th>Mean (1–7)</th></tr>
+      <tr><td>Pragmatic</td><td>${pragmaticMean.toFixed(2)}</td></tr>
+      <tr><td>Hedonic</td><td>${hedonicMean.toFixed(2)}</td></tr>
+      <tr><td>Overall UEQ Index</td><td>${overall.toFixed(2)}</td></tr>
+    </table>
+
+    <h3>Detailed Item Ratings</h3>
+    <table class="results">
+      <tr><th>Item</th><th>Score</th></tr>
+      ${results
+                .map(
+                    r =>
+                        `<tr><td>${r.left} – ${r.right}</td><td>${r.score}</td></tr>`
+                )
+                .join("")}
+    </table>
+  `;
+        }
+        else
+            document.getElementById("results").outerText = "Thank you!";
+
+        // Prepare structured export
+        const resultObj = {
+            success: true,
+            results,
+            pragmaticMean,
+            hedonicMean,
+            overall
+        };
+
+        window.parent.postMessage({ success: true, participantData, resultObj }, "*");
+
+        if (fileDownload) downloadResultsJSON({ success: true, participantData, resultObj });
+    });
+
+
+    // === Optional local JSON file download ===
+    function downloadResultsJSON(results) {
+        const pid = results.participantData?.id || "anon";
+        const cond = results.participantData?.condition || "none";
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `ueq_short_${pid}_${cond}_${timestamp}.json`;
+        const json = JSON.stringify(results, null, 2);
+
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>

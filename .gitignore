@@ -198,3 +198,7 @@ go.sh
 !frontend/.vscode
 !frontend/env/
 !frontend/env/.env
+hmisurveys/
+
+
+tmp

@@ -20,6 +20,12 @@ The platform make use of the project OperatorFabric for notification management 
       </ul>
     </li>
     <li>
+      <a href="#post-logout-survey">Post-logout survey</a>
+      <ul>
+        <li><a href="#changing-the-questionnaires">Changing the questionnaires</a></li>
+      </ul>
+    </li>
+    <li>
       <a href="#project-setup">Project Setup</a>
       <ul>
         <li><a href="#compile-and-hot-reload-for-development">Compile and Hot-Reload for Development</a></li>
@@ -118,6 +124,58 @@ export type ENTITY = {
 
 It is also the right place to define your other custom types.  
 You can then import and add your types to `src/config.ts` (cf. [Adding your custom entity](#adding-your-custom-entity))
+
+## Post-logout survey
+
+When an operator logs out, the platform hands them the HMI questionnaire chain
+served from `public/surveys/` (files taken from the
+[hmisurveys](https://github.com/AI4REALNET/hmisurveys) repository, `html/`). `surveychainer.html`
+plays the questionnaires one after another in an iframe and, on *Finish*,
+downloads the aggregated answers as a JSON file - exactly as it does when opened
+standalone.
+
+The operator never types their identity: `Navbar.vue` reads the current trace
+session id and use case **before** `logout()` clears them, queues them with
+`utils/survey.ts`, and the `/survey` view opens
+
+```
+/surveys/surveychainer.html?participant=<trace session id>&condition=<use case>
+```
+
+so both fields are prefilled and hidden - only *Start* is left to press.
+
+The session report (`exportTraceSession`) still writes its JSON and HTML files
+on logout, but it no longer opens itself in a new tab there: that tab takes the
+focus, and an operator who did not notice the survey behind it never took it.
+The report is held back (`openSummary: false`) and offered once the
+questionnaire is over — *Delete the remaining alerts?* → survey → *Open the
+session report?* — so the full order is
+
+1. `Navbar.leave` exports the session, keeping the report in memory.
+2. The operator answers the questionnaire, or skips it.
+3. The survey page asks whether to open the report, then returns to the login
+   page.
+
+Logging out without a recorded session skips both steps and opens the report
+immediately, as it always did.
+
+### Changing the questionnaires
+
+The chain lives at the top of `public/surveys/surveychainer.html`:
+
+- `DEFAULT_CHAIN` - the chain every use case plays today.
+- `CHAINS` - per-use-case chains, keyed by the `condition` sent by the platform
+  (`PowerGrid`, `ATM`, `Railway`). Add an entry to give one use case its own
+  questionnaires; use cases without an entry keep `DEFAULT_CHAIN`.
+
+Adding a questionnaire means copying its file from the hmisurveys repository
+into `public/surveys/` (keeping the folder layout the URLs use) and listing it in
+the relevant chain. A questionnaire must post its answers to `window.parent`,
+not `window.top`: the chainer is itself embedded in the InteractiveAI page.
+
+The vendored questionnaires stay under their own **GPL-3.0** license, not the
+MPL-2.0 of the rest of the frontend; `public/surveys/NOTICE.md` records where
+each file comes from and every change made to it.
 
 ## Project Setup
 

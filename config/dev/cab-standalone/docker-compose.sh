@@ -50,9 +50,23 @@ if [[ -f .secrets ]]; then
 fi
 echo "RL_AGENT_API_URL=${RL_AGENT_API_URL:-https://interactiveagent.passerelle.irt-systemx.fr/api/v1/recommendation}" >> .env
 echo "RL_AGENT_API_TOKEN=${RL_AGENT_API_TOKEN:-}" >> .env
+echo "RL_AGENT_NAME=${RL_AGENT_NAME:-}" >> .env
+echo "RL_AGENT_NUM_RECO=${RL_AGENT_NUM_RECO:-}" >> .env
+echo "RL_AGENT_NUM_RECO_SHARED=${RL_AGENT_NUM_RECO_SHARED:-}" >> .env
+echo "RL_AGENT_2_API_URL=${RL_AGENT_2_API_URL:-}" >> .env
+echo "RL_AGENT_2_API_TOKEN=${RL_AGENT_2_API_TOKEN:-}" >> .env
+echo "RL_AGENT_2_NAME=${RL_AGENT_2_NAME:-}" >> .env
+echo "RL_AGENT_3_API_URL=${RL_AGENT_3_API_URL:-}" >> .env
+echo "RL_AGENT_3_API_TOKEN=${RL_AGENT_3_API_TOKEN:-}" >> .env
+echo "RL_AGENT_3_NAME=${RL_AGENT_3_NAME:-}" >> .env
+echo "RL_AGENT_3_TIMEOUT=${RL_AGENT_3_TIMEOUT:-}" >> .env
 echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env
 echo "POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM:-http://host.docker.internal:5122/}" >> .env
-echo "VITE_COGNITIVE_TOKEN=${VITE_COGNITIVE_TOKEN:-}" >> .env
+echo "COGNITIVE_TOKEN=${COGNITIVE_TOKEN:-}" >> .env
 
-cat .env
+# Echo the generated .env for confidence, with credential values masked: this file now
+# carries RL_AGENT_API_TOKEN and COGNITIVE_TOKEN, and a plain `cat` put both in the
+# terminal (and in any CI log that runs this script).
+sed -E 's/^([A-Z_]*(TOKEN|SECRET|PASSWORD)[A-Z_]*)=(.+)$/\1=<set>/; s/^([A-Z_]*(TOKEN|SECRET|PASSWORD)[A-Z_]*)=$/\1=<empty>/' .env
+
 docker compose up -d
