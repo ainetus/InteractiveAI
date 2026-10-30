@@ -75,12 +75,20 @@ mean_forecaster.pkl
 aleatoric_forecaster.pkl
 failure_classifier.pkl
 failure_classifier_metadata.json
+explainability/
+`-- rules/
+    `-- line_<line>/best_rule.py
 ```
 
 The current classifier covers the 10 selected transmission lines recorded in
 `failure_classifier_metadata.json`. Each overload triggers one child event with
 predictions for all 10 lines. Keep all four files from the same training run
-together; mixing model generations is rejected when the simulator starts.
+together and deploy the matching explanatory rules from that run; mixing model
+generations is rejected when the simulator starts.
+
+The explanatory rules are distilled offline in the failure-forecast project.
+At runtime, PowerGrid validates and evaluates the local `best_rule.py` files;
+it does not require an LLM connection, API key, or network request.
 
 For a local validation with artifacts stored elsewhere, set
 `FAILURE_FORECAST_ARTIFACT_DIR` to that directory before starting the
@@ -92,7 +100,12 @@ simulator builds the one-hour-ahead grid state, disconnects each of the 10
 trained lines independently, and publishes a second event whose
 `parent_event_id` is the overload event ID. The event KPIs contain
 `failure_probability`, `failure_probability_pct`, and `failure_prediction` for
-each trained line.
+each trained line. Every per-line result also contains `explanation`,
+`rule_prediction`, and `rule_agrees_with_forecast`. The HGB
+`failure_prediction` remains authoritative. `rule_prediction` is the result of
+the simplified explanatory rule and can disagree with the HGB. If a rule is
+missing or cannot be evaluated, the three explainability fields are `null` and
+the HGB forecast is still published.
 
 # 2 Run the simulator
 

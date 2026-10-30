@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,10 +17,14 @@ from typing import Any, Deque, Dict, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
+from app.models.explainability import RuleExplainer
+
 
 HORIZON_STEPS = 12
 STEP_MINUTES = 5
 HISTORY_STEPS = 2016
+
+LOGGER = logging.getLogger(__name__)
 
 CLASSIFIER_FEATURES = [
     "line_id_encoded",
@@ -242,6 +247,9 @@ class FailureForecastService:
         }
         self.threshold = float(self.metadata.get("decision_threshold", 0.5))
         self._validate_bundle()
+        self.rule_explainer = RuleExplainer(
+            self.artifact_dir / "explainability" / "rules"
+        )
         self.history: Deque[ObservationHistoryEntry] = deque(
             maxlen=HISTORY_STEPS + 1
         )
@@ -290,6 +298,35 @@ class FailureForecastService:
         if len(matches) != 1:
             raise ValueError("Failure classifier does not expose class 1")
         return float(probabilities[0, matches[0]])
+
+    def _explain_prediction(
+        self,
+        line: str,
+        row: Dict[str, Any],
+        failure_prediction: int,
+    ) -> Dict[str, Any]:
+        """Best-effort explanation that never replaces the HGB prediction."""
+        unavailable = {
+            "explanation": None,
+            "rule_prediction": None,
+            "rule_agrees_with_forecast": None,
+        }
+        explainer = getattr(self, "rule_explainer", None)
+        if explainer is None or line not in explainer.available_lines:
+            LOGGER.warning("No explanatory rule is available for line %s", line)
+            return unavailable
+        try:
+            explanation = explainer.explain(line, row)
+        except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
+            LOGGER.warning("Explanation failed for line %s: %s", line, exc)
+            return unavailable
+        return {
+            "explanation": explanation.text,
+            "rule_prediction": explanation.prediction,
+            "rule_agrees_with_forecast": (
+                explanation.prediction == failure_prediction
+            ),
+        }
 
     def _forecast_context(self, env: Any, obs: Any) -> Dict[str, Any]:
         """Build the common t+12 operating state used by all contingencies."""
@@ -369,13 +406,17 @@ class FailureForecastService:
             {feature: row.get(feature, np.nan) for feature in self.features}
         ])
         probability = self._failure_probability(classifier_input)
+        failure_prediction = int(probability >= self.threshold)
         return {
-            "failure_prediction": int(probability >= self.threshold),
+            "failure_prediction": failure_prediction,
             "failure_probability": round(probability, 3),
             "failure_probability_pct": round(probability * 100.0, 1),
             "forecast_horizon_steps": int(HORIZON_STEPS),
             "forecast_horizon_minutes": int(HORIZON_STEPS * STEP_MINUTES),
             "line": normalized_line,
+            **self._explain_prediction(
+                normalized_line, row, failure_prediction
+            ),
         }
 
     def predict(self, env: Any, obs: Any, line_name: str) -> Dict[str, Any]:
@@ -407,6 +448,17 @@ def build_failure_forecast_event(
             "failure_probability": float(forecast["failure_probability"]),
             "failure_probability_pct": float(forecast["failure_probability_pct"]),
             "failure_prediction": int(forecast["failure_prediction"]),
+            "explanation": forecast.get("explanation"),
+            "rule_prediction": (
+                None
+                if forecast.get("rule_prediction") is None
+                else int(forecast["rule_prediction"])
+            ),
+            "rule_agrees_with_forecast": (
+                None
+                if forecast.get("rule_agrees_with_forecast") is None
+                else bool(forecast["rule_agrees_with_forecast"])
+            ),
         }
         for forecast in forecasts
     }
