@@ -1,5 +1,5 @@
 import { fetchCognitiveSnapshot } from '@/api/cognitive'
-import type { CognitiveSnapshot } from '@/api/cognitive'
+import type { CognitiveFactorEntry, CognitiveSnapshot } from '@/api/cognitive'
 import type { Trace } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 
@@ -18,6 +18,21 @@ type TraceSession = {
   startedAt: string
   userLogin?: string
   traces: StoredTrace[]
+  /**
+   * Publish date of the card version (by `eventKey`) that an applied
+   * recommendation last resolved. Kept with the session rather than in the
+   * cards store so it survives a reload, whose card snapshot replays every card
+   * as new; a publish date, not the browser's clock, so it compares with the
+   * server's.
+   */
+  resolvedAt?: Record<string, string>
+  /** Recommendation agents the operator chose to work with at the start of the session. */
+  agentChoice?: AgentChoice
+}
+
+export type AgentChoice = {
+  ids: string[]
+  names: string[]
 }
 
 type ExportOptions = {
@@ -74,6 +89,107 @@ function saveSession(session: TraceSession) {
   }
 }
 
+const COGNITIVE_FACTORS = [
+  'cognitive_performance',
+  'stress_state',
+  'cognitive_performance_explainability',
+  'stress_explainability',
+  'task_capacity',
+  'task_capacity_explainability'
+] as const
+
+type CognitiveFactor = (typeof COGNITIVE_FACTORS)[number]
+
+/**
+ * A cognitive snapshot as stored in the session log: the factors come
+ * from one reading and share its timestamp, so it is written once instead of
+ * on each of them. Should they ever differ, `timestamps` keeps them all.
+ */
+type LoggedCognitiveSnapshot = Record<CognitiveFactor, string | null> & {
+  timestamp?: string
+  timestamps?: Partial<Record<CognitiveFactor, string>>
+  error?: string
+}
+
+function compactCognitiveSnapshot(snapshot: CognitiveSnapshot): LoggedCognitiveSnapshot {
+  const logged = {} as LoggedCognitiveSnapshot
+  const timestamps: Partial<Record<CognitiveFactor, string>> = {}
+  for (const factor of COGNITIVE_FACTORS) {
+    logged[factor] = snapshot[factor]?.value ?? null
+    const timestamp = snapshot[factor]?.timestamp
+    if (timestamp) timestamps[factor] = timestamp
+  }
+  const distinct = new Set(Object.values(timestamps))
+  if (distinct.size === 1) logged.timestamp = [...distinct][0]
+  else if (distinct.size > 1) logged.timestamps = timestamps
+  if (snapshot.error) logged.error = snapshot.error
+  return logged
+}
+
+/** Back to the API's shape, for both the logged form and sessions recorded before it. */
+function readCognitiveSnapshot(raw: unknown): CognitiveSnapshot | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const record = raw as Record<string, unknown>
+  if (!('timestamp' in record) && !('timestamps' in record)) {
+    // Old form, or a snapshot without any reading - factors are objects or null
+    const isOld = COGNITIVE_FACTORS.some(
+      (factor) => record[factor] !== null && typeof record[factor] === 'object'
+    )
+    if (isOld) return raw as CognitiveSnapshot
+  }
+  const logged = raw as LoggedCognitiveSnapshot
+  const entry = (factor: CognitiveFactor): CognitiveFactorEntry | null => {
+    const value = logged[factor]
+    if (value === null || value === undefined) return null
+    return { value, timestamp: logged.timestamps?.[factor] ?? logged.timestamp ?? '' }
+  }
+  return {
+    cognitive_performance: entry('cognitive_performance'),
+    stress_state: entry('stress_state'),
+    cognitive_performance_explainability: entry('cognitive_performance_explainability'),
+    stress_explainability: entry('stress_explainability'),
+    task_capacity: entry('task_capacity'),
+    task_capacity_explainability: entry('task_capacity_explainability'),
+    ...(logged.error && { error: logged.error })
+  }
+}
+
+/**
+ * Times are recorded in UTC (toISOString) and exported in the time zone of the
+ * experiments, with the offset written out: 2026-10-26T13:22:08.123+01:00.
+ * Not a fixed "+2 h": France is UTC+2 in summer and UTC+1 in winter.
+ */
+const EXPORT_TIME_ZONE = 'Europe/Paris'
+const UTC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
+
+function exportTime(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: EXPORT_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    })
+      .formatToParts(date)
+      .map((part) => [part.type, part.value])
+  )
+  const wall = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second)
+  const offset = Math.round((wall - Math.floor(date.getTime() / 1000) * 1000) / 60000)
+  const sign = offset < 0 ? '-' : '+'
+  const pad = (n: number) => String(Math.floor(Math.abs(n))).padStart(2, '0')
+  const ms = String(date.getUTCMilliseconds()).padStart(3, '0')
+  return (
+    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.${ms}` +
+    `${sign}${pad(offset / 60)}:${pad(offset % 60)}`
+  )
+}
+
 /** Narrow an unknown trace payload to something spreadable. */
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : {}
@@ -124,17 +240,39 @@ function eventKey(data: unknown): string | undefined {
  *  3. An ASKFORHELP opens a "current interaction group" linked to an EVENT via card_id.
  *  4. Subsequent FEEDBACK / AWARD traces are appended to that group until a new ASKFORHELP or EVENT appears.
  *  5. Traces that cannot be linked to any EVENT remain at the top level as-is.
+ *
+ * A card that comes back after being resolved gets a new EVENT (see
+ * `occurrence` in recordTraceForSession); it takes over the card_id, so what
+ * follows lands on it.
  */
+/**
+ * One ask-for-help -> apply cycle. An event can hold several: the operator may
+ * ask again without applying (that cycle is dropped), or apply a recommendation
+ * and later ask again on the same card (each apply is its own decision).
+ */
+type Decision = {
+  asked_at: string
+  /** null when the session predates the RECOMMENDATIONS trace. */
+  shown_at: string | null
+  applied_at: string
+  /** Time in ms between ASKFORHELP and AWARD. */
+  decision_time_ms: number
+  /**
+   * Time in ms between the applied recommendations appearing on screen and the
+   * operator applying one - the decision time with the agent's own latency
+   * taken out. null when shown_at is.
+   */
+  human_decision_time_ms: number | null
+  /** The operator chose to do nothing rather than apply one of the recommendations. */
+  do_nothing: boolean
+}
+
 type StructuredEvent = StoredTrace & {
   interactions: StoredTrace[]
-  /** Time in ms between ASKFORHELP and AWARD. null when the user didn't choose a solution. */
+  decisions: Decision[]
+  /** Mean decision time over this event's decisions. null when the user didn't choose a solution. */
   decision_time_ms: number | null
-  /**
-   * Time in ms between the recommendations appearing on screen and the operator
-   * applying one - the decision time with the agent's own latency taken out.
-   * null when no solution was applied, or when the session predates the
-   * RECOMMENDATIONS trace.
-   */
+  /** Mean human decision time over this event's decisions. null when none could be measured. */
   human_decision_time_ms: number | null
 }
 
@@ -143,46 +281,74 @@ type StructuredTrace = StoredTrace | StructuredEvent
 type SessionKpis = {
   /** Total session duration in ms (endedAt − startedAt) */
   total_session_time_ms: number
-  /** Average decision time across ALL events (sum of decision times / total events). null if no events. */
-  avg_decision_time_ms: number | null
+  /** Number of applied recommendations, i.e. decisions the times below are taken over. */
+  decision_count: number
   /**
-   * Average human decision time, over the events where one could be measured
-   * (recommendations displayed *and* a solution applied) rather than over every
-   * event - an event the operator never acted on says nothing about how long
-   * they take to decide. null when no event qualifies.
+   * Mean / sample standard deviation of the decision time, over every decision
+   * of the session rather than over every event - an event the operator never
+   * acted on says nothing about how long they take to decide. The mean is null
+   * without decisions, the standard deviation with fewer than two.
    */
+  avg_decision_time_ms: number | null
+  std_decision_time_ms: number | null
+  /** Same as above for the human decision time, over the decisions where it could be measured. */
   avg_human_decision_time_ms: number | null
+  std_human_decision_time_ms: number | null
 }
 
 function isStructuredEvent(t: StructuredTrace): t is StructuredEvent {
   return 'interactions' in t
 }
 
-function computeDecisionTime(interactions: StoredTrace[]): number | null {
-  let askDate: string | undefined
-  let awardDate: string | undefined
-  for (let i = 0; i < interactions.length; i++) {
-    if (interactions[i].step === 'ASKFORHELP' && !askDate) askDate = interactions[i].date
-    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
+/**
+ * Split an event's interactions into ask-for-help -> apply cycles. A new
+ * ASKFORHELP restarts the cycle, so an ask the operator never acted on is not
+ * counted against the next one, and the human time runs from the
+ * recommendations that were on screen when they applied.
+ */
+function computeDecisions(interactions: StoredTrace[]): Decision[] {
+  const decisions: Decision[] = []
+  let askedAt: string | undefined
+  let shownAt: string | undefined
+  for (const interaction of interactions) {
+    if (interaction.step === 'ASKFORHELP') {
+      askedAt = interaction.date
+      shownAt = undefined
+    } else if (interaction.step === 'RECOMMENDATIONS' && askedAt) {
+      shownAt = interaction.date
+    } else if (interaction.step === 'AWARD' && askedAt) {
+      const appliedTime = new Date(interaction.date).getTime()
+      decisions.push({
+        asked_at: askedAt,
+        shown_at: shownAt ?? null,
+        applied_at: interaction.date,
+        decision_time_ms: appliedTime - new Date(askedAt).getTime(),
+        human_decision_time_ms: shownAt ? appliedTime - new Date(shownAt).getTime() : null,
+        do_nothing: asRecord(interaction.data).do_nothing === true
+      })
+      askedAt = undefined
+      shownAt = undefined
+    }
   }
-  if (!askDate || !awardDate) return null
-  return new Date(awardDate).getTime() - new Date(askDate).getTime()
+  return decisions
 }
 
-/**
- * How long the operator themselves took: from the recommendations being shown
- * to the apply. `decision_time_ms` starts one step earlier, at ASKFORHELP, so it
- * also carries however long the recommendation service took to answer.
- */
-function computeHumanDecisionTime(interactions: StoredTrace[]): number | null {
-  let shownDate: string | undefined
-  let awardDate: string | undefined
-  for (let i = 0; i < interactions.length; i++) {
-    if (interactions[i].step === 'RECOMMENDATIONS' && !shownDate) shownDate = interactions[i].date
-    if (interactions[i].step === 'AWARD' && !awardDate) awardDate = interactions[i].date
-  }
-  if (!shownDate || !awardDate) return null
-  return new Date(awardDate).getTime() - new Date(shownDate).getTime()
+function mean(values: number[]): number | null {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+}
+
+/** Sample standard deviation (n - 1): the session is a sample of how the operator decides. */
+function standardDeviation(values: number[]): number | null {
+  const average = mean(values)
+  if (average === null || values.length < 2) return null
+  const squares = values.reduce((sum, value) => sum + (value - average) ** 2, 0)
+  return Math.sqrt(squares / (values.length - 1))
+}
+
+function humanTimes(decisions: Decision[]): number[] {
+  return decisions
+    .map((decision) => decision.human_decision_time_ms)
+    .filter((time): time is number => time !== null)
 }
 
 /** Map legacy event_type values to human-readable labels for export. */
@@ -191,7 +357,15 @@ function normalizeEventType(eventType: string): string {
   return eventType
 }
 
-function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
+function buildStructuredTraces(recorded: StoredTrace[]): StructuredTrace[] {
+  // Traces are saved as their snapshots finish loading, not in the order they
+  // happened: an ASKFORHELP can land before the EVENT recorded with it. Sort by
+  // when they happened, the EVENT first on a tie, so it opens the group.
+  const flat = [...recorded].sort(
+    (a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime() ||
+      Number(b.step === 'EVENT') - Number(a.step === 'EVENT')
+  )
   // Index: card_id → structured event entry
   const eventByCardId: Record<string, StructuredEvent> = {}
   const result: StructuredTrace[] = []
@@ -204,6 +378,7 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
       const structured: StructuredEvent = {
         ...trace,
         interactions: [],
+        decisions: [],
         decision_time_ms: null,
         human_decision_time_ms: null
       }
@@ -242,8 +417,9 @@ function buildStructuredTraces(flat: StoredTrace[]): StructuredTrace[] {
   // Compute per-event decision time KPIs
   for (const entry of result) {
     if (isStructuredEvent(entry)) {
-      entry.decision_time_ms = computeDecisionTime(entry.interactions)
-      entry.human_decision_time_ms = computeHumanDecisionTime(entry.interactions)
+      entry.decisions = computeDecisions(entry.interactions)
+      entry.decision_time_ms = mean(entry.decisions.map((decision) => decision.decision_time_ms))
+      entry.human_decision_time_ms = mean(humanTimes(entry.decisions))
     }
   }
 
@@ -294,6 +470,12 @@ function formatMs(ms: number | null): string {
   return min > 0 ? min + 'm ' + sec + 's' : sec + 's'
 }
 
+/** "mean ± std" for the KPI boxes; the ± part only once there are two values to spread. */
+function formatMeanStd(average: number | null, std: number | null): string {
+  if (average === null) return formatMs(null)
+  return std === null ? formatMs(Math.round(average)) : formatMs(Math.round(average)) + ' &plusmn; ' + formatMs(Math.round(std))
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -304,7 +486,7 @@ function escapeHtml(str: string): string {
 
 function formatTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString()
+    return new Date(iso).toLocaleString(undefined, { timeZone: EXPORT_TIME_ZONE })
   } catch {
     return iso
   }
@@ -416,10 +598,10 @@ function observationHtml(data: unknown): string {
 function cognitiveSnapshotHtml(data: unknown): string {
   if (!data || typeof data !== 'object') return ''
   const d = data as Record<string, unknown>
-  const snapshot = d.cognitive_snapshot as CognitiveSnapshot | null | undefined
+  const snapshot = readCognitiveSnapshot(d.cognitive_snapshot)
   if (!snapshot) return ''
 
-  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, error } = snapshot
+  const { cognitive_performance: cp, stress_state: ss, cognitive_performance_explainability: cpExp, stress_explainability: ssExp, task_capacity: tc, task_capacity_explainability: tcExp, error } = snapshot
 
   let html = '<div style="margin:8px 0;padding:8px 12px;background:#f0f4ff;border-left:3px solid #6366f1;border-radius:4px;font-size:13px">'
   html += '<div style="font-weight:600;color:#4338ca;margin-bottom:6px">&#129504; User\'s cognitive informations </div>'
@@ -450,9 +632,20 @@ function cognitiveSnapshotHtml(data: unknown): string {
     html += '<div style="margin-bottom:3px;color:#9ca3af">Cognitive Performance Explainability: —</div>'
   }
   if (ssExp) {
-    html += '<div><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Stress Explainability:</span> ' + escapeHtml(ssExp.value) + '</div>'
   } else {
-    html += '<div style="color:#9ca3af">Stress Explainability: —</div>'
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Stress Explainability: —</div>'
+  }
+  // Sessions recorded before Task Capacity existed have none
+  if (tc) {
+    html += '<div style="margin-bottom:3px"><span style="color:#6b7280">Task Capacity:</span> <b>' + escapeHtml(tc.value) + '</b> <span style="color:#9ca3af;font-size:11px">' + escapeHtml(tc.timestamp) + '</span></div>'
+  } else {
+    html += '<div style="margin-bottom:3px;color:#9ca3af">Task Capacity: —</div>'
+  }
+  if (tcExp) {
+    html += '<div><span style="color:#6b7280">Task Capacity Explainability:</span> ' + escapeHtml(tcExp.value) + '</div>'
+  } else {
+    html += '<div style="color:#9ca3af">Task Capacity Explainability: —</div>'
   }
   html += '</div>'
   return html
@@ -466,6 +659,7 @@ function awardHtml(trace: StoredTrace): string {
   const kpis = d.kpis as Record<string, unknown> | undefined
   let html = '<div style="margin:6px 0 6px 16px;padding:8px 12px;background:#ecfdf5;border-left:3px solid #059669;border-radius:4px">'
   html += '<strong style="color:#059669">' + escapeHtml(safeValue(title)) + '</strong>'
+  if (typeof d.agent_name === 'string') html += '<div style="font-size:12px;color:#6b7280;margin-top:2px">Agent: <b>' + escapeHtml(d.agent_name) + '</b></div>'
   if (desc) html += '<div style="font-size:13px;color:#374151;margin-top:2px">' + escapeHtml(safeValue(desc)) + '</div>'
   if (kpis) {
     html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">'
@@ -525,6 +719,7 @@ function buildHtmlSummary(
   html += '<div style="color:#6b7280;font-size:14px">User: <b>' + escapeHtml(session.userLogin ?? 'unknown') + '</b> &middot; Session: <span style="font-family:monospace;font-size:12px">' + escapeHtml(session.sessionId) + '</span>'
   html += '<button type="button" class="copy-btn" data-copy="' + escapeHtml(session.sessionId) + '" onclick="copyValue(this)" title="Copy the session id">Copy</button></div>'
   html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">' + formatTime(session.startedAt) + ' &rarr; ' + formatTime(endedAt) + '</div>'
+  if (session.agentChoice) html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">Agents: <b>' + escapeHtml(session.agentChoice.names.join(' + ')) + '</b></div>'
   html += '</div>'
 
   // KPIs
@@ -532,11 +727,12 @@ function buildHtmlSummary(
   html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.total_session_time_ms) + '</div><div class="label">Total Session Time</div></div>'
   html += '<div class="kpi-box"><div class="value">' + String(events.length) + '</div><div class="label">Events Handled</div></div>'
 
-  const resolved = events.filter(function (e) { return e.decision_time_ms !== null })
+  // Events where an agent's recommendation was applied - doing nothing instead is a decision, not assistance
+  const resolved = events.filter(function (e) { return e.decisions.some(function (d) { return !d.do_nothing }) })
   html += '<div class="kpi-box"><div class="value">' + resolved.length + ' / ' + events.length + '</div><div class="label">Assistance relevance</div></div>'
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_decision_time_ms) + '</div><div class="label">Average Total Decision Time </div></div>'
-  const humanDecided = events.filter(function (e) { return e.human_decision_time_ms !== null })
-  html += '<div class="kpi-box"><div class="value">' + formatMs(kpis.avg_human_decision_time_ms) + '</div><div class="label">Average Human Response Time </div></div>'
+  const decisionCount = ' (' + kpis.decision_count + ' decision' + (kpis.decision_count === 1 ? '' : 's') + ')'
+  html += '<div class="kpi-box"><div class="value">' + formatMeanStd(kpis.avg_decision_time_ms, kpis.std_decision_time_ms) + '</div><div class="label">Average Total Decision Time' + decisionCount + '</div></div>'
+  html += '<div class="kpi-box"><div class="value">' + formatMeanStd(kpis.avg_human_decision_time_ms, kpis.std_human_decision_time_ms) + '</div><div class="label">Average Human Response Time' + decisionCount + '</div></div>'
   html += '</div>'
 
   // Per-event details
@@ -553,6 +749,7 @@ function buildHtmlSummary(
     html += '<div class="card">'
     html += '<h3>' + stepBadge('EVENT') + ' Event #' + (ei + 1)
     if (eventId) html += ' <span class="tag">ID: ' + escapeHtml(eventId) + '</span>'
+    if (typeof d?.occurrence === 'number') html += ' <span class="tag">Occurrence #' + d.occurrence + '</span>'
     html += ' <span class="tag">' + escapeHtml(eventType) + '</span>'
     html += '</h3>'
     if (eventTitle) html += '<div style="font-size:15px;font-weight:600;margin:4px 0">' + escapeHtml(eventTitle) + '</div>'
@@ -562,11 +759,16 @@ function buildHtmlSummary(
     html += observationHtml(evt.data)
     html += cognitiveSnapshotHtml(evt.data)
 
-    // Decision time
-    if (evt.decision_time_ms !== null) {
-      html += '<div style="margin-top:8px;font-size:13px">&#9201; Total Decision Time: <b>' + formatMs(evt.decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
-      if (evt.human_decision_time_ms !== null) {
-        html += '<div style="font-size:13px">&#128100; Human Response Time: <b>' + formatMs(evt.human_decision_time_ms) + '</b> <span style="color:#6b7280"></span></div>'
+    // Decision time, one line per applied recommendation
+    if (evt.decisions.length > 0) {
+      for (let di = 0; di < evt.decisions.length; di++) {
+        const decision = evt.decisions[di]
+        const prefix = evt.decisions.length > 1 ? 'Decision ' + (di + 1) + ' &middot; ' : ''
+        const choice = decision.do_nothing ? ' <span class="tag">Do nothing</span>' : ''
+        html += '<div style="margin-top:8px;font-size:13px">' + prefix + '&#9201; Total Decision Time: <b>' + formatMs(decision.decision_time_ms) + '</b>' + choice + '</div>'
+        if (decision.human_decision_time_ms !== null) {
+          html += '<div style="font-size:13px">' + prefix + '&#128100; Human Response Time: <b>' + formatMs(decision.human_decision_time_ms) + '</b></div>'
+        }
       }
     } else {
       html += '<div class="no-solution" style="margin-top:8px">No solution selected</div>'
@@ -675,7 +877,7 @@ function download(content: string, mimeType: string, fileName: string) {
 }
 
 function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'html') {
-  const started = session.startedAt.replace(/:/g, '-').replace('.', '-')
+  const started = exportTime(session.startedAt).replace(/:/g, '-').replace('.', '-')
   const user = session.userLogin ?? 'unknown'
   return `historic-session-${user}-${started}.${extension}`
 }
@@ -686,6 +888,17 @@ function sessionFileName(session: TraceSession, extension: 'json' | 'csv' | 'htm
  */
 export function currentTraceSessionId(): string | undefined {
   return loadSession()?.sessionId
+}
+
+/** The agents chosen for this session, if the operator has chosen yet. */
+export function sessionAgentChoice(): AgentChoice | undefined {
+  return loadSession()?.agentChoice
+}
+
+export function setSessionAgentChoice(choice: AgentChoice) {
+  const session = loadSession() ?? createSession()
+  session.agentChoice = choice
+  saveSession(session)
 }
 
 export function startTraceSession(userLogin?: string) {
@@ -709,12 +922,25 @@ export async function recordTraceForSession(
       if (cardPublishTime < sessionTime) return
     }
 
+    // The same card arrives again on every update and on every snapshot replay
+    // (reload, re-subscription); only one thing makes it a new event: being
+    // published again after an applied recommendation resolved it. Comparing
+    // publish dates, not arrival, also catches a re-publish sent while no
+    // subscription was open - the replay that follows carries its date.
     const key = eventKey(trace.data)
     if (key) {
-      const alreadyRecorded = session.traces.some(
+      const occurrences = session.traces.filter(
         (item) => item.step === 'EVENT' && eventKey(item.data) === key
-      )
-      if (alreadyRecorded) return
+      ).length
+      if (occurrences > 0) {
+        const resolvedAt = session.resolvedAt?.[key]
+        if (!pubDate || !resolvedAt || new Date(pubDate) <= new Date(resolvedAt)) return
+        // Claimed before the awaits below, so a second update of the same card
+        // arriving meanwhile is not taken for yet another occurrence
+        delete session.resolvedAt![key]
+        saveSession(session)
+        trace = { ...trace, data: { ...asRecord(trace.data), occurrence: occurrences + 1 } }
+      }
     }
   }
 
@@ -732,7 +958,7 @@ export async function recordTraceForSession(
   let enrichedData: unknown = baseData
   if (hasCognitiveConsent()) {
     try {
-      const cognitiveSnapshot = await fetchCognitiveSnapshot()
+      const cognitiveSnapshot = compactCognitiveSnapshot(await fetchCognitiveSnapshot())
       enrichedData = { ...asRecord(baseData), cognitive_snapshot: cognitiveSnapshot }
     } catch (err: unknown) {
       // Should not happen (fetchCognitiveSnapshot never throws), but guard anyway
@@ -744,18 +970,35 @@ export async function recordTraceForSession(
           stress_state: null,
           cognitive_performance_explainability: null,
           stress_explainability: null,
+          task_capacity: null,
+          task_capacity_explainability: null,
           error: `Failed to get cognitive factors: ${message}`
         }
       }
     }
   }
 
-  session.traces.push({
+  // Re-read: other traces may have been recorded while the snapshots above
+  // were fetched, and saving the copy loaded at the start would drop them
+  const latest = loadSession() ?? session
+  latest.traces.push({
     date: trace.date ? String(trace.date) : new Date().toISOString(),
     use_case: trace.use_case,
     step: trace.step,
     data: enrichedData
   })
+  saveSession(latest)
+}
+
+/**
+ * Record that the operator's applied recommendation resolved this version of
+ * the card, so the card being published again afterwards is a new event.
+ */
+export function markEventResolved(cardId: string, publishDate: number | string) {
+  const session = loadSession()
+  const key = eventKey({ card_id: cardId })
+  if (!session || !key) return
+  session.resolvedAt = { ...session.resolvedAt, [key]: new Date(publishDate).toISOString() }
   saveSession(session)
 }
 
@@ -790,20 +1033,16 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
   // --- Session-level KPIs ---
   const totalSessionTimeMs = new Date(endedAt).getTime() - new Date(session.startedAt).getTime()
   const events = structured.filter(isStructuredEvent)
-  const totalEvents = events.length
-  const sumDecisionTime = events.reduce(
-    (sum, evt) => sum + (evt.decision_time_ms ?? 0),
-    0
-  )
-  const humanDecisionTimes = events
-    .map((evt) => evt.human_decision_time_ms)
-    .filter((time): time is number => time !== null)
+  const decisions = events.flatMap((evt) => evt.decisions)
+  const decisionTimes = decisions.map((decision) => decision.decision_time_ms)
+  const humanDecisionTimes = humanTimes(decisions)
   const kpis: SessionKpis = {
     total_session_time_ms: totalSessionTimeMs,
-    avg_decision_time_ms: totalEvents > 0 ? sumDecisionTime / totalEvents : null,
-    avg_human_decision_time_ms: humanDecisionTimes.length
-      ? humanDecisionTimes.reduce((sum, time) => sum + time, 0) / humanDecisionTimes.length
-      : null
+    decision_count: decisions.length,
+    avg_decision_time_ms: mean(decisionTimes),
+    std_decision_time_ms: standardDeviation(decisionTimes),
+    avg_human_decision_time_ms: mean(humanDecisionTimes),
+    std_human_decision_time_ms: standardDeviation(humanDecisionTimes)
   }
 
   // Build HTML summary before replacing event_context so the image is preserved in the HTML
@@ -827,10 +1066,12 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
       userLogin: session.userLogin,
       startedAt: session.startedAt,
       endedAt,
+      ...(session.agentChoice && { agents: session.agentChoice.names }),
       kpis,
       traces: structured
     },
-    null,
+    // Times in French local time rather than UTC (see exportTime)
+    (_key, value) => (typeof value === 'string' && UTC_ISO.test(value) ? exportTime(value) : value),
     2
   )
   download(json, 'application/json;charset=utf-8', sessionFileName(session, 'json'))

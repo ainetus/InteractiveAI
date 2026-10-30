@@ -2,12 +2,11 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 import { fetchCognitiveSnapshot } from '@/api/cognitive'
-import type { CognitiveSnapshot } from '@/api/cognitive'
 import * as servicesApi from '@/api/services'
 import i18n from '@/plugins/i18n'
 import type { Card } from '@/types/cards'
 import type { Context, Entity } from '@/types/entities'
-import type { FullContext, Recommendation } from '@/types/services'
+import type { FullContext, Recommendation, RecommendationJob } from '@/types/services'
 import { hasCognitiveConsent } from '@/utils/consent'
 import { isHandlingSessionExpiry } from '@/utils/session'
 import { getRootCard } from '@/utils/utils'
@@ -16,6 +15,11 @@ import { useAppStore } from './app'
 import { useAuthStore } from './auth'
 
 const { t } = i18n.global
+
+/** Milliseconds between two polls of a recommendation job */
+const POLL_INTERVAL = 1000
+/** Polls in a row that may fail before the operator is told */
+const MAX_FAILED_POLLS = 5
 
 export const useServicesStore = defineStore('services', () => {
   const _context = ref<FullContext>()
@@ -57,13 +61,23 @@ export const useServicesStore = defineStore('services', () => {
           _context.value = data[0]
         }
         const res = data.find((el): el is FullContext<E> => el.use_case === entity)
+
+        // The first poll of a session records what was already there, so a
+        // context published before login is not replayed as if it had just
+        // happened. It has to be recorded even when there is nothing yet ('' =
+        // no context at login, `null` = not yet recorded): a freshly deployed
+        // stack starts empty, and treating the first context the scenario
+        // produces as this pre-existing one swallowed it - the operator saw no
+        // context at all until they logged out and back in, which cleared the
+        // baseline and let the *next* run through.
+        if (localStorage.getItem('context') === null)
+          localStorage.setItem('context', res?.id_context ?? '')
+
         // If context is not available, return
         if (!res) {
           appStore.status.context.state = 'OFFLINE'
           return
         }
-        // If there is no previous context, set it
-        if (!localStorage.getItem('context')) localStorage.setItem('context', res.id_context)
         // If previous and current context are different, we can store it and callback
         if (
           localStorage.getItem('context') !== res.id_context &&
@@ -102,7 +116,15 @@ export const useServicesStore = defineStore('services', () => {
     return _contextPID.value
   }
 
-  async function getRecommendation<E extends Entity>(event: Card<E>, context = _context.value) {
+  /**
+   * The request for the recommendation service, `undefined` (operator told)
+   * when there is no context yet.
+   */
+  async function recommendationAsk<E extends Entity>(
+    event: Card<E>,
+    context: FullContext | undefined,
+    agents?: string[]
+  ): Promise<servicesApi.RecommendationAsk<E> | undefined> {
     if (!context) {
       const appStore = useAppStore()
       appStore.addModal({
@@ -128,19 +150,79 @@ export const useServicesStore = defineStore('services', () => {
     // when the operator has consented. Without consent, nothing is fetched or
     // sent to the agent. Sent as-is even on failure (snapshot may contain nulls
     // or an `error` field) so a cognitive-API outage never blocks the request.
-    const payload: {
-      event: Card<E>['data']['metadata']
-      context: Context<E>
-      cognitive_snapshot?: CognitiveSnapshot
-    } = {
+    const payload: servicesApi.RecommendationAsk<E> = {
       event: getRootCard(event).data.metadata,
-      context: contextForAgent
+      context: contextForAgent as Context<E>,
+      ...(agents?.length && { agents })
     }
     if (hasCognitiveConsent()) {
       payload.cognitive_snapshot = await fetchCognitiveSnapshot()
     }
+    return payload
+  }
+
+  /** @param agents ids of the agents to ask, all of them when absent */
+  async function getRecommendation<E extends Entity>(
+    event: Card<E>,
+    context = _context.value,
+    agents?: string[]
+  ) {
+    const payload = await recommendationAsk(event, context, agents)
+    if (!payload) return
     const { data } = await servicesApi.getRecommendation<E>(payload)
     _recommendations.value = data
+  }
+
+  /**
+   * Asks for recommendations agent by agent, and calls `onUpdate` with the job
+   * each time an agent answers - the first ones are on screen while a slow
+   * agent is still working. Resolves with the finished job, or `undefined`
+   * when there is no context, the request fails or `signal` is aborted.
+   *
+   * @param agents ids of the agents to ask, all of them when absent
+   */
+  async function watchRecommendations<E extends Entity>(
+    event: Card<E>,
+    {
+      agents,
+      signal,
+      onUpdate
+    }: {
+      agents?: string[]
+      signal?: AbortSignal
+      onUpdate: (job: RecommendationJob<E>) => void
+    }
+  ) {
+    const payload = await recommendationAsk(event, _context.value, agents)
+    if (!payload || signal?.aborted) return
+    // An error here is shown by the http plugin
+    let job: RecommendationJob<E>
+    try {
+      job = (await servicesApi.startRecommendationJob<E>(payload)).data
+    } catch {
+      return
+    }
+    let answered = -1
+    let failedPolls = 0
+    while (!signal?.aborted) {
+      const done = job.agents.filter((agent) => agent.status !== 'pending').length
+      if (done !== answered) {
+        answered = done
+        onUpdate(job)
+      }
+      if (job.status === 'done') return job
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL))
+      if (signal?.aborted) return
+      try {
+        job = (await servicesApi.getRecommendationJob<E>(job.id)).data
+        failedPolls = 0
+      } catch {
+        // A lost poll is no reason to give up: the job goes on server side
+        if (++failedPolls < MAX_FAILED_POLLS) continue
+        useAppStore().addModal({ data: t('modal.error.RECOMMENDATION_JOB'), type: 'info' })
+        return
+      }
+    }
   }
 
   return {
@@ -148,6 +230,7 @@ export const useServicesStore = defineStore('services', () => {
     recommendations,
     getContext,
     stopContext,
-    getRecommendation
+    getRecommendation,
+    watchRecommendations
   }
 })

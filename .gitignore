@@ -199,3 +199,6 @@ go.sh
 !frontend/env/
 !frontend/env/.env
 hmisurveys/
+
+
+tmp

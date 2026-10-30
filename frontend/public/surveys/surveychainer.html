@@ -107,12 +107,54 @@
     ];
 
     // Per-use-case chains, keyed by the condition InteractiveAI sends (the
-    // entity name: PowerGrid, ATM, Railway). Every use case shares the default
-    // chain today; give one its own questionnaires by adding an entry here,
-    // e.g. PowerGrid: [{ name: "...", url: "./workload/nasa_tlx.html" }].
-    const CHAINS = {};
+    // entity name: PowerGrid, ATM, Railway); the others play the default chain.
+    // Add one with its questionnaires, e.g. ATM: [{ name: "...", url: "./workload/nasa_tlx.html" }].
+    const CHAINS = {
+        // AI4REALNET power grid evaluation, in French: the chain of
+        // ai4realnet/ai4realnet-user-studies/power-grid-evaluation-fr.html
+        PowerGrid: [
+            { name: "ATAI", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html" },
+            { name: "Score d’adhésion (Réseau électrique)", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid-fr.html" },
+            { name: "Importance des modifications humaines (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid-fr.html" },
+            { name: "Originalité des recommandations (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid-fr.html" },
+            { name: "Déqualification des opérateurs (Réseau électrique)", url: "./ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid-fr.html" },
+            { name: "Adoption à long terme", url: "./ai4realnet/long-term-consequences/predicted-long-term-adoption-fr.html" }
+        ]
+    };
 
     const surveys = CHAINS[prefill.condition] || DEFAULT_CHAIN;
+
+    // The chainer speaks the language of its questionnaires (French wording
+    // taken from power-grid-evaluation-fr.html); English otherwise.
+    const CHAIN_LANG = { PowerGrid: "fr" };
+    const TEXT = {
+        en: {
+            title: "Survey Session",
+            intro: "Press Start button below",
+            start: "Start",
+            finish: "Finish",
+            progress: (n, total, name) => `Survey ${n} of ${total}: ${name}`,
+            done: "✅ All surveys completed!",
+            missingIds: "Please enter both Participant ID and Condition ID.",
+            thanks: "Thank you!"
+        },
+        fr: {
+            title: "Session d'enquête",
+            intro: "Appuyez sur le bouton 'Commencer' ci-dessous",
+            start: "Commencer",
+            finish: "Finaliser",
+            progress: (n, total, name) => `Enquête ${n} sur ${total} : ${name}`,
+            done: "✅ Tous les questionnaires sont remplis !",
+            missingIds: "Veuillez saisir l'identifiant du participant et l'identifiant de la condition.",
+            thanks: "Merci !"
+        }
+    };
+    const text = TEXT[CHAIN_LANG[prefill.condition]] || TEXT.en;
+    document.documentElement.lang = CHAIN_LANG[prefill.condition] || "en";
+    document.querySelector("#part1 h1").textContent = text.title;
+    document.getElementById("progress").textContent = text.intro;
+    document.getElementById("startBtn").textContent = text.start;
+    document.getElementById("downloadBtn").textContent = text.finish;
 
     // =============================================================
     // === STATE ====================================================
@@ -177,7 +219,7 @@
 
     function loadSurvey() {
         const survey = surveys[current];
-        progress.textContent = `Survey ${current + 1} of ${surveys.length}: ${survey.name}`;
+        progress.textContent = text.progress(current + 1, surveys.length, survey.name);
 
         // Build URL and enforce global overrides
         const url = new URL(survey.url, window.location.href);
@@ -187,7 +229,7 @@
     function finishSession() {
 
         frame.classList.add("hidden");
-        progress.textContent = "✅ All surveys completed!";
+        progress.textContent = text.done;
         downloadBtn.classList.remove("hidden");
     }
 
@@ -200,7 +242,7 @@
         }
 
         if (ParticipantID && !autofilled && (participantData.id === "anon" || participantData.condition === "none")) {
-            alert("Please enter both Participant ID and Condition ID.");
+            alert(text.missingIds);
             return;
         }
 
@@ -214,7 +256,7 @@
         const resultsSection = document.getElementById("resultsSection");
         resultsSection.style.display = "block";
 
-        document.getElementById("resultsSection").outerText = "Thank you!";
+        document.getElementById("resultsSection").outerText = text.thanks;
 
     });
 

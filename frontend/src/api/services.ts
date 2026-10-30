@@ -6,15 +6,41 @@ import { useServicesStore } from '@/stores/services'
 import type { Card } from '@/types/cards'
 import type { Action, Context, Entity } from '@/types/entities'
 import type { Procedure } from '@/types/procedure'
-import type { FullContext, Recommendation, Trace } from '@/types/services'
+import type { Agent, FullContext, Recommendation, RecommendationJob, Trace } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
-export function getRecommendation<E extends Entity = Entity>(payload: {
+export type RecommendationAsk<E extends Entity = Entity> = {
   event: Card<E>['data']['metadata']
   context: Context<E>
   cognitive_snapshot?: CognitiveSnapshot
-}) {
+  /** Ids of the agents to ask; all of them when absent */
+  agents?: Agent['id'][]
+}
+
+export function getRecommendation<E extends Entity = Entity>(payload: RecommendationAsk<E>) {
   return http.post<Recommendation<E>[]>('/cab_recommendation/api/v1/recommendation', payload)
+}
+
+/**
+ * Starts asking for recommendations, agent by agent: the answer comes at once,
+ * then `getRecommendationJob` has each agent's recommendations as it answers.
+ * No request is held open while a slow agent works, which a VPN or a proxy on
+ * the way can cut.
+ */
+export function startRecommendationJob<E extends Entity = Entity>(payload: RecommendationAsk<E>) {
+  return http.post<RecommendationJob<E>>('/cab_recommendation/api/v1/recommendation/jobs', payload)
+}
+
+export function getRecommendationJob<E extends Entity = Entity>(id: RecommendationJob['id']) {
+  // Silent: a failed poll is retried, the caller reports when it gives up
+  return http.get<RecommendationJob<E>>(`/cab_recommendation/api/v1/recommendation/jobs/${id}`, {
+    _silent: true
+  })
+}
+
+/** The recommendation agents of a use case - empty when it has a single, built-in one. */
+export function getAgents(useCase: Entity) {
+  return http.get<Agent[]>('/cab_recommendation/api/v1/agents', { params: { use_case: useCase } })
 }
 
 export function getContext<E extends Entity = Entity>() {

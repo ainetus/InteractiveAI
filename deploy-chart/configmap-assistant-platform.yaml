@@ -248,6 +248,9 @@ data:
             add_header Cache-Control "no-cache";
             proxy_pass http://cab-cabrecommendation.cab.svc.cluster.local:5000/;
             proxy_set_header X-Forwarded-For $remote_addr;
+            # Agents are asked in parallel and the slowest one may take up to its
+            # RL_AGENT[_<n>]_TIMEOUT (60 s for the GNN agent): above nginx's 60 s default
+            proxy_read_timeout 120s;
         }
 
         location /cabhistoric/ {

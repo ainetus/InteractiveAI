@@ -2,25 +2,25 @@ cabcontext:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-context
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
 
 cabevent:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-event
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
 
 cabhistoric:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-historic
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
 
 cabrecommendation:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-recommendation
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
   extraEnv:
     - name: RL_AGENT_API_URL
       value: "https://interactiveagent.passerelle.irt-systemx.fr/api/v1/recommendation"
@@ -29,18 +29,41 @@ cabrecommendation:
         secretKeyRef:
           name: cab-recommendation
           key: rl-agent-api-token
-          
+    # Names shown to the operator, who picks the agents at the start of a session.
+    # Set here: the defaults in docker-compose.yml do not apply on k8s.
+    - name: RL_AGENT_NAME
+      value: "Deep Expert"
+    # Recommendations asked from Deep Expert ("num_reco"): 3 when it is the only agent
+    # of the session, 1 next to the others (it adds a reference-topology one)
+    - name: RL_AGENT_NUM_RECO
+      value: "3"
+    - name: RL_AGENT_NUM_RECO_SHARED
+      value: "1"
+    # Further agents (RL_AGENT_<n>_*); no token needed behind the gateway
+    - name: RL_AGENT_2_API_URL
+      value: "https://interactiveai-curriculum.passerelle.irt-systemx.fr/api/v1/recommendation"
+    - name: RL_AGENT_2_NAME
+      value: "CurriculumAgent"
+    - name: RL_AGENT_3_API_URL
+      value: "https://interactiveai-gnn.passerelle.irt-systemx.fr/api/v1/recommendation"
+    - name: RL_AGENT_3_NAME
+      value: "GNN agent"
+    # Seconds the GNN agent has to answer (~15 s on a stressed grid; 30 s by default).
+    # nginx /cab_recommendation/ (configmap-assistant-platform.yaml) allows 120 s.
+    - name: RL_AGENT_3_TIMEOUT
+      value: "60"
+
 cabcapitalization:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-capitalization
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
 
 frontend:
   image:
     repository: harbor.irtsysx.fr/docker-proxy-cache/irtsystemx/interactiveai-cab-standalone-frontend
     pullPolicy: Always
-    tag: "1.4.1"
+    tag: "1.5.1"
   extraEnv:
     - name: VITE_POWERGRID_SIMU
       value: "/powergrid-simu"

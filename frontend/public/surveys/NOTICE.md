@@ -16,6 +16,27 @@ Only the files used by the chain are vendored:
 | `acceptance/vanderlaan.html` | `html/acceptance/vanderlaan.html` |
 | `workload/mch.html` | `html/workload/mch.html` |
 
+The PowerGrid chain - the AI4REALNET power grid evaluation, in French - comes
+from the `ai4realnet` branch of the fork
+<https://github.com/clarkborst/hmisurveys> (commit `7382f3b`, 2026-10-07), where
+`html/ai4realnet/ai4realnet-user-studies/power-grid-evaluation-fr.html` chains
+these questionnaires. They are copied unmodified, with the same paths (they
+already post to `window.parent`); the chain itself is declared in
+`surveychainer.html` rather than vendoring that second chainer.
+
+`agreement-score-power-grid-fr.html` is a later version than that commit,
+received from the authors by email (2026-10-26): one statement shown at first
+instead of three, and an optional comment field.
+
+| File | Origin in clarkborst/hmisurveys (`ai4realnet`) |
+| --- | --- |
+| `ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` |
+| `ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid-fr.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid-fr.html` |
+| `ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid-fr.html` | `html/ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid-fr.html` |
+| `ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid-fr.html` | `html/ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid-fr.html` |
+| `ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid-fr.html` | `html/ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid-fr.html` |
+| `ai4realnet/long-term-consequences/predicted-long-term-adoption-fr.html` | `html/ai4realnet/long-term-consequences/predicted-long-term-adoption-fr.html` |
+
 ## Modifications
 
 Made so the chain can be embedded in InteractiveAI, and kept as small as
@@ -34,3 +55,6 @@ possible so an upstream update stays easy to re-apply:
    falling back to `DEFAULT_CHAIN`, so a use case can get its own chain.
 4. **`surveychainer.html`** lays its page out with flexbox so it fills the frame
    it is given instead of assuming a full browser window (`height: 80vh`).
+5. **`surveychainer.html`** shows its own texts (title, buttons, progress) in
+   the language of the chain: French for PowerGrid, with the wording of
+   `power-grid-evaluation-fr.html`, English otherwise (`CHAIN_LANG`, `TEXT`).

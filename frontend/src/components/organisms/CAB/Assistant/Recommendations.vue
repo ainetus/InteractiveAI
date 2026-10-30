@@ -74,8 +74,14 @@ import type { Recommendation } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
 const props = withDefaults(
-  defineProps<{ buttons: string[]; recommendations: Recommendation<E>[]; collapsed?: boolean }>(),
-  { collapsed: false }
+  defineProps<{
+    buttons: string[]
+    recommendations: Recommendation<E>[]
+    collapsed?: boolean
+    /** False while more recommendations are on their way (agents still answering) */
+    complete?: boolean
+  }>(),
+  { collapsed: false, complete: true }
 )
 const emit = defineEmits<{
   'update:recommendations': [recommendation: Recommendation<E>[]]
@@ -99,23 +105,34 @@ onBeforeMount(() => {
  * early, since everything the recommendation service spends answering would be
  * counted as the operator thinking. Recorded here rather than in each entity's
  * Assistant so every use case is measured the same way, and only once per
- * batch - the list is emptied before a new request, which re-arms it.
+ * batch - the list is emptied before a new request, which re-arms it. When
+ * the recommendations come agent by agent, the trace waits for the last ones
+ * so as to list them all, but keeps the moment the first ones were shown.
  */
-const shown = ref(false)
+const shownAt = ref<string>()
+const recorded = ref(false)
 watch(
-  () => props.recommendations,
-  (recommendations) => {
+  () => [props.recommendations, props.complete] as const,
+  ([recommendations, complete]) => {
     if (!recommendations.length) {
-      shown.value = false
+      shownAt.value = undefined
+      recorded.value = false
       return
     }
-    if (shown.value) return
-    shown.value = true
+    shownAt.value ??= new Date().toISOString()
+    if (recorded.value || !complete) return
+    recorded.value = true
     recordTraceForSession({
       use_case: recommendations[0].use_case,
       step: 'RECOMMENDATIONS',
-      date: new Date().toISOString(),
-      data: { recommendations: recommendations.map((recommendation) => recommendation.title) }
+      date: shownAt.value,
+      data: {
+        recommendations: recommendations.map((recommendation) => recommendation.title),
+        // Same order as `recommendations`, for use cases with several agents
+        ...(recommendations.some((recommendation) => recommendation.agent_name) && {
+          agent_names: recommendations.map((recommendation) => recommendation.agent_name ?? null)
+        })
+      }
     })
   },
   { immediate: true }

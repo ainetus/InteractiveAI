@@ -14,10 +14,13 @@ from settings import logger
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from .exceptions import InvalidUseCase
+from .jobs import job_state, start_job
 from .models import UseCaseModel, db
 from .schemas import (
+    AgentOut,
     ProcedureOut,
     RecommendationAsk,
+    RecommendationJobOut,
     RecommendationOut,
     UseCaseIn,
     UseCaseOut,
@@ -68,6 +71,87 @@ class RecommendationView(MethodView):
 
         # Return the result as JSON
         return jsonify(result)
+
+
+class RecommendationJobsView(MethodView):
+
+    @api_bp.input(RecommendationAsk)
+    @api_bp.output(RecommendationJobOut, status_code=202)
+    @protected
+    def post(self, data):
+        """Start asking for recommendations, agent by agent
+
+        Answers at once; poll GET /recommendation/jobs/<id> for the
+        recommendations of each agent as it answers.
+        """
+        request_use_case = request.args.get("use_case")
+        token_use_case_list = get_use_cases()
+        if len(token_use_case_list) > 1 and not request_use_case:
+            return abort(
+                400,
+                "User registred for more than one entity, specify use_case",
+            )
+        use_case_name = request_use_case or token_use_case_list[0]
+
+        from flask import current_app
+
+        try:
+            manager = current_app.use_case_factory.get_recommendation_manager(
+                use_case_name
+            )
+        except InvalidUseCase as invalid_use_case:
+            logger.error(f"Invalid use case {use_case_name} detected")
+            raise invalid_use_case
+
+        job = start_job(
+            current_app._get_current_object(), manager, use_case_name, data
+        )
+        # As a response: the output schema would drop the recommendations'
+        # fields it does not list
+        response = jsonify(job)
+        response.status_code = 202
+        return response
+
+
+class RecommendationJobView(MethodView):
+
+    @api_bp.output(RecommendationJobOut)
+    @protected
+    def get(self, job_id):
+        """A recommendation job: its agents and the recommendations so far"""
+        job = job_state(job_id)
+        if job is None or job["use_case"] not in get_use_cases():
+            return abort(404, "Recommendation job not found")
+        return jsonify(job)
+
+
+class AgentsView(MethodView):
+    @api_bp.output(AgentOut(many=True))
+    @protected
+    def get(self):
+        """List the recommendation agents of the use case."""
+        request_use_case = request.args.get("use_case")
+        token_use_case_list = get_use_cases()
+        if len(token_use_case_list) > 1 and not request_use_case:
+            return abort(
+                400,
+                "User registred for more than one entity, specify use_case",
+            )
+        use_case_name = request_use_case or token_use_case_list[0]
+
+        from flask import current_app
+
+        try:
+            manager = current_app.use_case_factory.get_recommendation_manager(
+                use_case_name
+            )
+        except InvalidUseCase as invalid_use_case:
+            logger.error(f"Invalid use case {use_case_name} detected")
+            raise invalid_use_case
+
+        # Use cases with a single, built-in agent have nothing to choose from
+        get_agents = getattr(manager, "get_agents", None)
+        return jsonify(get_agents() if get_agents else [])
 
 
 class ProcedureView(MethodView):
@@ -198,6 +282,15 @@ api_bp.add_url_rule("/health", view_func=HealthCheck.as_view("health"))
 api_bp.add_url_rule(
     "/recommendation", view_func=RecommendationView.as_view("recommendation")
 )
+api_bp.add_url_rule(
+    "/recommendation/jobs",
+    view_func=RecommendationJobsView.as_view("recommendation_jobs"),
+)
+api_bp.add_url_rule(
+    "/recommendation/jobs/<job_id>",
+    view_func=RecommendationJobView.as_view("recommendation_job"),
+)
+api_bp.add_url_rule("/agents", view_func=AgentsView.as_view("agents"))
 api_bp.add_url_rule("/procedure", view_func=ProcedureView.as_view("procedure"))
 
 

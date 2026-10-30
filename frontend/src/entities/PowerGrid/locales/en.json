@@ -5,7 +5,6 @@
   "event.button.primary": "Consult the recommendations",
   "event.button.secondary": "Use the analysis tool",
   "event.text": "{event} detected. Would you like help processing the event?",
-  "recommendations.button.secondary": "Use the study tool",
   "recommendations.button1": "Maximum charge",
   "recommendations.button2": "LTTD > 2h",
   "recommendations.description": "Description",
@@ -17,5 +16,19 @@
   "PowerGrid.kpis.redispatching_volume": "Redispatch volume",
   "PowerGrid.kpis.renewable_energy_share": "Proportion of renewable",
   "PowerGrid.kpis.total_consumption": "Total consumption",
-  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation"
+  "PowerGrid.kpis.type_of_the_reco": "Type of recommendation",
+  "PowerGrid.kpis.confidence": "Confidence",
+  "PowerGrid.confidence.low": "low",
+  "PowerGrid.confidence.medium": "medium",
+  "PowerGrid.confidence.high": "high",
+  "PowerGrid.agents.choice.title": "Choose your recommendation agent",
+  "PowerGrid.agents.choice.text": "It will propose actions for the whole session. You can't change it until you log out.",
+  "PowerGrid.do_nothing": "Do nothing",
+  "PowerGrid.do_nothing.confirm": "Continue the simulation without applying any of the recommendations?",
+  "PowerGrid.do_nothing.description": "Operator's choice: continue the simulation without any action",
+  "PowerGrid.do_nothing.no_context": "The grid state is not available yet, try again in a few seconds.",
+  "PowerGrid.agents.choice.all": "All agents",
+  "PowerGrid.agents.choice.start": "Start the session",
+  "PowerGrid.agents.waiting": "Waiting for one more agent… | Waiting for {count} more agents…",
+  "PowerGrid.agents.failed": "One agent did not answer | {count} agents did not answer"
 }
