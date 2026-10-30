@@ -1,15 +1,22 @@
 # Changelog
 
 
-## Unreleased
+## 1.5.1 (2026-10-28)
+
+### Fixed
+
+- The recommendation service crashed at startup in the 1.5.0 image (`No module named 'psycopg'`): SQLAlchemy was not pinned and the build picked up 2.1, whose default PostgreSQL driver is not installed. Pinned to 2.0.54.
+
+## 1.5.0 (2026-10-28)
 
 ### Added
 
-- PowerGrid: several recommendation agents. At the start of a session the operator chooses Deep Expert, CurriculumAgent, the GNN agent or all of them; each recommendation shows the agent that made it.
+- PowerGrid: several recommendation agents. At the start of a session the operator chooses Deep Expert, CurriculumAgent, the GNN agent or all of them. Recommendations do not name their agent (to avoid biasing the operator), but the session export records it.
 - PowerGrid: uncertainty KPI in the recommendations table, for agents that estimate it (CurriculumAgent).
 - PowerGrid: "Do nothing" option to resume the simulation without applying any recommendation.
 - PowerGrid: post-logout survey replaced by the AI4REALNET power grid evaluation, in French (6 questionnaires: ATAI, agreement score, significance of human revisions, decision novelty, operator deskilling, long-term adoption).
 - Session export: the agents chosen for the session, the agent of each recommendation, and "Do nothing" decisions (not counted as assistance).
+- Cognitive state: Task Capacity read with the other factors. It is sent to the agents in `cognitive_snapshot` (`task_capacity`, `task_capacity_explainability`) and recorded in the session export.
 
 ### Fixed
 
@@ -23,6 +30,15 @@
 - Each agent has its own response timeout, `RL_AGENT_<n>_TIMEOUT` (30 s by default, 60 s for the GNN agent); nginx allows 120 s on `/cab_recommendation/`.
 - PowerGrid: each agent's recommendations are shown as soon as it answers, with the agents still working or that gave no answer. The frontend starts a job (`POST /cab_recommendation/api/v1/recommendation/jobs`) and polls it (`GET .../jobs/<id>`); jobs are kept in the recommendation database (new tables, created at startup) for an hour. `POST /recommendation` is unchanged.
 - The agent call log gives each agent's response time.
+- PowerGrid: the uncertainty row of the recommendations table now shows **Confidence** (100 % minus the agent's uncertainty, with its confidence level).
+- PowerGrid: agents' French "Poursuivre" titles are shown as "Continue".
+- PowerGrid: the unused "Use the study tool" button next to Apply is removed.
+- While the session loads, "No context available" reads "Please wait a few seconds while the session is loading…" (and the same when asking for recommendations too early).
+- Session export: times are in French local time with their offset (e.g. `2026-10-26T13:22:08.123+01:00`, +2 in summer) instead of UTC, in the JSON, the HTML report and the file name.
+- PowerGrid: agents are no longer named to the operator, to avoid biasing them: no agent row in the recommendations table, no agent name in titles (a title proposed by two agents is numbered, "Continue (2)"), and neutral waiting messages ("Waiting for 2 more agents…"). The agent of each recommendation is still recorded in the session export.
+- PowerGrid: the Confidence row is shown only when the session uses a single agent.
+- PowerGrid: the unused "Use the analysis tool" button is removed.
+- Survey: new version of the agreement score questionnaire (one statement at first, optional comment).
 
 ## 1.4.2 (2026-10-07)
 

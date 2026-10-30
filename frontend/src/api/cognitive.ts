@@ -24,7 +24,9 @@ const FACTOR_IDS = {
   COGNITIVE_PERFORMANCE: '105',
   STRESS_STATE: '106',
   COGNITIVE_PERFORMANCE_EXPLAINABILITY: '107',
-  STRESS_EXPLAINABILITY: '108'
+  STRESS_EXPLAINABILITY: '108',
+  TASK_CAPACITY: '110',
+  TASK_CAPACITY_EXPLAINABILITY: '111'
 } as const
 
 // --------------------------------------------------------------------------
@@ -45,6 +47,10 @@ export type CognitiveSnapshot = {
   cognitive_performance_explainability: CognitiveFactorEntry | null
   /** Free-text explanation of the stress state (factor 108) */
   stress_explainability: CognitiveFactorEntry | null
+  /** Numeric task-capacity score (factor 110) */
+  task_capacity: CognitiveFactorEntry | null
+  /** Free-text explanation of the task capacity (factor 111) */
+  task_capacity_explainability: CognitiveFactorEntry | null
   /** Set when the API call failed — contains the error message */
   error?: string
 }
@@ -88,7 +94,9 @@ export async function fetchCognitiveSnapshot(
     cognitive_performance: null,
     stress_state: null,
     cognitive_performance_explainability: null,
-    stress_explainability: null
+    stress_explainability: null,
+    task_capacity: null,
+    task_capacity_explainability: null
   }
   try {
     // Step 1 — get agents for this event
@@ -117,7 +125,9 @@ export async function fetchCognitiveSnapshot(
       cognitive_performance: find(FACTOR_IDS.COGNITIVE_PERFORMANCE),
       stress_state: find(FACTOR_IDS.STRESS_STATE),
       cognitive_performance_explainability: find(FACTOR_IDS.COGNITIVE_PERFORMANCE_EXPLAINABILITY),
-      stress_explainability: find(FACTOR_IDS.STRESS_EXPLAINABILITY)
+      stress_explainability: find(FACTOR_IDS.STRESS_EXPLAINABILITY),
+      task_capacity: find(FACTOR_IDS.TASK_CAPACITY),
+      task_capacity_explainability: find(FACTOR_IDS.TASK_CAPACITY_EXPLAINABILITY)
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
