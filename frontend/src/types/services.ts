@@ -8,6 +8,24 @@ export type Recommendation<E extends Entity = Entity> = {
   title: string
   actions: Action<E>[]
   kpis?: { [key: string]: any }
+  /** Which agent made it, when the use case has several */
+  agent_id?: Agent['id']
+  agent_name?: string
+}
+
+export type Agent = {
+  id: string
+  name: string
+}
+
+/** Recommendations asked agent by agent: poll it until `status` is `done`. */
+export type RecommendationJob<E extends Entity = Entity> = {
+  id: string
+  use_case: E
+  status: 'running' | 'done'
+  agents: (Agent & { status: 'pending' | 'done' | 'failed' })[]
+  /** Those of the agents that have answered */
+  recommendations: Recommendation<E>[]
 }
 
 export type FullContext<E extends Entity = Entity> = {

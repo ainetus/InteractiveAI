@@ -3,6 +3,10 @@ export type AirplaneContext = {
   Current_airspeed: number;
   Latitude: number;
   Longitude: number;
+  // True heading, degrees clockwise from north (0-360). Optional.
+  heading?: number;
+  // True if another aircraft is currently inside this one's protected zone.
+  in_los?: boolean;
   ApDest?: {
     apcity: string;
     apid: Uppercase<string>;
@@ -22,6 +26,7 @@ export type LegacyContext = {
   Current_airspeed: number;
   Latitude: number;
   Longitude: number;
+  heading?: number;
   ApDest?: {
     apcity: string;
     apid: Uppercase<string>;
@@ -37,7 +42,15 @@ export type LegacyContext = {
   }[];
 };
 
-export type ContextType = { airplanes: AirplaneContext[] } | LegacyContext;
+export type ShapeContext = {
+  name: string;
+  kind?: 'SECTOR' | 'WEATHER' | 'VOLCANIC' | 'OBSTACLE' | string;
+  coordinates: [number, number][];
+};
+
+export type ContextType =
+  | { airplanes: AirplaneContext[]; shapes?: ShapeContext[] }
+  | LegacyContext;
 
 export type ATM = {
   Context: ContextType;

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Van der Laan Acceptance Scale (UEQ-style)</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 40px;
+            line-height: 1.5;
+            background: #fafafa;
+        }
+        h1 { text-align: center; }
+        p { max-width: 800px; margin: 0 auto 25px; }
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 14px auto;
+            max-width: 800px;
+        }
+        .label-left, .label-right {
+            width: 120px;
+            text-align: center;
+            font-weight: normal;
+        }
+        .scale {
+            display: flex;
+            justify-content: space-between;
+            width: 250px;
+            margin: 0 20px;
+        }
+        .scale input[type="radio"] {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        .scale input[type="radio"]:checked::before {
+        }
+        .submit-btn {
+            display: block;
+            margin: 30px auto;
+            padding: 10px 20px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .submit-btn:hover { background: #005fa3; }
+
+        #results {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 750px;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table.results {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        table.results th, table.results td {
+            border: 1px solid #ccc;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        table.results th {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+<section id="part1">
+    <h1>Van der Laan Acceptance Scale</h1>
+    <p>
+        Please rate the system using the scales below. The middle represents a neutral judgment (0),
+        left indicates negative (−2), and right indicates positive (+2).
+    </p>
+
+    <!-- Participant info fields (shown only if ParticipantID == true) -->
+    <div id="participantInfo" style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+        <label for="pid"><strong>Participant ID:</strong></label>
+        <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+        <label for="cond"><strong>Condition ID:</strong></label>
+        <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+    </div>
+
+    <div id="survey"></div>
+    <button class="submit-btn" id="submitBtn">Submit</button>
+</section>
+
+<section id="resultsSection" class="hidden">
+    <div id="results">
+        <h2>Results</h2>
+        <div id="resultsContent"></div>
+    </div>
+</section>
+
+<script>
+    // =====================================================
+    // === CONFIGURATION ===================================
+    // =====================================================
+
+    // === Global options ===
+    const fileDownload = false;       // Set to true to auto-download JSON
+    const ParticipantID = false;      // Set to true to show Participant/Condition fields
+
+    const items = [
+        { left:"Useful", right:"Useless", reverse:true, key:"U1" },
+        { left:"Pleasant", right:"Unpleasant", reverse:true, key:"S1" },
+        { left:"Bad", right:"Good", reverse:false, key:"U2" },
+        { left:"Nice", right:"Annoying", reverse:true, key:"S2" },
+        { left:"Effective", right:"Superfluous", reverse:true, key:"U3" },
+        { left:"Irritating", right:"Likeable", reverse:false, key:"S3" },
+        { left:"Assisting", right:"Worthless", reverse:true, key:"U4" },
+        { left:"Undesirable", right:"Desirable", reverse:false, key:"S4" },
+        { left:"Raising Alertness", right:"Sleep-inducing", reverse:true, key:"U5" }
+    ];
+
+    const subscales = {
+        Usefulness:  [0,2,4,6,8],
+        Satisfaction:[1,3,5,7]
+    };
+
+    const responses = new Array(items.length).fill(null);
+
+    // =====================================================
+    // === RENDER ITEMS ====================================
+    // =====================================================
+    const surveyDiv = document.getElementById("survey");
+
+    items.forEach((it, i) => {
+        const row = document.createElement("div");
+        row.className = "item-row";
+
+        const left = document.createElement("div");
+        left.className = "label-left";
+        left.textContent = it.left;
+        row.appendChild(left);
+
+        const scale = document.createElement("div");
+        scale.className = "scale";
+
+        for (let v = -2; v <= 2; v++) {
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = "q" + i;
+            input.value = v;
+            input.addEventListener("change", e => {
+                responses[i] = parseInt(e.target.value, 10);
+            });
+            scale.appendChild(input);
+        }
+        row.appendChild(scale);
+
+        const right = document.createElement("div");
+        right.className = "label-right";
+        right.textContent = it.right;
+        row.appendChild(right);
+
+        surveyDiv.appendChild(row);
+    });
+
+    // === Show participant fields if enabled ===
+    if (ParticipantID) {
+        document.getElementById("participantInfo").style.display = "block";
+    }
+
+    // =====================================================
+    // === HELPER FUNCTIONS ================================
+    // =====================================================
+    function mean(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+
+    // =====================================================
+    // === SUBMIT & RESULTS ================================
+    // =====================================================
+    document.getElementById("submitBtn").addEventListener("click", () => {
+        if (responses.some(v => v === null || Number.isNaN(v))) {
+            alert("Please rate all items before submitting.");
+            return;
+        }
+
+        // === Capture optional participant info ===
+        let participantData = {};
+        if (ParticipantID) {
+            participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+            participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+        }
+
+        if (ParticipantID && (participantData.id === "anon" || participantData.condition === "none")) {
+            alert("Please enter both Participant ID and Condition ID.");
+            return;
+        }
+
+        // reverse coding: if positive adjective is on the left, flip sign
+        const scored = items.map((it, i) => it.reverse ? -responses[i] : responses[i]);
+
+        const resultsBySub = {};
+        for (const [name, idxs] of Object.entries(subscales)) {
+            resultsBySub[name] = mean(idxs.map(i => scored[i]));
+        }
+        const overall = mean(scored);
+
+        // Display clean results
+        document.getElementById("survey").style.display = "none";
+        document.getElementById("submitBtn").style.display = "none";
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.style.display = "block";
+
+        document.getElementById("part1").style.display = "none";
+        const resultsSection = document.getElementById("resultsSection");
+        resultsSection.style.display = "block";
+
+        const detailsRows = items.map((it, i) =>
+            `<tr><td>${it.left} – ${it.right}</td><td>${responses[i]}</td><td>${scored[i].toFixed(2)}</td></tr>`
+        ).join("");
+
+        if(!fileDownload) {
+            document.getElementById("resultsContent").innerHTML = `
+    <table class="results">
+      <tr><th>Dimension</th><th>Mean (−2…+2)</th></tr>
+      <tr><td>Usefulness</td><td>${resultsBySub.Usefulness.toFixed(2)}</td></tr>
+      <tr><td>Satisfaction</td><td>${resultsBySub.Satisfaction.toFixed(2)}</td></tr>
+      <tr><th>Overall Acceptance</th><th>${overall.toFixed(2)}</th></tr>
+    </table>
+
+    <h3>Per-item (raw and scored)</h3>
+    <table class="results">
+      <tr><th>Item</th><th>Raw (−2…+2)</th><th>Scored (higher = better)</th></tr>
+      ${detailsRows}
+    </table>
+  `;
+        }
+        else
+            document.getElementById("results").outerText = "Thank you!";
+
+        const results = {
+            success:true,
+            items: items.map((it,i)=>({
+                left:it.left,right:it.right,reverse:it.reverse,
+                raw:responses[i], scored:scored[i]
+            })),
+            subscales:resultsBySub,
+            overall
+        };
+
+        window.parent.postMessage({ success: true, participantData, results }, "*");
+
+        if (fileDownload) downloadResultsJSON({ success: true, participantData, results });
+    });
+
+    // === Optional local JSON file download ===
+    function downloadResultsJSON(results) {
+        const pid = results.participantData?.id || "anon";
+        const cond = results.participantData?.condition || "none";
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `vanderlaan_${pid}_${cond}_${timestamp}.json`;
+        const json = JSON.stringify(results, null, 2);
+
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+</body>
+</html>

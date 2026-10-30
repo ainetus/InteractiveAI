@@ -81,8 +81,10 @@ jobs:
           # VITE_* values are baked into the bundle at build time. VITE_POWERGRID_SIMU
           # is the same-origin base the frontend posts "apply action" to; without it the
           # POST lands on / and nginx answers 405. Blank lines are ignored by the action.
+          # Secrets must NOT be passed here: a build-arg ends up readable in the public
+          # bundle. The cognitive API token is a runtime env var on the container instead
+          # (COGNITIVE_TOKEN, injected into the nginx proxy by start-webui.sh).
           build-args: |
-            ${{ matrix.service == 'cab-standalone-frontend' && format('VITE_COGNITIVE_TOKEN={0}', secrets.VITE_COGNITIVE_TOKEN) || '' }}
             ${{ matrix.service == 'cab-standalone-frontend' && 'VITE_POWERGRID_SIMU=/powergrid-simu' || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
