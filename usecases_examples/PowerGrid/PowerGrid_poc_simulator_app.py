@@ -157,7 +157,7 @@ def edit_simulation_settings():
         'time_step_forecast': int(request.form['time_step_forecast']),
         'duration_step_forecast': int(request.form['duration_step_forecast']),
         'step_start_security_analysis': int(request.form['step_start_security_analysis']),
-        'stepDuration_s': int(request.form['stepDuration_s']),
+        'stepDuration_s': float(request.form['stepDuration_s']),
         'scenario_first_step': int(request.form['scenario_first_step']),
     }
     new_tempo = int(request.form['tempo'])

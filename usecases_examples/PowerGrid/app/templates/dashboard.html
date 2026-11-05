@@ -449,7 +449,7 @@
                     <label for="scenario_first_step">Scenario first step [step]</label>
                     <input type="number" id="scenario_first_step" name="scenario_first_step" value="{{ config['scenario_first_step'] }}" required>
                     <label for="stepDuration_s">Time step duration [second]</label>
-                    <input type="number" id="stepDuration_s" name="stepDuration_s" value="{{ config['stepDuration_s'] }}" required>
+                    <input type="number" step="any" min="0" id="stepDuration_s" name="stepDuration_s" value="{{ config['stepDuration_s'] }}" required>
                     <label for="tempo">Context sending frequency to InteractiveAI [step]</label>
                     <input type="number" id="tempo" name="tempo" value="{{ com.outputs_config['Outputs']['Context']['tempo'] }}" required>
                     <label for="refresh_frequency_step">Anticipation risk analysis refresh frequency [step]</label>
