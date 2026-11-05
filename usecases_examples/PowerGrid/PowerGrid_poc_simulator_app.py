@@ -55,6 +55,7 @@ def dashboard():
                            username=username,
                            server=server,
                            config=simu.config,
+                           scenarios=simu.list_scenarios(),
                            com=com,
                            messages=messages)
 

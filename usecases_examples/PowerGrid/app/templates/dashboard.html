@@ -172,7 +172,8 @@
             margin-top: 8px;
             margin-bottom: 2px;
         }
-        #user-info input {
+        #user-info input,
+        #user-info select {
             padding: 9px 12px;
             font-size: 14px;
             border: 1px solid var(--border);
@@ -183,7 +184,8 @@
             margin-bottom: 4px;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-        #user-info input:focus {
+        #user-info input:focus,
+        #user-info select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-soft);
@@ -436,8 +438,12 @@
                 <form action="{{ url_for('edit_config') }}" method="post">
                     <label>Grid2Op environment's seed</label>
                     <input type="text" name="env_seed" value="{{ config['env_seed'] }}">
-                    <label>Scenario name</label>
-                    <input type="text" name="scenario_name" value="{{ config['scenario_name'] }}">
+                    <label for="scenario_name">Scenario</label>
+                    <select id="scenario_name" name="scenario_name" required>
+                        {% for name in scenarios %}
+                        <option value="{{ name }}" {% if name == config['scenario_name'] %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
                     <label>Assistant seed</label>
                     <input type="text" name="assistant_seed" value="{{ config['assistant_seed'] }}">
                     <button type="submit">Update</button>

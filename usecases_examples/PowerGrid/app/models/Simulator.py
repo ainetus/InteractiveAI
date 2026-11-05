@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime, timedelta, timezone
 import grid2op
@@ -40,6 +41,24 @@ class Simulator:
         self.com = None
         self.agent_reco = None
         self.socketio = socketio
+
+    def list_scenarios(self):
+        """
+        List the scenarios (chronics folders) available in the environment.
+
+        Returns:
+            list[str]: Sorted scenario names, always including the configured one.
+        """
+        chronics_dir = os.path.join(self.config.get('env_name', ''), 'chronics')
+        try:
+            names = [d for d in os.listdir(chronics_dir)
+                     if os.path.isdir(os.path.join(chronics_dir, d))]
+        except OSError:
+            names = []
+        current = self.config.get('scenario_name')
+        if current and current not in names:
+            names.append(current)
+        return sorted(names)
 
     def load_and_edit_config(self, params=None):
         """
