@@ -1,6 +1,12 @@
 # Changelog
 
 
+## Unreleased
+
+### Added
+
+- PowerGrid survey in English or French: the operator picks the language before starting; the language is recorded with the answers. The English agreement score has the same changes as the French one (one statement at first, optional comment).
+
 ## 1.5.1 (2026-10-28)
 
 ### Fixed

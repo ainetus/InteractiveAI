@@ -28,6 +28,24 @@ already post to `window.parent`); the chain itself is declared in
 received from the authors by email (2026-10-26): one statement shown at first
 instead of three, and an optional comment field.
 
+The same chain in English - the questionnaires of
+`html/ai4realnet/ai4realnet-user-studies/power-grid-evaluation.html`, branch
+`ai4realnet`, commit `a84b4cd` (2026-10-21) - sits next to the French files,
+under the same names without `-fr`. The operator picks the language before the
+survey starts (see `CHAINS.PowerGrid` in `surveychainer.html`).
+`agreement-score-power-grid.html` carries the three changes of the French
+email version (one statement at first, an optional "Comment (optional):"
+field, which validation lets through empty), so both languages ask the same.
+
+| File | Origin in clarkborst/hmisurveys (`ai4realnet`) |
+| --- | --- |
+| `ai4realnet/ai-acceptability-trust-trustworthiness/atai.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/atai.html` |
+| `ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid.html` (modified, see above) |
+| `ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid.html` | `html/ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid.html` |
+| `ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid.html` | `html/ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid.html` |
+| `ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid.html` | `html/ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid.html` |
+| `ai4realnet/long-term-consequences/predicted-long-term-adoption.html` | `html/ai4realnet/long-term-consequences/predicted-long-term-adoption.html` |
+
 | File | Origin in clarkborst/hmisurveys (`ai4realnet`) |
 | --- | --- |
 | `ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` | `html/ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html` |
@@ -56,5 +74,7 @@ possible so an upstream update stays easy to re-apply:
 4. **`surveychainer.html`** lays its page out with flexbox so it fills the frame
    it is given instead of assuming a full browser window (`height: 80vh`).
 5. **`surveychainer.html`** shows its own texts (title, buttons, progress) in
-   the language of the chain: French for PowerGrid, with the wording of
-   `power-grid-evaluation-fr.html`, English otherwise (`CHAIN_LANG`, `TEXT`).
+   the language of the chain (`TEXT`; the French wording is that of
+   `power-grid-evaluation-fr.html`). A chain given per language
+   (`{ fr: [...], en: [...] }`) first asks the operator to pick one, and the
+   language is recorded with the answers (`participantData.language`).
