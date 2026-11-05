@@ -1,11 +1,17 @@
 # Changelog
 
 
-## Unreleased
+## 1.5.2 (2026-11-05)
 
 ### Added
 
 - PowerGrid survey in English or French: the operator picks the language before starting; the language is recorded with the answers. The English agreement score has the same changes as the French one (one statement at first, optional comment).
+- PowerGrid simulator: 5 new scenarios for the small environment (January, March, July, September and November 2035).
+- PowerGrid simulator: the scenario is chosen from a list in the dashboard.
+
+### Fixed
+
+- PowerGrid simulator: the time step duration accepts decimal values.
 
 ## 1.5.1 (2026-10-28)
 
