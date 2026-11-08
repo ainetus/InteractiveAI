@@ -4,11 +4,11 @@
 
 Two names are used throughout:
 
-- **`railway_sim`**: the old standalone prototype, to be replaced (old branch, head `b612187`, merge
-  base `ca4e325`): a separate Flask server next to the platform plus an Angular app in an iframe. It
-  polled the Flask server every second, fetched a token per request, posted notification cards
-  straight to OperatorFabric and did not use the Context Service. It is the reference for the
-  user-facing features (§1), not for the design.
+- **`railway_sim`**: the old standalone prototype, to be replaced (branch `FHNWtec-version`, head
+  `b612187`, merge base `ca4e325`): a separate Flask server next to the platform plus an Angular app
+  in an iframe. It polled the Flask server every second, fetched a token per request, posted
+  notification cards straight to OperatorFabric and did not use the Context Service. It is the
+  reference for the user-facing features (§1), not for the design.
 - **`railway_use_case`**: the new implementation this plan builds: the cleaned simulator (§5
   "Simulator") on the platform's generic pipeline, with the platform and frontend changes of §5.
 

@@ -1,0 +1,5 @@
+# Simulator only (no Flask, no PIL). Flatland 4.2.6: the step rules in sim/ were measured on it.
+flatland-rl==4.2.6
+numpy<2
+# tests
+pytest
