@@ -1264,7 +1264,8 @@ Added:
 - `src/entities/Railway/locales/de.json` and `src/entities/Railway/i18n.ts`, which registers it as
   `de-Railway` (Q7 d); Railway's `en.json` and `fr.json` get the translations.
 - `public/surveys/railway/reflection.html` + `CHAINS.Railway` in `surveychainer.html`.
-- `cypress/e2e/railway.cy.ts`; Cypress `video` and screenshot folders in `cypress.config.ts` (S16, extended by every UI step, §6).
+- `cypress/e2e/railway.cy.ts` (answers the consent question after login); `video: true` and a
+  1600×900 browser window in `cypress.config.ts` (S16, extended by every UI step, §6).
 
 Modified:
 - `src/entities/Railway/CAB/Context.vue`: tabs "Kartenansicht", "ZWL Diagramm", "Linienansicht"; Leaflet

@@ -130,7 +130,7 @@ You can then import and add your types to `src/config.ts` (cf. [Adding your cust
 When an operator logs out, the platform hands them the HMI questionnaire chain
 served from `public/surveys/` (files taken from the
 [hmisurveys](https://github.com/AI4REALNET/hmisurveys) repository, `html/`). `surveychainer.html`
-plays the questionnaires one after another in an iframe and, on *Finish*,
+plays the questionnaires one after another in an iframe and, on _Finish_,
 downloads the aggregated answers as a JSON file - exactly as it does when opened
 standalone.
 
@@ -142,14 +142,14 @@ session id and use case **before** `logout()` clears them, queues them with
 /surveys/surveychainer.html?participant=<trace session id>&condition=<use case>
 ```
 
-so both fields are prefilled and hidden - only *Start* is left to press.
+so both fields are prefilled and hidden - only _Start_ is left to press.
 
 The session report (`exportTraceSession`) still writes its JSON and HTML files
 on logout, but it no longer opens itself in a new tab there: that tab takes the
 focus, and an operator who did not notice the survey behind it never took it.
 The report is held back (`openSummary: false`) and offered once the
-questionnaire is over — *Delete the remaining alerts?* → survey → *Open the
-session report?* — so the full order is
+questionnaire is over — _Delete the remaining alerts?_ → survey → _Open the
+session report?_ — so the full order is
 
 1. `Navbar.leave` exports the session, keeping the report in memory.
 2. The operator answers the questionnaire, or skips it.
@@ -219,6 +219,13 @@ But it's still recommended to test the production build with `test:e2e` before d
 ```sh
 npm run build
 npm run test:e2e
+```
+
+The Railway page has its own spec with named screenshots and a video, run against the Railway dev
+stack (see [`usecases_examples/Railway/README.md`](../usecases_examples/Railway/README.md#23-screenshots-and-video)):
+
+```sh
+CYPRESS_BASE_URL=http://localhost:3200 npx cypress run --spec cypress/e2e/railway.cy.ts
 ```
 
 ### Lint with [ESLint](https://eslint.org/)

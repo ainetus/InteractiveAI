@@ -14,6 +14,7 @@ contexts the InteractiveAI platform shows. Design and plan:
 - [2 Dev stack without Docker](#2-dev-stack-without-docker)
   - [2.1 Start](#21-start)
   - [2.2 Check](#22-check)
+  - [2.3 Screenshots and video](#23-screenshots-and-video)
 
 ## 1 Simulator
 
@@ -139,3 +140,14 @@ posts one event and one context through the gateway and reads them back (exit co
 pass). `devstack/seed.py` posts one Railway event and context in the current schema, for the page
 to show something.
 
+### 2.3 Screenshots and video
+
+With the dev stack running and seeded, from `frontend/`:
+
+```sh
+CYPRESS_BASE_URL=http://localhost:3200 npx cypress run --spec cypress/e2e/railway.cy.ts
+```
+
+The shots go to `frontend/cypress/screenshots/railway.cy.ts/` (1600×900), the video to
+`frontend/cypress/videos/`; both are gitignored. Against another deployment, set `CYPRESS_BASE_URL`
+and a participant login (`CYPRESS_USER`, `CYPRESS_PASSWORD`).
