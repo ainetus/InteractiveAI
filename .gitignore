@@ -204,3 +204,6 @@ hmisurveys/
 /docs/plans/railway-use-case/handover/
 
 tmp
+
+# local caches (Railway dev stack: venv, SQLite files, logs)
+/.cache/

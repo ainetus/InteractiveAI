@@ -11,6 +11,9 @@ contexts the InteractiveAI platform shows. Design and plan:
   - [1.3 Tests](#13-tests)
   - [1.4 Project structure](#14-project-structure)
   - [1.5 How a scenario works](#15-how-a-scenario-works)
+- [2 Dev stack without Docker](#2-dev-stack-without-docker)
+  - [2.1 Start](#21-start)
+  - [2.2 Check](#22-check)
 
 ## 1 Simulator
 
@@ -83,4 +86,56 @@ p.apply_decision(i, source="recommendation" | "colearning", meta={...})
   (`colearning`): the operator picks a train and an action (`vorfahrt`, `warten`, `umleiten`);
   `match_colearning()` maps it to an option, and actions in `invalid_actions` are offered but not
   feasible.
+
+## 2 Dev stack without Docker
+
+The platform on one machine, for development and screenshots: the real Event (5000), Context (5100),
+Historic (5200) and Recommendation (5400) services on SQLite with `AUTH_DISABLED=true`, registered for
+Railway, behind a small gateway on port 3200 (`devstack/gateway.py`). The gateway routes to the
+services as the frontend nginx does and stands in for Keycloak (any login is accepted) and
+OperatorFabric (cards kept in memory, the card stream). Never expose it beyond localhost.
+
+### 2.1 Start
+
+Requirements: Python 3.11 (the services' version) and, for the frontend, Node 20 with its npm, as
+pinned in `frontend/.nvmrc` (`nvm use` in `frontend/`). Install the frontend's packages once, as its
+`Dockerfile` does, and build it:
+
+```sh
+cd frontend && npm ci && npm run build-only
+```
+
+Then, from the repository root:
+
+```sh
+usecases_examples/Railway/devstack/start.sh
+```
+
+With the Vite dev server and hot reload instead of the built bundle (after `npm ci`, no build):
+
+```sh
+FRONTEND=vite usecases_examples/Railway/devstack/start.sh
+```
+
+- The first start creates a venv from Python 3.11 or 3.12 (`python3.11`, `python3.12` or `python3`
+  on `PATH`, or `DEVSTACK_BASE_PYTHON`) and installs `devstack/requirements.txt` (the services'
+  Railway path, without PowerGrid's `torch`). Python 3.13 and later don't work: the services' pinned
+  SQLAlchemy 2.0.16 fails there. `DEVSTACK_PYTHON` uses an interpreter with the requirements
+  installed instead.
+- The venv, the SQLite files and the logs go to `.cache/railway-devstack/` in the repository root
+  (gitignored; `DEVSTACK_HOME` moves them). Delete `data/` there to start from an empty database.
+- `FRONTEND_DIST` serves another built bundle, `FRONTEND_DIR` runs Vite in another checkout of the
+  frontend, `GATEWAY_PORT` changes the port. Ctrl-C stops everything.
+
+Open http://localhost:3200 and log in with any user and password (e.g. `railway_user` / `test`).
+
+### 2.2 Check
+
+```sh
+python usecases_examples/Railway/devstack/smoke.py
+```
+
+posts one event and one context through the gateway and reads them back (exit code 0 when all
+pass). `devstack/seed.py` posts one Railway event and context in the current schema, for the page
+to show something.
 

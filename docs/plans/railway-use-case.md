@@ -1223,8 +1223,12 @@ Added:
   (apply; 409 when it does not match the open decision, §4.2.4), `POST /api/v1/session` (start:
   participant, mode or run list), `POST /api/v1/session/next`,
   `POST /api/v1/session/stop`, `GET /health` (S4).
-- `devstack/`: gateway, start script, seed script with today's Railway event and context (S6),
-  the simulator added to the start script (S4); `Dockerfile`, `docker-compose.yml`, `README.md` (S15).
+- `devstack/` (S6): `gateway.py` (standard library only), `start.sh`, `seed.py` (today's Railway
+  event and context), `smoke.py`, `requirements.txt` (the services' Railway path with the Event
+  Service's pins, no `torch`; `setuptools<70` because `python-keycloak` 3.0.0 imports
+  `pkg_resources`); the simulator added to the start script (S4); `Dockerfile`,
+  `docker-compose.yml` (S15).
+- `README.md`: the simulator (S1) and the dev stack with its commands (S6, S16).
 
 Modified:
 - `integration/payloads.py`: `infra_payload()` with `marey_mapping`, `planned_paths`;
@@ -1306,7 +1310,8 @@ Modified:
   Service (5400) and the Railway simulator (5124); "Authentication data" with the participant users
   (S15).
 - `CHANGELOG.md`: one line under `## Unreleased` per user-visible step (S3–S5, S7–S12, S15, S17).
-- `docs/developer-guide.md`: "Running All Services without Docker" pointing to the dev stack (S6).
+- `docs/developer-guide.md`: "Running the Services without Docker (Railway dev stack)" pointing to
+  the dev stack (S6).
 - `frontend/README.md`: an entity's own extra language (`de.json` + registration) (S7);
   the Railway reflection chain next to "Changing the questionnaires" (S12); the Railway visual check
   under the Cypress section (S16); `VITE_RAILWAY_SIMU` as a proxy path under "Environment
@@ -1338,9 +1343,16 @@ collections (their Railway requests still pass; events without `scenario_id` get
   memory: `POST /cardspub/cards` (target of the Event Service's `CARDS_PUBLICATION_SERVICE`), the
   `/cards/cardSubscription` stream in the shape of `types/cards.ts` `CardEvent`, `/cards/cards/{id}`,
   acknowledgements.
-- **Setup:** `devstack/start.sh` creates the SQLite files, registers the Railway use case in the three
-  services from `resources/cabUsecases*/Railway*.json` (as `loadTestConf.sh` does), starts all
-  processes and stops them on Ctrl-C.
+- **Setup:** `devstack/start.sh` creates a venv per OS and CPU on first start (or uses
+  `DEVSTACK_PYTHON`), starts all processes with their SQLite files and logs in
+  `.cache/railway-devstack/` of the repo root (gitignored, `DEVSTACK_HOME`), registers the Railway use
+  case in the three services from `resources/cabUsecases*/Railway*.json` (as `loadTestConf.sh` does)
+  and stops everything on Ctrl-C. `FRONTEND_DIST` and `FRONTEND_DIR` point to another build or
+  checkout of the frontend (the Linux sandbox uses its own build copy).
+- **Card stream:** chunked, `Cache-Control: no-transform` and `X-Content-Type-Options: nosniff`, as
+  OperatorFabric sends it; without them Cypress's proxy (it compresses) and the browser (it sniffs the
+  first KB) hold the events back. Stored cards are replayed on the range subscription only, not on
+  the notification one.
 - **Commands** (one line each, from the repo root):
   - start: `RAILWAY_STEPS_PER_SECOND=4 FRONTEND=vite usecases_examples/Railway/devstack/start.sh`
   - shortest: `usecases_examples/Railway/devstack/start.sh` (1 step/s, built bundle)
@@ -1742,8 +1754,8 @@ None yet.
 - ✅ ~~**(Q9) Dev stack: real services, or a full mock?**~~ **Decided 2026-11-07:** a).
   - a) Real Flask services on SQLite with `AUTH_DISABLED`, only Keycloak and OperatorFabric stubbed.
     Exercises the schemas and the managers; needs the services' Python dependencies (the
-    Recommendation Service pins `torch`, which the Railway path does not import: a reduced
-    requirements file for the dev stack may be needed, checked in S6).
+    Recommendation Service pins `torch`, which the Railway path does not import: the dev stack has
+    its own reduced `devstack/requirements.txt`, S6).
   - b) One in-memory mock of all services. Faster to start, but the schema checks of S3 are not
     exercised and the mock drifts from the services.
 - 💡 **(Q10) Deployment:** the simulator in `config/dev/cab-standalone/docker-compose.yml` as a
