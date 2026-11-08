@@ -21,6 +21,7 @@ from typing import List, Optional
 
 from sim.decisions import colearning_view, match_colearning
 from sim.map_loader import load_map_json, station_markers
+from sim.marey import link_map, marey_mapping, planned_paths
 
 USE_CASE = "Railway"
 EVENT_TYPE = "INFRASTRUCTURE"     # enum: PASSENGER, INFRASTRUCTURE, IMPACT, HARDWARE
@@ -32,16 +33,26 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def infra_payload(scenario: dict) -> dict:
-    """Static part of the context (same for the whole scenario). Compute once, reuse."""
+def infra_payload(scenario: dict, timetable=None) -> dict:
+    """
+    Static part of the context (same for the whole scenario). Compute once, reuse.
+
+    planned_paths needs the player's timetable (routes, planned departures); without it the
+    field is empty.
+    """
     raw = load_map_json(scenario["map"])
+    link = scenario.get("marey_link")             # start / end cell of the line shown in the ZWL
+    mapping = marey_mapping(raw["grid"], link["start"], link["end"]) if link else {}
     return {
         "map": scenario["map"],
         "rows": raw["gridDimensions"]["rows"],
         "cols": raw["gridDimensions"]["cols"],
         "grid": raw["grid"],                    # Flatland transition ints, row-major
         "stations": station_markers(scenario),
-        "marey_link": scenario.get("marey_link"),   # start / end cell of the line shown in the ZWL
+        "marey_link": link,
+        "marey_mapping": mapping,               # "r,c" -> distance along the line
+        "planned_paths": planned_paths(timetable, mapping) if timetable is not None else {},
+        "link_map": link_map(raw["grid"], link["start"], link["end"], mapping) if link else None,
     }
 
 

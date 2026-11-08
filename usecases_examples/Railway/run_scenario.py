@@ -31,7 +31,7 @@ def _show(label, payload):
 
 def play(scenario_id: str, session: dict):
     sc = ALL_SCENARIOS[scenario_id]
-    infra = payloads.infra_payload(sc)
+    infra = None
 
     def on_event(p, event):
         print(f"[{p.step_index:3d}] EVENT  {event.get('card_title', event.get('type'))}")
@@ -40,6 +40,9 @@ def play(scenario_id: str, session: dict):
     def on_decision(p, dp):
         print(f"[{p.step_index:3d}] DECISION  {dp['description'][:80]}...")
         _show("decision event", payloads.decision_event(p, p.decision_index - 1, session))
+        nonlocal infra
+        if infra is None:
+            infra = payloads.infra_payload(sc, p.timetable)
         _show("context", payloads.context_payload(p, session, infra))
         _show("recommendations", payloads.recommendations(sc, p.decision_index - 1,
                                                           session["mode"], p.train_names))

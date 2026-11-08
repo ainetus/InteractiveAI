@@ -21,7 +21,8 @@ from experiment_scenarios import ALL_SCENARIOS                      # noqa: E402
 from integration import payloads                                    # noqa: E402
 from integration.session import make_session                       # noqa: E402
 from sim.decisions import colearning_view, match_colearning, normalize_holds   # noqa: E402
-from sim.map_loader import station_markers                          # noqa: E402
+from sim.map_loader import load_map_json, station_markers          # noqa: E402
+from sim.marey import link_map, marey_mapping                       # noqa: E402
 from sim.scenario_player import COMPLETE, PAUSED, Hooks, ScenarioPlayer, episode_limit  # noqa: E402
 
 EXPECTED_ARRIVALS = {
@@ -129,7 +130,7 @@ def test_payloads_are_json_and_one_card_per_decision(sid):
 
     def on_decision(p, dp):
         sent.append(payloads.decision_event(p, p.decision_index - 1, session))
-        sent.append(payloads.context_payload(p, session, payloads.infra_payload(sc)))
+        sent.append(payloads.context_payload(p, session, payloads.infra_payload(sc, p.timetable)))
 
     play(sc, 0, Hooks(on_event=on_event, on_decision=on_decision))
     sent = [s for s in sent if s is not None]
@@ -153,3 +154,47 @@ def test_session_order_is_reproducible():
     a = make_session("P07", "colearning", ids)["scenario_order"]
     b = make_session("P07", "colearning", ids)["scenario_order"]
     assert a == b and sorted(a) == sorted(ids)
+
+
+@pytest.mark.parametrize("sid", sorted(ALL_SCENARIOS))
+def test_marey_link_is_a_route_from_start_to_end(sid):
+    sc = ALL_SCENARIOS[sid]
+    link = sc["marey_link"]
+    mapping = marey_mapping(load_map_json(sc["map"])["grid"], link["start"], link["end"])
+    start, end = ",".join(map(str, link["start"])), ",".join(map(str, link["end"]))
+    assert mapping[start] == 0
+    # every distance from 0 to the end appears: a contiguous line
+    assert sorted(set(mapping.values())) == list(range(mapping[end] + 1))
+
+
+@pytest.mark.parametrize("sid", sorted(ALL_SCENARIOS))
+def test_link_map_places_every_cell_in_three_rows(sid):
+    sc = ALL_SCENARIOS[sid]
+    link = sc["marey_link"]
+    grid = load_map_json(sc["map"])["grid"]
+    mapping = marey_mapping(grid, link["start"], link["end"])
+    lm = link_map(grid, link["start"], link["end"], mapping)
+    width = max(mapping.values()) + 1
+    assert len(lm["grid"]) == 3 and all(len(row) == width for row in lm["grid"])
+    on_line = [m for m in lm["mapping"] if m[1][0] == 1]
+    assert len(on_line) == len(mapping)
+    assert all(0 <= x < width and row in (0, 1, 2) for _, (row, x) in lm["mapping"])
+    assert {tuple(cell) for cell, _ in lm["levels"]} == \
+        {tuple(cell) for cell, (row, _) in lm["mapping"] if row != 1}
+
+
+@pytest.mark.parametrize("sid", sorted(ALL_SCENARIOS))
+def test_infra_has_planned_paths_on_the_line(sid):
+    sc = ALL_SCENARIOS[sid]
+    p = ScenarioPlayer(sc)
+    infra = payloads.infra_payload(sc, p.timetable)
+    json.dumps(infra)
+    assert set(infra["planned_paths"]) == {f"Train_{t}" for t in p.timetable.schedules}
+    distances = set(infra["marey_mapping"].values())
+    for tid, points in infra["planned_paths"].items():
+        steps = [step for step, _ in points]
+        assert steps == sorted(steps)
+        assert all(d in distances for _, d in points)
+        dep = p.timetable.schedules[int(tid.split("_")[1])].planned_departure
+        assert all(step >= dep for step in steps)
+

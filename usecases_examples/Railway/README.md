@@ -56,6 +56,7 @@ python -m pytest -q
 | `sim/timetable.py` | planned and actual times per train |
 | `sim/map_loader.py` | `maps/mapN.json` → Flatland env, shortest routes |
 | `sim/decisions.py` | decision rules: holds, Ko-Lernen matching (`match_colearning()`, `colearning_view()`) |
+| `sim/marey.py` | the line's ZWL distances, the planned paths and the link map (static per scenario) |
 | `integration/payloads.py` | builds the context, event and recommendation JSON (no HTTP) |
 | `integration/session.py` | participant, mode, scenario order (`make_session()`) |
 | `experiment_scenarios/` | the six scenarios (German texts) |

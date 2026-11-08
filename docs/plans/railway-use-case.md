@@ -1190,7 +1190,6 @@ Starting point, the standalone `railway_sim` prototype to be replaced, in its cl
 | `sim/timetable.py` | planned and actual times per train |
 | `sim/map_loader.py` | `maps/mapN.json` → Flatland env, shortest routes |
 | `sim/decisions.py` | decision rules: holds, Ko-Lernen matching (`match_colearning()`, `colearning_view()`) |
-| `sim/marey.py` | data for the ZWL and the link map |
 | `integration/payloads.py` | draft, no HTTP: builds the context, event and recommendation JSON |
 | `integration/session.py` | draft: participant, mode, scenario order (`make_session()`) |
 | `experiment_scenarios/`, `maps/` | the six scripted scenarios (German texts), `map1`–`map6` (drawn maps) |
