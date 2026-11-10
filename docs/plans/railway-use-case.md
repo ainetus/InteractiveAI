@@ -116,7 +116,7 @@ Reused concepts:
 | Layout (left, centre tabs, right, bottom) | `views/CAB.vue` slots and the entity components `Railway/CAB/{Notifications,Context,Assistant,Timeline}.vue` | a separate app in an iframe |
 | Reflection questionnaire | the survey chainer `public/surveys/surveychainer.html` (per-use-case `CHAINS`, `frontend/README.md` "Changing the questionnaires") and `views/Survey.vue`'s message handling | a questionnaire form of its own |
 | Simulator layout in the repo | `usecases_examples/PowerGrid/` (own compose, own port, own README) | a new top-level folder |
-| Participant identity | one Keycloak/OperatorFabric user per participant, as `railway_user` today (`users-docker.yml`, `dev-users-0.json`) | a participant code typed into the UI |
+| Experiment identity | the platform's trace session (`utils/traceSessionExport.ts`: a random `session_id` per login, timestamps on every trace, the export at logout; also the survey's Participant ID), sent by the start dialog as the experiment's `session_id` (D10, Q11) | users per participant, a participant code typed into the UI |
 | Run the services without Keycloak | `AUTH_DISABLED=true` + `DEFAULT_USE_CASE` in `cab_common_auth`, started as in `docs/developer-guide.md` ("Test Mode using python virtualenv"), on the host ports of `docker-compose.yml` | patching the decorators |
 | Register the use case | `resources/cabUsecases*/Railway*.json` + the load scripts, the steps of `docs/use_case_managment.md` | hard-coded registration |
 | New proxy target | `README.md` "How runtime nginx configuration works": `__NAME__` placeholder, `SUBST_VARS` in `start-webui.sh`, the location in every nginx config and in the k8s ConfigMap | a build-time URL in the bundle |
@@ -130,11 +130,11 @@ Reused concepts:
 - **Scenario** (`scenario`, `experiment_scenarios/scenarioN.py`): one scripted run on one map with 2–3
   trains, timed events and one decision point. Six exist, `scenario1`…`scenario6`, German texts. Not a
   Flatland random env: nothing is generated or computed live.
-- **Session** (`session`, `make_session()`): one participant playing an ordered list of scenarios.
-  Fields `session_id`, `participant`, `scenario_order` (the run list: one `{scenario_id, mode}` per
+- **Session** (`session`, `make_session()`): one Experiment, an ordered list of scenarios played in
+  one login. Fields `session_id` (the platform's trace session id, D10), `scenario_order` (the run list: one `{scenario_id, mode}` per
   run, Q6), `scenario_position`, `started_at`.
-- **Participant** (`session.participant`): pseudonym such as `P01`; equals the login of the
-  participant's platform user.
+- **Participant**: the person at the machine. Not in the data: the study lead maps `session_id` to
+  a person outside the platform (D10, Q11).
 - **Mode** (`scenario.mode`, set per run): `recommendation` ("Empfehlungsmodus": choose one of the scenario's
   options) or `colearning` ("Ko-Lernen": choose a train and an action, mapped to an option by
   `match_colearning()`).
@@ -182,7 +182,6 @@ Reused concepts:
 | Frontend nginx `/railway-simu/` | Same-origin route from the browser to the simulator endpoints. Not for the platform services. | 🟩 added: no CORS and no public simulator port. |
 | Dev gateway (`usecases_examples/Railway/devstack/`) | Stands in for Keycloak and OperatorFabric and routes to the locally started services, so the platform runs without Docker. Not for any deployment. | 🟩 added: developers and automated checks can run and screenshot the full flow on one machine. |
 | Cypress Railway e2e | Clicks through a scenario and records screenshots and a video. Not a load test. | 🟩 added: from the first step on, every change to the page is shown in screenshots, and the final look and flow are checked against the reference screenshot. |
-| Participant users (`P01`…) | One platform user per participant, so every logged action carries the participant. Not the experiment's session or order. | 🟩 added: each participant logs in with their own pseudonym (Q11). |
 | Railway simulator deployment unit | Runs the simulator next to the platform on the same server. Not a second entry point: it is reached only through the frontend nginx. | 🟩 added: the experiment runs on the public deployment (Q10). |
 | Event, Context, Historic Services, OperatorFabric, Keycloak | Platform services. | ⬜ unchanged |
 
@@ -194,7 +193,7 @@ labels are used in the step tables. All texts are German as quoted.
 ### 1.1 Layout (screenshot)
 
 - **F1** The CAB page `/cab/Railway` with the platform header (logo, version, user, logout). The
-  logged-in user is the participant.
+  logged-in user is the shared `railway_user` (Q11).
 - **F2** Left: the platform's "Notifications" feed with the event cards (title, train/type line,
   criticality marker, description, the two small actions); the descriptions (2–3 sentences) are
   not cut off.
@@ -262,8 +261,7 @@ In the screenshot the Szenario-Loader is the bottom panel, with three columns: "
 §1.5.1), "Modus" (§1.5.2) and "Module" (§1.5.3). In the platform it is a start dialog with the same
 choices, and the bottom panel keeps only the progress (F23, Q3 d). Which choices are kept is Q13.
 
-- **F21** Session start by the experimenter: the participant is the logged-in user (shown, not
-  typed, D10), mode ("Empfehlungsmodus" / "Ko-Lernen", D9; or the run list of Q6), "▶ Laden &
+- **F21** Session start in the start dialog: no participant code (D10, Q11), mode ("Empfehlungsmodus" / "Ko-Lernen", D9; or the run list of Q6), "▶ Laden &
   Starten", "✕ Beenden".
 - **F22** Before each scenario: the scenario introduction ("📋 Szenario-Einführung — Run i/n", texts
   per scenario from `railway_sim`'s `SCENARIO_INTROS`), then the scenario starts.
@@ -325,7 +323,7 @@ priority", worded by `train_labels` where the scenario has them.
   logged with its mode (`source`), and in Ko-Lernen with the chosen `train` and `action`.
 - **F39** An Experiment session plays all six scenarios, as `railway_sim`'s Experiment: the
   scenarios shuffled and split in two halves of 3, the first half in a mode drawn at random, the
-  second in the other (Q6); the draw is seeded by the participant (F29).
+  second in the other (Q6); the draw is seeded by the `session_id` (F29).
 
 #### 1.5.3 Modules: Testprotokoll and Experiment
 
@@ -348,14 +346,15 @@ Mode", decisions not logged there).
   Szenario-Loader, with introduction, reflection questions and an end screen.~~ Dropped (Q16 b).
 - **F34** Experiment: a session with the six-run list of Q6, introduction before each run, reflection
   questions once at the end (F24), end screen F26.
-- In the platform the participant code is the logged-in user (D10), so neither module asks for a
-  "Kürzel"; every run is logged by the platform (traces), the single run included.
+- In the platform neither function asks for a participant code ("Kürzel"): the session id stands
+  for the Experiment (D10); every run is logged by the platform (traces), the single run included.
 
 ### 1.6 Simulation (from the cleaned simulator)
 
 - **F28** Six scenarios, maps `map1`–`map6`, events at fixed steps, one decision point each; arrival
   steps as in `tests/test_sim.py`'s `EXPECTED_ARRIVALS`.
-- **F29** Scenario order per session shuffled with the participant as seed (same order on restart).
+- **F29** Scenario order per session shuffled with the `session_id` as seed (same order when the
+  same login starts again); the order is in every context (`session.scenario_order`).
 - **F30** Ko-Lernen mapping and feasibility by `match_colearning()` / `colearning_view()`.
 
 #### 1.6.1 Events: hard-coded, at fixed steps
@@ -438,7 +437,7 @@ Changing a text, an option or a KPI means editing the scenario file; only the si
 ### 1.7 Dropped on purpose
 
 - Play, pause, speed and reset controls (Q4); free-run mode, live conflict detection, `/resolve`;
-  the participant code dialog ("Kürzel"), replaced by the login (D10); the Testprotokoll (Q16 b),
+  the participant code dialog ("Kürzel"), replaced by the platform's session id (D10); the Testprotokoll (Q16 b),
   trying a scenario is done on the dev stack (§6), or as the single run if Q13 keeps it.
 
 ## 2. Design requirements
@@ -542,8 +541,17 @@ architecture. Labels `D1`… are stable (referenced by the steps); the groups on
 
 - **D8** The participant must not control simulation time.
 - **D9** All participant-visible text German; KPI names shown in German.
-- **D10** Every logged action carries the participant: one platform user per participant; the
-  participant code is also in every event and context.
+- **D10** Every logged record is tied to the Experiment by the session id or by its timestamp
+  within the session: the experiment's `session_id` is the platform's trace session id (one login,
+  random, also the session log export's and the survey's id), sent by the start dialog; every event
+  and context carries it, every trace and export row has its date. No participant code and no user
+  per participant: the platform logs no user (`TraceModel`) and has no participant concept; the
+  study lead maps session ids to people outside the platform. (Replaces the handover's "one
+  Keycloak user per participant", 2026-11-10.) Where the id goes: an event's or context's `data`
+  is not free-form, each use case's `MetadataSchema` (`resources/Railway/schemas.py`, Railway's own
+  file) validates it and rejects unknown fields with a 422, so S3 declares `session_id` there; a
+  trace's `data` has no schema (`TraceModel.data` is a `PickleType`), so Railway's frontend can add
+  it to its traces without any schema change.
 - **D12** Registration: the Railway use case registered in all three services and in the users'
   perimeters, without manual steps after a restart (today `railway_user` needs `loadTestConf.sh`).
 
@@ -839,7 +847,6 @@ classDiagram
             +timestep : int
             +decision_index : int or null
             +session_id : str
-            +participant : str
             +mode : str
         }
     }
@@ -855,7 +862,7 @@ classDiagram
         }
         class Session {
             «added»
-            session_id · participant · scenario_order · scenario_position · started_at
+            session_id · scenario_order · scenario_position · started_at
         }
         class ScenarioState {
             «added»
@@ -932,7 +939,6 @@ the trace; `scenario_id`, `decision_index` and `mode` are the key of the recomme
 +    "timestep": 16,                        // added
 +    "decision_index": 0,                   // added: not null -> this card carries the decision
 +    "session_id": "4f1c…",                 // added
-+    "participant": "P01",                  // added
 +    "mode": "colearning"                   // added
    }
  }
@@ -949,7 +955,7 @@ the trace; `scenario_id`, `decision_index` and `mode` are the key of the recomme
 +    "trains": [{"id_train": "Train_0", "name": "G 3", "position": [7, 9], "direction": 1, "done": false,
 +                "failure": false, "planned_departure": 1, "planned_arrival": 40, "actual_departure": 1,
 +                "actual_arrival": null, "delay": 0, "route": [[7, 2], [7, 3]]}],   // modified: grid cells instead of GPS
-+    "session": {"session_id": "4f1c…", "participant": "P01",
++    "session": {"session_id": "4f1c…",
 +                "scenario_order": [{"scenario_id": "scenario3", "mode": "colearning"},
 +                                   {"scenario_id": "scenario1", "mode": "colearning"}],
 +                "scenario_position": 0,
@@ -1268,7 +1274,7 @@ sequenceDiagram
 
 #### 4.2.6 Target: a session from the start dialog to the end screen
 
-Who drives what, with Q3 d), Q5 d), Q6, Q26 a) and Q27 a); the `alt` blocks set Q3 e) (today's page,
+Who drives what, with Q3 d), Q5 d), Q6, Q26 a) and Q27 a); the `alt` blocks set Q3 e) (not chosen; today's page,
 the experimenter starts the simulation outside the platform, shaded orange) against d). Notation: [UML sequence diagram in
 Mermaid](https://mermaid.js.org/syntax/sequenceDiagram.html); the frontend nginx (`/railway-simu/`),
 OperatorFabric (the card stream, §4.2.1) and the recommendation request (§4.2.4) are left out.
@@ -1288,19 +1294,19 @@ sequenceDiagram
         FE->>Sim: GET api v1 scenarios
         Sim-->>FE: scenario ids, names and introductions (Q26 a)
         FE->>P: start dialog with the experiments
-        P->>FE: experiment, participant code (Q11 d)
+        P->>FE: experiment
         FE->>P: introduction of run 1 and Weiter
         P->>FE: Weiter
-        FE->>Sim: POST api v1 session with participant and experiment
-        Sim-->>FE: 201 with session_id
+        FE->>Sim: POST api v1 session with session_id (the trace session) and experiment
+        Sim-->>FE: 201
     else Q3 e) today's page, the experimenter starts outside the platform
         rect rgb(255, 228, 196)
         P->>FE: logs in, the page waits for contexts and cards
-        Exp->>Sim: start command or POST api v1 session with participant and experiment
+        Exp->>Sim: start command or POST api v1 session with experiment
         Note over FE: no introduction in the page (an INFO card at most)
         end
     end
-    Note over Sim: builds the run list seeded by the participant (Q6), starts run 1
+    Note over Sim: builds the run list seeded by session_id (Q6, F29), starts run 1
     Sim->>Ctx: POST context with session, scenario state running, step 0, infra
     loop each step, paced by RAILWAY_STEPS_PER_SECOND, inside the simulator
         opt a scripted event at this step
@@ -1397,7 +1403,7 @@ Starting point, the standalone `railway_sim` prototype to be replaced, in its cl
 | `sim/map_loader.py` | `maps/mapN.json` → Flatland env, shortest routes |
 | `sim/decisions.py` | decision rules: holds, Ko-Lernen matching (`match_colearning()`, `colearning_view()`) |
 | `integration/payloads.py` | draft, no HTTP: builds the context, event and recommendation JSON |
-| `integration/session.py` | draft: participant, mode, scenario order (`make_session()`) |
+| `integration/session.py` | draft: participant, mode, scenario order (`make_session()`); S4 replaces participant by `session_id` (D10) |
 | `experiment_scenarios/`, `maps/` | the six scripted scenarios (German texts), `map1`–`map6` (drawn maps) |
 | `run_scenario.py`, `config.py` | terminal demo (`PRINT_PAYLOADS = True` prints the JSON) |
 | `tests/test_sim.py` | pytest: 38 tests (13 test functions, three of them parametrized), all green on Flatland 4.2.6 |
@@ -1433,7 +1439,7 @@ Added:
   pace `RAILWAY_STEPS_PER_SECOND` (S4).
 - `app.py`: one small HTTP app (Flask, as PowerGrid's simulator): `POST /api/v1/recommendations`
   (apply; 409 when it does not match the open decision, §4.2.5), `POST /api/v1/session` (start:
-  participant, mode or run list), `POST /api/v1/session/next`,
+  `session_id`, experiment or single run), `POST /api/v1/session/next`,
   `POST /api/v1/session/stop`, `GET /health` (S4).
 - `devstack/` (S6): `gateway.py` (standard library only), `start.sh`, `seed.py` (today's Railway
   event and context), `smoke.py`, `requirements.txt` (the services' Railway path with the Event
@@ -1506,9 +1512,9 @@ Modified:
   `RAILWAY_SIMU_UPSTREAM`.
 - `config/dev/cab-standalone/docker-compose.yml`, `docker-compose-hub.yml`: the variables passed to
   `frontend`; `VITE_RAILWAY_SIMU` is also a build argument, so a changed value needs a rebuild.
-- `config/dev/cab-standalone/users-docker.yml`, `config/dev/cab-keycloak/export/dev-users-0.json`,
-  `deploy-chart/configmap-assistant-platform.yaml`: participant users `P01`… with `entities:
-  ["Railway"]` (count: Q11).
+- `config/dev/cab-standalone/users-docker.yml`, `deploy-chart/configmap-assistant-platform.yaml`:
+  `railway_user`'s Railway perimeter loaded without `loadTestConf.sh` (D12); no participant users
+  (Q11).
 - `deploy-chart/configmap-assistant-platform.yaml`: the `/railway-simu/` location in the nginx key
   too, since the ConfigMap overrides the image's `default.conf`; pushed with `apply-nginx-conf.sh`
   only after the pod that substitutes `__RAILWAY_SIMU_UPSTREAM__` runs (README's ordering rule) (S15).
@@ -1524,8 +1530,8 @@ Modified:
 - `README.md`: "About The Project" names the Railway use case next to PowerGrid with a link to
   `usecases_examples/Railway/README.md`; key variables `VITE_RAILWAY_SIMU=/railway-simu`,
   `RAILWAY_SIMU_UPSTREAM`; "Default ports" with the Recommendation
-  Service (5400) and the Railway simulator (5124); "Authentication data" with the participant users
-  (S15).
+  Service (5400) and the Railway simulator (5124); "Authentication data" with `railway_user` for the
+  Experiment (S15).
 - `CHANGELOG.md`: one line under `## Unreleased` per user-visible step (S3–S5, S7–S12, S15, S17).
 - `docs/developer-guide.md`: "Running the Services without Docker (Railway dev stack)" pointing to
   the dev stack (S6).
@@ -1556,7 +1562,7 @@ collections (their Railway requests still pass; events without `scenario_id` get
 - **Gateway** (Python, `devstack/gateway.py`): routes `/cab_event/`, `/cabcontext/`,
   `/cab_recommendation/`, `/cabhistoric/` to the services and `/railway-simu/` to the simulator, as
   nginx does on the server; answers `/auth/token` with a fixed token and
-  `/users/CurrentUserWithPerimeters` with the participant (`entities: ["Railway"]`); keeps cards in
+  `/users/CurrentUserWithPerimeters` with `railway_user` (`entities: ["Railway"]`); keeps cards in
   memory: `POST /cardspub/cards` (target of the Event Service's `CARDS_PUBLICATION_SERVICE`), the
   `/cards/cardSubscription` stream in the shape of `types/cards.ts` `CardEvent`, `/cards/cards/{id}`,
   acknowledgements.
@@ -1596,7 +1602,7 @@ collections (their Railway requests still pass; events without `scenario_id` get
   so the plan and the PR show the effect of each step; videos stay local. Until S12, the spec starts
   a session with `cy.request` to `/railway-simu/api/v1/session` instead of the Szenario-Loader.
 - **Against the full Docker stack** the same Cypress spec runs with `CYPRESS_BASE_URL` pointing to it
-  and a participant login (`CYPRESS_USER`, `CYPRESS_PASSWORD`).
+  and the `railway_user` login (`CYPRESS_USER`, `CYPRESS_PASSWORD`).
 
 ## 7. Phases and steps
 
@@ -1626,7 +1632,7 @@ The dev stack and the screenshots come first, so every later step can be run and
 | Step | Done | Commit | Content | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|
 | S3 | | `feat(railway): accept scenario, session and infrastructure fields in Railway events and contexts` | Both `MetadataSchemaRailway`; service tests with the payloads of §4.1.2; Postman Railway event example. | D2, D4, T5 | - | Q15 |
-| S4 | | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | `publisher.py`, `loop.py`, `app.py` apply and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot `01-feed`. | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F38, F39, T3, T5 | S1, S3, S16 | Q3, Q26 |
+| S4 | | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | `publisher.py`, `loop.py`, `app.py` apply and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot `01-feed`. | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F38, F39, T3, T5 | S1, S3, S16 | Q26 |
 | S5 | | `feat(railway): answer recommendation requests with the scenario's options from a file generated by the simulator` | `export_recommendations.py` and the committed `recommendations.json` (test: file equals the script's output); its copy in `backend/recommendation-service/resources/Railway/` (test: copy equals the simulator's); `payloads.event_payload()` adds `scenario_id`, `decision_index`, `mode`; `RailwayManager` looks the entry up, catalog for other events; tests; shot `02-recommendations`. | D6, D15, F16, F18, F19, T5 | S1, S3, S4 | Q2 (confirmation) |
 
 
@@ -1643,7 +1649,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S17 | | `feat(railway): draw the link map from the context` | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | F31 | S8 | - |
 | S10 | | `feat(railway): show scenario status and the open decision in the centre panel` | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | F4, F17, F23, F35, F36 | S8 | Q19 |
 | S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, `CHANGELOG.md` "Changed" line (the migration of the breaking apply target); shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q17, Q18 |
-| S12 | | `feat(railway): start sessions, ask the reflection questions and move to the next scenario` | `ScenarioLoader.vue` (start dialog: Szenario, Modus, Module), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (with `de`) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q3, Q13, Q20–Q23, Q26 |
+| S12 | | `feat(railway): start sessions, ask the reflection questions and move to the next scenario` | `ScenarioLoader.vue` (start dialog: Szenario, Modus, Module), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (with `de`) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q13, Q21–Q23, Q26 |
 
 ### Phase 5: final check and deployment
 
@@ -1651,7 +1657,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 |---|---|---|---|---|---|---|
 | S13 | | `test(railway): check the full run in both modes against the reference screenshot` | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | T4 | S8–S12, S17 | - |
 | S14 | | `ci(railway): run the simulator and Railway schema tests` | CI job; Cypress job only if fast enough. | T5, T6 | S1–S5 | - |
-| S15 | | `feat(deploy): deploy the Railway simulator next to the platform` | `Dockerfile`, compose, `RAILWAY_SIMU_UPSTREAM` on the server, participant users and their perimeters in the seed files (no `loadTestConf.sh` after a restart), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q11, Q24 |
+| S15 | | `feat(deploy): deploy the Railway simulator next to the platform` | `Dockerfile`, compose, `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q11, Q24 |
 
 ## Limitations
 
@@ -1683,8 +1689,9 @@ Not checked in code; they hold by construction of the experiment setup or are ch
 
 - One Railway participant at a time per deployment and per simulator process (PowerGrid users may
   use the same deployment meanwhile).
-- The experimenter starts each session at the participant's machine, on the participant's
-  logged-in page, and the participant logs in with their own user (login = pseudonym).
+- One Experiment per login: the participant logs in as `railway_user`, plays the Experiment and
+  logs out, so the trace session, the Experiment and the questionnaire share one id (D10); the
+  study lead notes which session id belongs to whom.
 - Old cards are deleted before a session (`resources/deleteAllCards.sh`, in the README checklist).
 - The Context Service returns the latest context for the use case; contexts of the same scenario are
   not reordered.
@@ -1706,8 +1713,9 @@ Compared with `main`; the reused concepts are listed under the design principles
 | Recommendations looked up by the use case's manager in a file generated by the simulator and copied into the service, no agent for now; the catalog stays for events without `scenario_id` | `RailwayManager`, today's catalog manager (Railway data in the service); the documented response format | Q2, S5 |
 | A simulator that pauses itself at a decision and is resumed by the applied choice, refusing a choice for another decision | PowerGrid's apply path and `POST /api/v1/recommendations` | Q25, §4.2.5 |
 | A decision event sent by the simulator when no scenario event falls on the decision step | the Event Service, like any other event | §1.6.1 |
-| Scenario and mode order seeded by the participant | `make_session()` of the cleaned simulator | F29, Q6 |
+| Scenario and mode order seeded by the session id | `make_session()` of the cleaned simulator | F29, Q6 |
 | Experiment controls (session start, next scenario) from a start dialog of the Railway page to the simulator | PowerGrid's apply path | Q3, S4, S12 |
+| The platform's trace session id as the experiment's id in a use case's events and contexts | `currentTraceSessionId()` of the trace export, as the post-logout survey uses it | D10, Q11 |
 | A use case registering an extra UI language itself, including the platform texts its page shows | vue-i18n's `mergeLocaleMessage()`, the `<locale>-<entity>` naming of `setupEntitiesLocales()` | Q7, S7 |
 | Docker-free dev gateway with Keycloak/OperatorFabric stand-ins | `AUTH_DISABLED`, the nginx routes of `nginx-cors-permissive.conf` | §6, S6 |
 | Screenshots of every UI step committed with the plan, from a baseline on | Cypress screenshots and video (gitignored output), the plan's material folder | §6, S16 |
@@ -1937,7 +1945,9 @@ None yet.
       `RailwayManager` calls the agent, configured by URL and token in the Recommendation Service's
       environment as PowerGrid's `RL_AGENT_*`. The frontend, the response format, the traces and the
       apply stay as they are.
-- 💡 **(Q3) Where are sessions started and how does the participant move to the next scenario?**
+- ✅ ~~**(Q3) Where are sessions started and how does the participant move to the next scenario?**~~
+  **Decided 2026-11-10:** d), the start dialog and the progress bar; the Szenario-Loader is
+  `ScenarioLoader.vue` in Railway's own panels (§4.2.6).
   Existing concepts in InteractiveAI (`main`):
   - No chain of scenarios, no experiment and no per-scenario introduction: PowerGrid plays one
     scenario per simulator run, picked by the experimenter in the simulator's dashboard (Q6,
@@ -1976,7 +1986,8 @@ None yet.
   - d) A start dialog and a progress bar, after PowerGrid's agent choice (§4.2.3). After login a
     Railway-owned modal, mounted by Railway's `Assistant.vue` when the latest context has no running
     session, lists the experiments (the run lists of Q6) and starts the chain with one
-    `POST /api/v1/session` through `/railway-simu/`. Between two scenarios the same modal shows the
+    `POST /api/v1/session` through `/railway-simu/`, sending the platform's trace session id
+    (`currentTraceSessionId()`) as the experiment's `session_id` (D10). Between two scenarios the same modal shows the
     next introduction and "Weiter" (next). The bottom panel's Railway `Timeline.vue` shows a progress
     bar above the shared Timeline ("Szenario 2 von 6", from the context's
     `session.scenario_position`), so the Timeline stays. The modal is the Szenario-Loader
@@ -1989,7 +2000,7 @@ None yet.
       like the screenshot; which Szenario-Loader functions remain is Q13.
   - e) Today's Railway page as it is, no start UI in the platform: the participant logs in and the
     page waits for whatever a simulator posts; the experimenter starts the session outside the
-    platform (simulator config or command line: participant, run list), as PowerGrid's experimenter
+    platform (simulator config or command line: experiment), as PowerGrid's experimenter
     does in the simulator's dashboard (b) and as the handover suggests (Q20). Like c), but the page
     keeps its bottom panel; the progress across runs can still show in the status line above the
     drawing (F4, S10), which reads the context's `session.scenario_position`. That line is the
@@ -2025,8 +2036,8 @@ None yet.
     scenario it shows the end screen (F26). The same extension point as d) (Railway's own panels, no
     shared code); d) without the start part.
     - Needs: the simulator's "next" route (S4) and the next scenario's name and introduction
-      before it runs (Q26); the participant code comes from the experimenter's config (Q11 a or
-      d without the dialog).
+      before it runs (Q26); without the start dialog the `session_id` comes from the experimenter's
+      command, not from the page's trace session (D10).
     - Differs from d) only in who starts the session: the experimenter outside the platform (f) or
       the start dialog (d). f) has no experiment choice in the page and no "✕ Beenden".
   - *Proposal (2026-11-10):* d), which follows an existing pattern (PowerGrid's `AgentChoice.vue`)
@@ -2035,7 +2046,7 @@ None yet.
 - ✅ ~~**(Q6) One mode per session, or both modes per session?**~~ **Decided 2026-11-10:** as
   `railway_sim`'s Experiment: six runs, the scenarios shuffled and split, 3 per mode, the first mode
   drawn at random (F39); the single run is a one-run list (Q13). The draw
-  stays seeded by the participant (F29), so a restart replays the same order. The cleaned simulator
+  is seeded by the `session_id` (F29, D10). The cleaned simulator
   has one mode per session (`usecases_examples/Railway/integration/session.py`,
   `make_session(participant, mode, scenario_ids)`, added in S1); `railway_sim`'s experiment played
   6 runs, 3 per mode, first mode random.
@@ -2082,8 +2093,8 @@ None yet.
   - How answers are tied to a person: the Participant ID is the trace session id (random, made at
     login), not the login; the answers file carries no login. The link is the session log export,
     which holds both `userLogin` and the same session id: answers → session id → export → login.
-    With Q11 d) (one shared `railway_user`) the export names `railway_user`, and the participant
-    comes from the events and contexts of that session, which carry the typed code.
+    With D10 the same id is the Experiment's `session_id` in every Railway event and context, so
+    answers, export and Experiment share one id; who it was is the study lead's note (Q11).
   - How they are collected: not by the platform. `surveychainer.html` downloads the answers as a JSON
     file in the participant's browser and only tells the page it is done; the Historic Service
     stores no survey answers (`views/Survey.vue`: "Nothing is sent to the backend - the file is the
@@ -2247,7 +2258,10 @@ None yet.
   service, or in its own compose next to it (as PowerGrid's simulator,
   `usecases_examples/PowerGrid/docker-compose.yml`, reached through `host.docker.internal`)? *Proposal:* its own compose, as
   PowerGrid, plus the k8s values; decided with the platform maintainers.
-- 💡 **(Q11) Participant users:** how many (`P01`–`P20`?) and created how? A user exists twice: in
+- ✅ ~~**(Q11) Participant users:** how many (`P01`–`P20`?) and created how?~~ **Decided 2026-11-10:**
+  none, one shared `railway_user` and no participant code: the Experiment is identified by the
+  platform's trace session id (D10), as the post-logout survey already does; the study lead maps
+  session ids to people. Simpler than d) below, which still asked for a code. A user exists twice: in
   Keycloak (the login) and in OperatorFabric's users (`entities: ["Railway"]`, so Railway's cards
   reach it); today there is only `railway_user`.
   - a) Seed files: the dev Keycloak export, `users-docker.yml` and the server's ConfigMap (§5 Config
@@ -2256,7 +2270,7 @@ None yet.
   - b) A script against the Keycloak and OperatorFabric admin APIs on the server. Flexible, but more
     code, and a manual step that D12 wants to avoid.
   - c) One shared user, the participant typed in as in `railway_sim`'s "Kürzel": no new users, but
-    against D10, since the platform's traces no longer tell participants apart.
+    against the former D10 (one user per participant).
   - d) One shared user (`railway_user`), the participant code typed into the start dialog of Q3 d)
     together with the choice of the experiment, and sent with the session start; the simulator puts
     it into every event and context (D10's second half) and seeds the order with it (F29). No new
@@ -2267,8 +2281,8 @@ None yet.
     - not separation: OperatorFabric sends every Railway card to every user with the Railway entity;
     - the browser's session export, which names the login (`userLogin`), and a typo-free
       participant code.
-  - *Proposal:* a) for dev and the server; count from the study lead. d) if the study lead prefers
-    no user administration; then D10's "one platform user per participant" goes.
+  - ~~*Proposal:* a) for dev and the server; count from the study lead.~~ Replaced by the decision
+    above.
 - ✅ ~~**(Q12) Link map:** still needed next to the map and the ZWL? It was removed in
   `railway_sim`'s last commits. *Proposal:* no; follow-up if requested.~~ **Decided 2026-11-07:**
   needed. A third centre tab "Linienansicht" (F31), its data `infra.link_map` computed once per
@@ -2414,7 +2428,8 @@ this plan.
   - a) As planned (the screenshot's look).
   - b) Add state and mode to F4 (or F23).
   - *Proposal:* b), small and helpful to the experimenter; decided by the study lead.
-- 💡 **(Q20) Session start: simulator config or Szenario-Loader?** Handover: simplest is participant
+- ✅ ~~**(Q20) Session start: simulator config or Szenario-Loader?**~~ **Decided 2026-11-10** with
+  Q3 d): the start dialog. Handover: simplest is participant
   and mode in the simulator config, a start screen only if the experimenter cannot be at the
   machine. Plan: the Szenario-Loader as a start dialog (Q3 d). The handover's option is Q3 c). Decided with Q3.
 - 💡 **(Q21) Who decides the reflection questionnaire?** Handover: with SystemX (the platform
