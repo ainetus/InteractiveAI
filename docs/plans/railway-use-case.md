@@ -1356,7 +1356,8 @@ Added:
 - `src/entities/Railway/grid.ts`: transition-int decoding into track pieces; `zwl.ts`: points per
   train; `linkmap.ts`: placement on the link map; Vitest tests next to them.
 - The selected Ko-Lernen train (F19) as Railway UI state shared by `ColearningChoice.vue` and
-  `NetworkMap.vue` (the app store's Railway slice, no new store).
+  `NetworkMap.vue`: a `ref` in a Railway-owned module (`src/entities/Railway/colearning.ts`); the
+  shared app store has no per-use-case state, and none is added (Q8 a).
 - `src/entities/Railway/locales/de.json` and `src/entities/Railway/i18n.ts`, which registers it as
   `de-Railway` (Q7 d); Railway's `en.json` and `fr.json` get the translations.
 - `public/surveys/railway/reflection.html` + `CHAINS.Railway` in `surveychainer.html`.
@@ -1522,7 +1523,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S9 | | `feat(railway): draw the time-distance diagram from the context history` | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot `05-zwl`. | F12–F14 | S8 | - |
 | S17 | | `feat(railway): draw the link map from the context` | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | F31 | S8 | - |
 | S10 | | `feat(railway): show scenario status and the open decision in the centre panel` | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | F4, F17, F23, F35, F36 | S8 | Q19 |
-| S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, `CHANGELOG.md` "Changed" line (the migration of the breaking apply target); shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q8, Q17, Q18 |
+| S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, `CHANGELOG.md` "Changed" line (the migration of the breaking apply target); shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q17, Q18 |
 | S12 | | `feat(railway): start sessions, ask the reflection questions and move to the next scenario` | `ScenarioLoader.vue` (start dialog: Szenario, Modus, Module), `ScenarioProgress.vue` in `Timeline.vue`, intros, `public/surveys/railway/`, end screen; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32–F34, F39 | S4, S7 | Q3, Q5, Q13, Q14, Q16, Q20–Q23, Q26 |
 
 ### Phase 5: final check and deployment
@@ -1664,7 +1665,7 @@ None yet.
 
     b) would break the no-continuous-requests rule (§2 D7), c) would need a change to the platform
     services. Q3 can use the same route.
-- 💡 **(Q2) Where does the agent run?**
+- ✅ ~~**(Q2) Where does the agent run?**~~
   **Decided 2026-11-10: ab), a) now with the option of b) later.** `RailwayManager` looks the open
   decision's recommendations up in its copy of `recommendations.json` (in `resources/Railway/`) by
   the event's `scenario_id`, `decision_index` and `mode`; the simulator's `export_recommendations.py`
@@ -1873,8 +1874,16 @@ None yet.
 - ✅ ~~**(Q6) One mode per session, or both modes per session?**~~ **Decided 2026-11-10:** as
   `railway_sim`'s Experiment: six runs, the scenarios shuffled and split, 3 per mode, the first mode
   drawn at random (F39); the Testprotokoll and the single run are one-run lists (Q13). The draw
-  stays seeded by the participant (F29), so a restart replays the same order. The cleaned simulator has one mode per
-  session; `railway_sim`'s experiment played 6 runs, 3 per mode, first mode random.
+  stays seeded by the participant (F29), so a restart replays the same order. The cleaned simulator
+  has one mode per session (`usecases_examples/Railway/integration/session.py`,
+  `make_session(participant, mode, scenario_ids)`, added in S1); `railway_sim`'s experiment played
+  6 runs, 3 per mode, first mode random.
+  - Technically a mode per run adds little: the platform has no mode, session or experiment concept
+    (the Recommendation Service, the cards and the traces are the same for both modes), so both
+    a mode per session and a mode per run are Railway-only. Every place that uses the mode reads it
+    per run anyway: the simulator's lookup key and `decisions[].source`, the event's `mode` for
+    `RailwayManager`, the context's `scenario.mode` for the assistant panel (Q8). The extra code is
+    the run list in `make_session()` and `SessionRunner` (simulator only).
   - The modules answer most of it (§1.5.3): the Experiment defines both modes in one session (six
     runs, 3 + 3), the Testprotokoll one run with its scenario and mode, the single run likewise.
     So the session needs a run list either way; which modules are kept is Q13.
@@ -1981,21 +1990,74 @@ None yet.
   - *Proposal:* d) with d1): it keeps PowerGrid's mechanism and touches no shared code (Q15); the
     registration uses vue-i18n's API from the Railway folder, which no use case does today (New
     patterns). d2) only if English or French participants are planned.
-- 💡 **(Q8) Ko-Lernen: two-step choice in the assistant panel, built from the flat recommendation list?**
-  The screenshot shows it; the list already has one recommendation per train and action.
-  Two-step choice: first "Zug auswählen:" (one button per train), then "Aktion auswählen:"
-  ("Warten", "Vorfahrt", "Umleiten"), then the KPI preview and "Lösung vorschlagen" (F19). The
-  alternative is the platform default: the list shown as separate recommendation cards.
-  - Which runs are Ko-Lernen is not Q8's question but the run list's (Q6): the cleaned simulator
-    has one mode per session (`make_session(participant, mode, scenario_ids)`) and no Experiment;
-    `railway_sim`'s Experiment set the mode per run (3 + 3, first mode random, §1.5.3).
-  - `railway_sim` answers the remainder: after train and action it showed only the
-    matched option's KPIs ("Vorschau: Auswirkungen"), not its label, and "Lösung vorschlagen"
-    applied it at once, without the confirmation the Empfehlungsmodus has (`applyColearning()` in
-    its `Assistant.vue`).
-  - *Proposal:* yes; the panel groups the list by `actions[0].train`, shows the KPI preview without
-    the option's label and applies the matching recommendation without a confirmation, as in
-    `railway_sim`. The study lead may change the last two.
+- ✅ ~~**(Q8) Ko-Lernen: how does the participant choose?**~~ **Decided 2026-11-10:** a), the
+  two-step choice in the use case only (`ColearningChoice.vue`, S11). The recommendation list already has one
+  recommendation per train and action (`actions[0].train`, `actions[0].action`; blocked ones with
+  `feasible: "False"`); the question is how the assistant panel shows it.
+  - The reference screenshot [`railway_sim.png`](railway-use-case/railway_sim.png) shows a Ko-Lernen
+    decision: "Zug auswählen:" and "Aktion auswählen:" with "Lösung vorschlagen" still disabled,
+    "Szenario 3 — Güterverkehr vs Personenverkehr" at "Schritt 16" (scenario 3's decision step), the
+    train buttons are scenario 3's `train_labels` ("G 3 vorne", "IC 3 dann G 3", "IC 3 dann IR 35"),
+    and the cut-off line at the bottom reads "Experiment …/6 · Szenario 3 …", so it is a Ko-Lernen run
+    of the Experiment. The faded "Recommendation" in the Szenario-Loader's "Modus" column is the
+    locked single-run setting, not the running mode. There is no reference image of the
+    Empfehlungsmodus decision panel (F18); it is described from `railway_sim`'s frontend only.
+  - The platform has no Ko-Lernen and no Empfehlungsmodus: one flow for every use case ("Get
+    recommendation" → cards → "Apply", traces `ASKFORHELP`/`AWARD`). Nearest to Ko-Lernen is
+    Railway's "Add a solution" button, which has no handler on `main`; the `SOLUTION` trace type
+    exists but nothing sends it.
+  - Which runs are Ko-Lernen is not Q8's question but the run list's (Q6, decided: per run, as
+    `railway_sim`'s Experiment, §1.5.3). Where the choice sits (assistant or centre panel) is Q18.
+  - a) Two-step choice in the assistant panel, as in `railway_sim` and the reference screenshot
+    (F19): first "Zug auswählen:" (one button per train, labelled by `train_labels`), then "Aktion
+    auswählen:" ("Warten", "Vorfahrt", "Umleiten"; blocked ones shown but not selectable), then the
+    KPI preview and "Lösung vorschlagen". The panel groups the list by `actions[0].train`
+    (`ColearningChoice.vue`, S11). `railway_sim` showed only the matched option's KPIs ("Vorschau:
+    Auswirkungen"), not its label, and "Lösung vorschlagen" applied it at once, without the
+    confirmation of the Empfehlungsmodus (`applyColearning()` in its `Assistant.vue`).
+    - In the use case only, no core change: `CAB.vue` already loads Railway's own `Assistant.vue`
+      (as PowerGrid's `AgentChoice.vue`, §4.2.3). In a Ko-Lernen run (the card's `mode`) it shows
+      `ColearningChoice.vue` instead of the shared `Recommendations.vue`; the Empfehlungsmodus keeps
+      `Recommendations.vue`. Request, `AWARD` trace and apply stay Railway's existing
+      `getRecommendation()` call and `onSelection()`, which `ColearningChoice.vue` calls with the
+      matched recommendation. Built from the shared atoms (`Button.vue`, `Card.vue`).
+    - What `Recommendations.vue` does that `ColearningChoice.vue` must do itself: the
+      `RECOMMENDATIONS` session trace when the list is shown, the start of the decision time, through
+      the exported `recordTraceForSession()` (same shape). Not needed: the downvote feedback and the
+      confirmation modal (a) applies at once).
+    - The selected train for the map highlight lives in a Railway-owned module, not the shared app
+      store (§5 Frontend).
+    - How the panel could look, an ad-hoc mockup (not on `main`) with scenario 3's real Ko-Lernen
+      data, before and after the choice:
+
+      ![Q8 a) two-step choice, mockup with scenario 3's Ko-Lernen data](railway-use-case/iai_colearning_two_step_mockup.png)
+
+      *Caveat:* only the shared `Button.vue` and the platform CSS are real; layout, texts and the KPI
+      preview are a mockup after the reference screenshot and F18/F19, in a screenshot harness
+      without the panel frame. No emoji in the action buttons (the harness has no emoji font). In
+      scenario 3 every train offers only "Vorfahrt", so "Warten" and "Umleiten" are greyed out once a
+      train is chosen; whether actions that are not offered are shown at all is open (F19 shows
+      `invalid_actions` as blocked, scenario 3 has none).
+  - b) Flat list: the platform default, the list as separate recommendation cards in the shared
+    `Recommendations.vue`, one card per train and action, the blocked ones included; only the KPI
+    table's `feasible` row tells them apart. No new component. Both modes as the flat list,
+    scenario 1's real lists from `payloads.recommendations()`, R0 selected:
+
+    ![Q8 b) flat list: platform recommendation cards with scenario 1's lists, Empfehlungsmodus and Ko-Lernen](railway-use-case/iai_default_recommendations_both_modes.png)
+
+    *Caveat:* the shared `Recommendations.vue` (with `Button.vue`, `Card.vue`, the platform CSS,
+    Railway's theme and English texts) as on `main`, with the card, button and KPI-table templates of
+    Railway's `Assistant.vue` (tab 2), mounted in a screenshot harness: without the panel frame and
+    its tab bar (`components/organisms/CAB/Assistant.vue`), English locale (Railway has no German
+    yet, S7), the four catalog filter buttons of today's Railway page, and KPI rows by key, since
+    today's table only knows `cost`, `nb_impacted_passengers`, `total_cost`, `delay`. Scenario 1,
+    not the reference screenshot's scenario 3.
+  - c) Flat list without the blocked actions: b) with the `feasible: "False"` entries left out of
+    the list. Fewer cards, but the participant no longer sees that "Warten" was offered and is not
+    possible, which `invalid_actions` does on purpose (§1.5.2).
+  - *Proposal:* a): it is what the reference screenshot shows and keeps the blocked actions visible
+    as blocked. The study lead may change the KPI preview without the option's label and the apply
+    without a confirmation.
 - ✅ ~~**(Q9) Dev stack: real services, or a full mock?**~~ **Decided 2026-11-07:** a).
   - a) Real Flask services on SQLite with `AUTH_DISABLED`, only Keycloak and OperatorFabric stubbed.
     Exercises the schemas and the managers; needs the services' Python dependencies (the
@@ -2105,9 +2167,9 @@ this plan.
 - 💡 **(Q18) Ko-Lernen two-step choice: centre panel or assistant panel?** Handover: in the centre
   panel. Plan (Q8, F19): in the assistant panel, as in `railway_sim`, with the selected train
   highlighted in the Kartenansicht.
-  - a) Assistant panel (Q8 as proposed).
+  - a) Assistant panel (Q8 a) as proposed).
   - b) Centre panel.
-  - *Proposal:* a). Only relevant if Q8 keeps the two-step choice.
+  - *Proposal:* a). Only relevant with Q8 a), the two-step choice.
 - 💡 **(Q19) Status line: also state and mode?** Handover: scenario name, "Szenario 2 von 6", step,
   state ("Läuft", "Entscheidung erforderlich", "Abgeschlossen") and mode ("Empfehlungsmodus",
   "Ko-Lernen"). Plan: "Schritt N" above the drawing (F4), "`Experiment i/n · <scenario name> ·
