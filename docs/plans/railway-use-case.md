@@ -1741,7 +1741,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S17 | | `feat(railway): draw the link map from the context` | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | F31 | S8 | - |
 | S10 | | `feat(railway): show scenario status and the open decision in the centre panel` | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | F4, F17, F35, F36 | S8 | Q19, Q4 (confirmation) |
 | S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q17, Q18, Q28, Q8 (confirmation) |
-| S12 | | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | `ScenarioLoader.vue` (start dialog: the Experiment, the single run if Q13 keeps it), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q13, Q21–Q23 |
+| S12 | | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | `ScenarioLoader.vue` (start dialog: the Experiment, the single run if Q13 keeps it), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q13, Q22, Q23 |
 
 ### Phase 5: final check and deployment
 
@@ -2755,8 +2755,10 @@ this plan.
   Q3 d): the start dialog. Handover: simplest is participant
   and mode in the simulator config, a start screen only if the experimenter cannot be at the
   machine. Plan: the Szenario-Loader as a start dialog (Q3 d). The handover's option is Q3 c). Decided with Q3.
-- 💡 **(Q21) Who decides the reflection questionnaire?** Handover: with SystemX (the platform
-  maintainers). Plan (Q5): the study lead.
+- ✅ ~~**(Q21) Who decides the reflection questionnaire?**~~ **Decided 2026-11-10:** the study lead
+  decides the questions (F24); with Q5 d) nothing in the platform changes but the `CHAINS.Railway`
+  entry in `surveychainer.html`, which the maintainers review in the PR. Handover: with SystemX (the
+  platform maintainers). Plan (Q5): the study lead.
   - *Proposal:* the study lead, with the maintainers' OK for options that touch the platform (Q5 a,
     c); Q5 d only adds a survey chain.
 - 💡 **(Q22) End screen: text and place?** Handover: "Vielen Dank – das Experiment ist beendet." in
