@@ -1337,7 +1337,7 @@ sequenceDiagram
 
 #### 4.2.6 Target: a session from the start dialog to the end screen
 
-Who drives what, with Q3 d), Q5 d), Q6, Q26 a) and Q27 a) (proposed); the `alt` blocks set Q3 e) (not chosen; today's page,
+Who drives what, with Q3 d), Q5 d), Q6, Q26 a), Q27 a) and Q29 a); the `alt` blocks set Q3 e) (not chosen; today's page,
 the experimenter starts the simulation outside the platform, shaded orange) against d). Notation: [UML sequence diagram in
 Mermaid](https://mermaid.js.org/syntax/sequenceDiagram.html); the frontend nginx (`/railway-simu/`),
 OperatorFabric (the card stream, §4.2.1) and the recommendation request (§4.2.4) are left out.
@@ -1350,7 +1350,7 @@ sequenceDiagram
     participant Sim as Railway simulator (HTTP app and SessionRunner)
     participant Ctx as Context Service (cab_context)
     participant Ev as Event Service (cab_event)
-    Note over Sim: always on and idle, no session (Q27 a, proposed)
+    Note over Sim: always on and idle, no session (Q27 a)
     rect rgb(240, 240, 240)
     Note over P,Ev: choose the experiment and start the scenario
     alt Q3 d) start dialog in the page
@@ -1749,7 +1749,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 |---|---|---|---|---|---|---|
 | S13 | | `test(railway): check the full run in both modes against the reference screenshot` | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | T4 | S8–S12, S17 | Q13 |
 | S14 | | `ci(railway): run the simulator and Railway schema tests` | CI job; Cypress job only if fast enough. | T5, T6 | S1–S5 | - |
-| S15 | | `feat(deploy): deploy the Railway simulator next to the platform` | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q24, Q27 |
+| S15 | | `feat(deploy): deploy the Railway simulator next to the platform` | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q24 |
 
 ## Limitations
 
@@ -1822,7 +1822,7 @@ Compared with `main`; the reused concepts are listed under the design principles
 | Scenario and mode order seeded by the session id | `make_session()` of the cleaned simulator | F29, Q6 |
 | Experiment controls (session start, next scenario, stop) from a start dialog of the Railway page to the simulator, and the page reading the scenario list from the simulator | PowerGrid's apply path, PowerGrid's `AgentChoice.vue` as a use-case modal | Q3, Q26, S4, S12 |
 | One Railway page with two paths, old or new by the data present | the use case's own panels | D20, S8, S11, S12 |
-| An always-on simulator, idle until the page starts a session | the platform services' deployment (`restart: unless-stopped`, k8s Deployment) | Q27 |
+| An always-on simulator, idle until the page starts a session | the platform services' deployment (`restart: unless-stopped`, k8s Deployment) | Q27 a) |
 | A use-case component instead of the shared `Recommendations.vue`, recording the `RECOMMENDATIONS` trace itself, and a use-case module shared between two panels | `recordTraceForSession()`, the shared atoms | Q8 |
 | A generated file committed in two places, kept equal by a test | `recommendations.json` and its copy in `resources/Railway/` | Q2, S5 |
 | A `de` chain in the survey chainer's `CHAINS` | `CHAINS` per use case and language | Q5, S12 |
@@ -2508,8 +2508,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - b) The names and introductions in Railway's locale files: no new route, but scenario texts in
     two places.
   - *Proposal:* a); it keeps the scenario texts in one place.
-- 💡 **(Q27) Where does the simulation run, so that the experimenter starts nothing outside the
-  platform?** Requirement (2026-11-10): the participant starts the Experiment in the page; no
+- ✅ ~~**(Q27) Where does the simulation run, so that the experimenter starts nothing outside the
+  platform?**~~ **Decided 2026-11-10:** a), the simulator as its own always-on service (S15). Requirement (2026-11-10): the participant starts the Experiment in the page; no
   simulation is started by hand.
   - a) The simulator as its own always-on service (S15, Q10): deployed next to the platform and
     started with it (`restart: unless-stopped`, or a k8s Deployment), idle until the start dialog
