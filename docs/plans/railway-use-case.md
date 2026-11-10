@@ -177,7 +177,7 @@ Reused concepts:
 | Railway `Assistant.vue` (right panel) | Shows the event, asks for recommendations, lets the operator choose and apply one. Not for computing options. | 🟨 modified: German KPI table; in Ko-Lernen the choice is "train, then action" as in the screenshot. |
 | Railway `ScenarioLoader.vue` (start dialog, mounted by `Assistant.vue`) | The "Szenario-Loader": session start, introductions, next scenario, end screen, as a modal over the page while no scenario runs (Q3 d). Not for play/pause/speed. | 🟩 added: the experimenter starts a session and the participant moves to the next scenario here. |
 | Railway `Timeline.vue` (bottom panel) | The progress across the session ("Experiment i/n · <scenario name> · Schritt N") above the shared `Timeline`. Not for controls. | 🟨 modified: the participant sees where they are in the session. |
-| Railway questionnaire (`public/surveys/railway/`) | The reflection questions (when and where: Q5). Not PowerGrid's post-logout survey. | 🟩 added: participants answer the reflection questions in the platform. |
+| Railway questionnaire (`public/surveys/railway/`) | The reflection questions, once after the Experiment as Railway's chain of the post-logout survey (Q5 d). Not PowerGrid's chain. | 🟩 added: participants answer the reflection questions in the platform. |
 | Railway locales (`de`, `en`, `fr`) | The texts of the Railway page in the browser's language, German for the participants. Not a translation of the other use cases, and not the scenario texts (Q7 d1). | 🟩 added: the Railway page is in German. |
 | Frontend nginx `/railway-simu/` | Same-origin route from the browser to the simulator endpoints. Not for the platform services. | 🟩 added: no CORS and no public simulator port. |
 | Dev gateway (`usecases_examples/Railway/devstack/`) | Stands in for Keycloak and OperatorFabric and routes to the locally started services, so the platform runs without Docker. Not for any deployment. | 🟩 added: developers and automated checks can run and screenshot the full flow on one machine. |
@@ -268,14 +268,16 @@ choices, and the bottom panel keeps only the progress (F23, Q3 d). Which choices
 - **F22** Before each scenario: the scenario introduction ("📋 Szenario-Einführung — Run i/n", texts
   per scenario from `railway_sim`'s `SCENARIO_INTROS`), then the scenario starts.
 - **F23** While running, in the bottom panel: "`Experiment i/n · <scenario name> · Schritt N`".
-- **F24** After a run (which runs: Q14): "📋 Reflexionsfragen — Run i/n", two of the five questions at random,
-  free text "Ihre Antwort...":
+- **F24** Once, at the end of the Experiment, not between scenarios (Q5 d): the reflection questions
+  as Railway's chain of the post-logout survey, in German, free text. `railway_sim` asked two of the
+  five at random after a run ("📋 Reflexionsfragen — Run i/n", "Ihre Antwort..."); the questions:
   "Auf welche Logik habe ich mich gestützt?", "Welche Informationen fehlten, die mir geholfen hätten?",
   "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?", "Was ist die wichtigste
   Erkenntnis für das nächste Mal?", "Gab es ein Bauchgefühl, das ich ignoriert habe?"
-- **F25** "Weiter" starts the next scenario only after the questions are answered or skipped.
+- **F25** "Weiter" in the next scenario's introduction starts it; no questions between scenarios
+  (Q5 d).
 - **F26** End: "✅ Experiment abgeschlossen — Alle Szenarien wurden erfolgreich durchgeführt und
-  protokolliert. Vielen Dank für Ihre Teilnahme!"
+  protokolliert. Vielen Dank für Ihre Teilnahme!"; the logout then opens the questionnaire (F24).
 - **F27** A new session starts with a clean feed (no cards of the previous participant).
 
 #### 1.5.1 Scenarios
@@ -311,7 +313,7 @@ they differ in who builds the solution and when the KPIs are shown.
 | Button | "Lösung vorschlagen" → "Lösung bestätigen" | "Lösung vorschlagen" |
 | Recorded as | `decisions[].source = "recommendation"` | `decisions[].source = "colearning"` with `train` and `action` |
 | In `railway_sim`'s Experiment (§1.5.3) | 3 of the 6 runs; first or second half, the first mode drawn at random. | The other 3 runs. |
-| Reflection questions in the Experiment | none | After each run (Q14). |
+| Reflection questions in `railway_sim`'s Experiment | none | After each run; in the platform once at the end instead (F24, Q5 d). |
 
 In all six scenarios only "Vorfahrt" leads to an option: "Warten" is offered in scenarios 1, 2 and 5
 but always blocked, "Umleiten" is offered in none. So Co-Learning is in effect "which train gets
@@ -342,10 +344,10 @@ Mode", decisions not logged there).
 | Reflection questions | After the run: two of the five, "Absenden & Protokoll speichern". | After Co-Learning runs only, two of the five, "Weiter ▶". |
 | End | "✓ Testprotokoll abgeschlossen", shows the saved log. | "✅ Experiment abgeschlossen …" (F26). |
 
-- **F33** Testprotokoll: a session whose run list (Q6) has one run, scenario and mode chosen in the
-  Szenario-Loader, with introduction, reflection questions and an end screen.
+- ~~**F33** Testprotokoll: a session whose run list (Q6) has one run, scenario and mode chosen in the
+  Szenario-Loader, with introduction, reflection questions and an end screen.~~ Dropped (Q16 b).
 - **F34** Experiment: a session with the six-run list of Q6, introduction before each run, reflection
-  questions as decided in Q14, end screen F26.
+  questions once at the end (F24), end screen F26.
 - In the platform the participant code is the logged-in user (D10), so neither module asks for a
   "Kürzel"; every run is logged by the platform (traces), the single run included.
 
@@ -436,7 +438,8 @@ Changing a text, an option or a KPI means editing the scenario file; only the si
 ### 1.7 Dropped on purpose
 
 - Play, pause, speed and reset controls (Q4); free-run mode, live conflict detection, `/resolve`;
-  the participant code dialog ("Kürzel"), replaced by the login (D10).
+  the participant code dialog ("Kürzel"), replaced by the login (D10); the Testprotokoll (Q16 b),
+  trying a scenario is done on the dev stack (§6), or as the single run if Q13 keeps it.
 
 ## 2. Design requirements
 
@@ -1263,6 +1266,122 @@ sequenceDiagram
   card is resolved only on success, otherwise the http plugin's error dialog shows and the card
   stays open. So a refused choice still leaves an `AWARD` trace (Limitations).
 
+#### 4.2.6 Target: a session from the start dialog to the end screen
+
+Who drives what, with Q3 d), Q5 d), Q6, Q26 a) and Q27 a); the `alt` blocks set Q3 e) (today's page,
+the experimenter starts the simulation outside the platform, shaded orange) against d). Notation: [UML sequence diagram in
+Mermaid](https://mermaid.js.org/syntax/sequenceDiagram.html); the frontend nginx (`/railway-simu/`),
+OperatorFabric (the card stream, §4.2.1) and the recommendation request (§4.2.4) are left out.
+
+```mermaid
+sequenceDiagram
+    actor P as Participant
+    actor Exp as Experimenter
+    participant FE as Frontend (CAB Railway page)
+    participant Sim as Railway simulator (HTTP app and SessionRunner)
+    participant Ctx as Context Service (cab_context)
+    participant Ev as Event Service (cab_event)
+    Note over Sim: always on and idle, no session (Q27 a)
+    rect rgb(240, 240, 240)
+    Note over P,Ev: choose the experiment and start the scenario
+    alt Q3 d) start dialog in the page
+        FE->>Sim: GET api v1 scenarios
+        Sim-->>FE: scenario ids, names and introductions (Q26 a)
+        FE->>P: start dialog with the experiments
+        P->>FE: experiment, participant code (Q11 d)
+        FE->>P: introduction of run 1 and Weiter
+        P->>FE: Weiter
+        FE->>Sim: POST api v1 session with participant and experiment
+        Sim-->>FE: 201 with session_id
+    else Q3 e) today's page, the experimenter starts outside the platform
+        rect rgb(255, 228, 196)
+        P->>FE: logs in, the page waits for contexts and cards
+        Exp->>Sim: start command or POST api v1 session with participant and experiment
+        Note over FE: no introduction in the page (an INFO card at most)
+        end
+    end
+    Note over Sim: builds the run list seeded by the participant (Q6), starts run 1
+    Sim->>Ctx: POST context with session, scenario state running, step 0, infra
+    loop each step, paced by RAILWAY_STEPS_PER_SECOND, inside the simulator
+        opt a scripted event at this step
+            Sim->>Ev: POST event with title, text, scenario_id and timestep
+        end
+        opt every N steps or after an event
+            Sim->>Ctx: POST context with trains, history and step
+        end
+    end
+    loop every 5 s
+        FE->>Ctx: GET latest context
+        Note over FE: draws map, ZWL and the status line
+    end
+    end
+    rect rgb(240, 240, 240)
+    Note over P,Ev: pause at the decision
+    Note over Sim: decision step reached, the player pauses itself (D19)
+    Sim->>Ev: POST event with decision_index, scenario_id and mode
+    Sim->>Ctx: POST context with state paused_for_decision
+    Note over Sim: the loop goes on, step() does nothing while paused
+    Ev-->>FE: card through OperatorFabric
+    P->>FE: opens the card, asks for recommendations, chooses and confirms
+    FE->>Sim: POST api v1 recommendations with actions[0] and event_id
+    Note over Sim: apply_decision, the player resumes
+    Sim->>Ctx: POST context with state running and the decision
+    end
+    rect rgb(240, 240, 240)
+    Note over P,Ev: end the scenario and start the next
+    Sim->>Ctx: POST context with state complete and the decisions
+    Note over Sim: no stepping until next
+    FE->>Ctx: GET latest context
+    alt Q3 d) and more runs in the run list
+        FE->>P: overlay with the next introduction and Weiter
+        P->>FE: Weiter
+        FE->>Sim: POST api v1 session next
+        Sim->>Ctx: POST context with the next scenario, state running, step 0
+    else Q3 e) and more runs in the run list
+        rect rgb(255, 228, 196)
+        Note over FE: status line shows complete, no button
+        Exp->>Sim: next command or POST api v1 session next
+        Sim->>Ctx: POST context with the next scenario, state running, step 0
+        end
+    else last run
+        FE->>P: end screen (F26), in e) an INFO card at most
+        P->>FE: logout, then the questionnaire (Q5 d)
+    end
+    end
+    opt stop at any time
+        P->>FE: Beenden (d)
+        FE->>Sim: POST api v1 session stop
+        rect rgb(255, 228, 196)
+        Exp->>Sim: or stop command (e)
+        end
+        Sim->>Ctx: POST context with state complete
+    end
+```
+
+- **Stepping runs in the simulator, not in the frontend:** `SessionRunner` calls `step()` at the
+  pace `RAILWAY_STEPS_PER_SECOND` (S4). The frontend never triggers a step; it only reads the
+  latest context every 5 s (D11), and the participant does not control time (D8, Q4).
+- **At a decision nobody pauses the simulator from outside:** the player pauses itself at the
+  decision step, and the applied choice resumes it (D19, Q25 b, §4.2.5). Without a choice the run
+  stays paused. The decision step is fixed in the scenario file, `decision_points[i]["timestep"]`
+  (scenario 3: 16): `ScenarioPlayer.step()` fires that step's events, then, if the next decision
+  point's timestep is reached, sets `paused_for_decision` and calls `on_decision` without moving
+  the trains; `apply_decision(i)` applies the option's holds and scripted actions and sets it
+  running again. No conflict detection decides it (dropped, §1.7). This is `railway_sim`'s
+  mechanism unchanged (its `ScenarioPlayer`, `b612187`): its own thread stepped at the "Tempo"
+  speed and skipped steps while paused; the cleaned player dropped the thread, `SessionRunner`
+  brings the loop back without the "Start", "Pause" and "Tempo" controls (Q4).
+- **Only three kinds of request go from the frontend to the simulator,** all through
+  `/railway-simu/`: the session controls (start, next, stop), the scenario list, and the applied
+  choice. Everything the page shows comes from the context and the cards.
+- **Q3 e) differs only where the session is started and moved on:** the experimenter, outside the
+  platform (`Exp`), starts the session and each next scenario, with the simulator's start command
+  or the same HTTP routes; the step loop, the decision pause and the apply are identical. The page
+  shows no introduction, no "Weiter" and no end screen, at most `INFO` cards (Q3 e). With Q27 a)
+  the simulator already runs; the experimenter only sends the commands.
+- **Between scenarios the simulator waits:** after `complete` it steps no more until "next"; the
+  frontend sees `complete` in the context and shows the overlay (Q3 d).
+
 ## 5. Change inventory
 
 ### Simulator (`usecases_examples/Railway/`)
@@ -1470,7 +1589,7 @@ collections (their Railway requests still pass; events without `scenario_id` get
   | `13-link-map` | the Linienansicht | S17 |
   | `06-status` | status line and open decision in the centre panel | S10 |
   | `07-decision-recommendation`, `08-decision-colearning`, `09-after-apply` | the decision panel per mode, after applying | S11 |
-  | `10-intro`, `11-reflection`, `12-end` | the Szenario-Loader: introduction, reflection questions, end screen | S12 |
+  | `10-intro`, `11-reflection`, `12-end` | the Szenario-Loader's introduction and end screen; the Railway chain of the post-logout survey | S12 |
 
 - **Documenting a step:** the step copies its shots into `docs/plans/railway-use-case/shots/`
   (committed, replacing older versions of the same shot) and links them from its "Carried out" row,
@@ -1524,7 +1643,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S17 | | `feat(railway): draw the link map from the context` | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | F31 | S8 | - |
 | S10 | | `feat(railway): show scenario status and the open decision in the centre panel` | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | F4, F17, F23, F35, F36 | S8 | Q19 |
 | S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, `CHANGELOG.md` "Changed" line (the migration of the breaking apply target); shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q17, Q18 |
-| S12 | | `feat(railway): start sessions, ask the reflection questions and move to the next scenario` | `ScenarioLoader.vue` (start dialog: Szenario, Modus, Module), `ScenarioProgress.vue` in `Timeline.vue`, intros, `public/surveys/railway/`, end screen; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32–F34, F39 | S4, S7 | Q3, Q5, Q13, Q14, Q16, Q20–Q23, Q26 |
+| S12 | | `feat(railway): start sessions, ask the reflection questions and move to the next scenario` | `ScenarioLoader.vue` (start dialog: Szenario, Modus, Module), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (with `de`) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q3, Q13, Q20–Q23, Q26 |
 
 ### Phase 5: final check and deployment
 
@@ -1868,12 +1987,54 @@ None yet.
     - Like a), it needs the scenario list and introductions before any context exists (Q26).
     - Differs from a): no permanent controls in the bottom panel, so the bottom panel no longer looks
       like the screenshot; which Szenario-Loader functions remain is Q13.
+  - e) Today's Railway page as it is, no start UI in the platform: the participant logs in and the
+    page waits for whatever a simulator posts; the experimenter starts the session outside the
+    platform (simulator config or command line: participant, run list), as PowerGrid's experimenter
+    does in the simulator's dashboard (b) and as the handover suggests (Q20). Like c), but the page
+    keeps its bottom panel; the progress across runs can still show in the status line above the
+    drawing (F4, S10), which reads the context's `session.scenario_position`. That line is the
+    centre panel's top row, where the reference screenshot has the control bar ("Start", "Pause",
+    "Zurücksetzen", "Tempo", dropped by Q4) and "Schritt 16" (green box; the text is an example):
+
+    ![Where the status line goes: the control bar row of the centre panel in the reference screenshot](railway-use-case/railway_sim_status_line.png)
+
+    Today's page has no such row yet (below); S10 adds it in Railway's `Context.vue`
+    (`StatusBar.vue`). Today's page with the dev stack's seed event (S16):
+
+    ![Today's Railway page on main: Leaflet map, assistant, timeline, waiting for a simulator](railway-use-case/shots/00-baseline.png)
+
+    No platform work for the start; but the participant cannot move to the next scenario
+    (F25: "Weiter" in the next introduction) without the experimenter, and the
+    introductions and the end screen need another place. An `INFO` event card in the feed would
+    do, with platform concepts as they are (the simulator posts it as any event, `ROUTINE`
+    criticality); but a feed card is easy to miss and does not hold the next start the way a
+    dialog does. The feed sorts by criticality, so the introduction sinks below the decision card
+    once that arrives:
+
+    ![Q3 e) introduction and end screen as info cards in the Railway feed, mockup](railway-use-case/iai_feed_intro_end_cards_mockup.png)
+
+    *Caveat:* Railway's `Notifications.vue` and the shared feed as on `main`, fed with three
+    sample cards in a screenshot harness (no OperatorFabric, no simulator); the introduction is
+    `railway_sim`'s text for scenario 3 (`SCENARIO_INTROS`, `b612187`), the end card its end
+    screen's text; `INFO` is shown as is, since Railway's locales have no label for it. Only the
+    feed panel is shown.
+  - f) e) with an overlay between scenarios: the experimenter starts the session outside the
+    platform as in e); when a scenario ends (the context's `scenario.state = "complete"`), a small
+    Railway-owned overlay over the page shows the next scenario's introduction (F22) and "Weiter"
+    (F25), which posts "next scenario" through `/railway-simu/` (Q1's route); after the last
+    scenario it shows the end screen (F26). The same extension point as d) (Railway's own panels, no
+    shared code); d) without the start part.
+    - Needs: the simulator's "next" route (S4) and the next scenario's name and introduction
+      before it runs (Q26); the participant code comes from the experimenter's config (Q11 a or
+      d without the dialog).
+    - Differs from d) only in who starts the session: the experimenter outside the platform (f) or
+      the start dialog (d). f) has no experiment choice in the page and no "✕ Beenden".
   - *Proposal (2026-11-10):* d), which follows an existing pattern (PowerGrid's `AgentChoice.vue`)
     without shared code and keeps the Timeline; b) can be added later on the same endpoints. Was a),
     which keeps the screenshot's bottom panel.
 - ✅ ~~**(Q6) One mode per session, or both modes per session?**~~ **Decided 2026-11-10:** as
   `railway_sim`'s Experiment: six runs, the scenarios shuffled and split, 3 per mode, the first mode
-  drawn at random (F39); the Testprotokoll and the single run are one-run lists (Q13). The draw
+  drawn at random (F39); the single run is a one-run list (Q13). The draw
   stays seeded by the participant (F29), so a restart replays the same order. The cleaned simulator
   has one mode per session (`usecases_examples/Railway/integration/session.py`,
   `make_session(participant, mode, scenario_ids)`, added in S1); `railway_sim`'s experiment played
@@ -1905,13 +2066,30 @@ None yet.
   them; keep "Schritt N" in the status line (green box); the pace is `RAILWAY_STEPS_PER_SECOND`.
 
   ![Time controls in the reference screenshot: dropped in red, kept in green](railway-use-case/railway_sim_q4_controls.png)
-- 💡 **(Q5) Reflection questionnaire.** Existing concept: the post-logout survey
+- ✅ ~~**(Q5) Reflection questionnaire.**~~ **Decided 2026-11-10:** d), one questionnaire at the end,
+  no questions between scenarios (F24, F25). Existing concept: the post-logout survey
   (`frontend/README.md` "Post-logout survey"). `public/surveys/surveychainer.html` plays a chain of
   questionnaire pages (vendored from the hmisurveys repository, GPL-3.0) in an iframe; `CHAINS`
   holds one chain per use case (today only PowerGrid, in `en`/`fr`; Railway plays `DEFAULT_CHAIN`);
   the platform pre-fills the participant (trace session id) and the condition (use case); on
   "Finish" the answers are posted to the embedding page and downloaded as JSON; nothing goes to the
   backend. It is opened only after logout (`/survey` route, `utils/survey.ts`), not during a session.
+  - Why after logout: the platform's session is login to logout (the trace session). On logout
+    (`Navbar.vue`, `leave()`) the frontend reads the session id and the use case, `logout()` ends
+    the session and writes its session log export (the HTML report held back so it does not cover
+    the questionnaire), and `/survey` then plays the chain for the session that just ended; no
+    session, no survey. For Railway the logout ends the Experiment (F26).
+  - How answers are tied to a person: the Participant ID is the trace session id (random, made at
+    login), not the login; the answers file carries no login. The link is the session log export,
+    which holds both `userLogin` and the same session id: answers → session id → export → login.
+    With Q11 d) (one shared `railway_user`) the export names `railway_user`, and the participant
+    comes from the events and contexts of that session, which carry the typed code.
+  - How they are collected: not by the platform. `surveychainer.html` downloads the answers as a JSON
+    file in the participant's browser and only tells the page it is done; the Historic Service
+    stores no survey answers (`views/Survey.vue`: "Nothing is sent to the backend - the file is the
+    deliverable"). The session log export is downloaded too (JSON and an HTML summary). The
+    experimenter collects both files from the participant's machine; a skipped survey is lost for
+    good, the chain cannot be reopened after the session.
   `railway_sim` had no final questionnaire, only per-run reflection dialogs (A:
   Experiment, after Co-Learning runs only; B: Testprotokoll, after its run; two of the five
   questions at random; answers sent with the run's log to its own server) and an end screen
@@ -2069,9 +2247,28 @@ None yet.
   service, or in its own compose next to it (as PowerGrid's simulator,
   `usecases_examples/PowerGrid/docker-compose.yml`, reached through `host.docker.internal`)? *Proposal:* its own compose, as
   PowerGrid, plus the k8s values; decided with the platform maintainers.
-- 💡 **(Q11) Participant users:** how many (`P01`–`P20`?) and created how (seed files, or a script
-  against Keycloak and OperatorFabric)? *Proposal:* seed files for dev, a script for the server; count
-  from the study lead.
+- 💡 **(Q11) Participant users:** how many (`P01`–`P20`?) and created how? A user exists twice: in
+  Keycloak (the login) and in OperatorFabric's users (`entities: ["Railway"]`, so Railway's cards
+  reach it); today there is only `railway_user`.
+  - a) Seed files: the dev Keycloak export, `users-docker.yml` and the server's ConfigMap (§5 Config
+    and deployment, S15). Versioned and there after every restart, as D12 asks; a changed count
+    means editing the files and redeploying.
+  - b) A script against the Keycloak and OperatorFabric admin APIs on the server. Flexible, but more
+    code, and a manual step that D12 wants to avoid.
+  - c) One shared user, the participant typed in as in `railway_sim`'s "Kürzel": no new users, but
+    against D10, since the platform's traces no longer tell participants apart.
+  - d) One shared user (`railway_user`), the participant code typed into the start dialog of Q3 d)
+    together with the choice of the experiment, and sent with the session start; the simulator puts
+    it into every event and context (D10's second half) and seeds the order with it (F29). No new
+    users. What a user per participant adds over d):
+    - not the platform's traces: the Historic Service stores no user at all
+      (`TraceModel`: `id_trace`, `use_case`, `step`, `date`, `data`); the participant reaches the
+      log only through the events' and contexts' `participant`;
+    - not separation: OperatorFabric sends every Railway card to every user with the Railway entity;
+    - the browser's session export, which names the login (`userLogin`), and a typo-free
+      participant code.
+  - *Proposal:* a) for dev and the server; count from the study lead. d) if the study lead prefers
+    no user administration; then D10's "one platform user per participant" goes.
 - ✅ ~~**(Q12) Link map:** still needed next to the map and the ZWL? It was removed in
   `railway_sim`'s last commits. *Proposal:* no; follow-up if requested.~~ **Decided 2026-11-07:**
   needed. A third centre tab "Linienansicht" (F31), its data `infra.link_map` computed once per
@@ -2079,17 +2276,25 @@ None yet.
 - 💡 **(Q13) Which functions of the Szenario-Loader are kept?** The screenshot shows a single run
   ("Szenario" + "Modus" + "▶ Laden & Starten"), "Testprotokoll" and "Experiment" (§1.5.3); the plan
   had dropped the Testprotokoll in favour of the run list.
-  - a) All three, as in the screenshot; each is a run list of Q6 (one run; one run with
-    introduction and questions; six runs).
+  The Testprotokoll is dropped (Q16 b, 2026-11-10), so only the single run and the Experiment
+  remain to choose from.
+  - ~~a) All three, as in the screenshot.~~ Out with Q16 b).
   - b) Experiment only; trying a scenario is done on the dev stack.
-  - c) Testprotokoll and Experiment; no single run without introduction and questions.
-  - *Proposal:* a): it keeps the screenshot's look and costs only the run-list variants. Decided by
-    the study lead. Whether the Testprotokoll is needed at all is Q16.
-- 💡 **(Q14) After which runs come the reflection questions?** (Falls away with Q5 d.) In
+  - ~~c) Testprotokoll and Experiment; no single run without introduction and questions.~~ Out with
+    Q16 b).
+  - d) Single run and Experiment: each is a run list of Q6 (one run without introduction and
+    questions; six runs).
+  - *Proposal:* d): the single run is one more run-list variant of Q6, cheap in the simulator; the
+    cost is in the start dialog (Q3 d) and its tests. Since Q3 d) the Szenario-Loader is a start
+    dialog, so the screenshot's look no longer argues for any option: the question is what the study
+    needs. Decided by the study lead together with Q23 (single run and scenario picker dropped?):
+    Q23 b) gives b).
+- ✅ ~~**(Q14) After which runs come the reflection questions?**~~ **Fallen away 2026-11-10** with
+  Q5 d): no questions between runs. In
   `railway_sim`'s Experiment only after
-  Co-Learning runs, in the Testprotokoll after its run in either mode.
-  - a) As in `railway_sim`.
-  - b) After every run, in both modules.
+  Co-Learning runs, in the Testprotokoll (dropped, Q16 b) after its run in either mode.
+  - a) As in `railway_sim`'s Experiment.
+  - b) After every run of the Experiment.
   - *Proposal:* a), since it is what the study ran so far. Decided by the study lead.
 - 💡 **(Q15) A new use case, or the existing Railway use case extended?** Impact radius checked on
   `main`:
@@ -2118,7 +2323,8 @@ None yet.
   - *Proposal:* b): no base code changes and the smallest radius; on `main` nothing in the repo
     feeds the old GPS view (no Railway simulator; only the Postman examples).
 
-- 💡 **(Q16) Is the Testprotokoll needed at all, or only for debugging?** In `railway_sim` it served
+- ✅ ~~**(Q16) Is the Testprotokoll needed at all, or only for debugging?**~~ **Decided 2026-11-10:**
+  b), dropped (F33, §1.7). In `railway_sim` it served
   "onboarding participants or testing individual scenarios" (its README):
   one run with scenario and mode chosen, introduction, reflection questions and a log (§1.5.3).
   - a) Keep it for onboarding: participants do a practice run before the Experiment.
@@ -2150,6 +2356,36 @@ None yet.
   - b) The names and introductions in Railway's locale files: no new route, but scenario texts in
     two places.
   - *Proposal:* a); it keeps the scenario texts in one place. Blocks S4 and S12.
+- 💡 **(Q27) Where does the simulation run, so that the experimenter starts nothing outside the
+  platform?** Requirement (2026-11-10): the participant starts the Experiment in the page; no
+  simulation is started by hand.
+  - a) The simulator as its own always-on service (S15, Q10): deployed next to the platform and
+    started with it (`restart: unless-stopped`, or a k8s Deployment), idle until the start dialog
+    (Q3 d) posts the session start through `/railway-simu/`; it then plays the run list and posts
+    events and contexts as any simulator. Nobody starts a simulation per experiment: the container
+    runs from the deployment on, as the platform's services do. All its code is the
+    `railway_use_case` package in `usecases_examples/Railway/` (session runner, HTTP app, start and
+    next routes, `recommendations.json`).
+  - b) Inside the Context Service. Not consistent with the platform design:
+    - the Context Service stores and returns contexts and has no outbound calls (§4.1); its
+      per-use-case extension point, `resources/<UC>/context_manager.py`, has only `set_context()`,
+      `get_context()` and the `extra_operations()` hook run on every stored context, no route for
+      commands such as "start", so a start route is a core change (`api/views.py`);
+    - a simulation runs for minutes; the service runs `flask run --reload` (`entrypoint.sh`),
+      whose reloader restarts the process and would end a running session, and a thread in a
+      request handler is a new pattern;
+    - Flatland and the scenario files would move into the service's image (built from
+      `backend/context-service/` only), the opposite of "only the simulator reads the scenario
+      files";
+    - the simulator would write contexts into its own service, bypassing the interoperability API
+      every simulator uses (D1, D19), and still post events to the Event Service.
+  - What has to stay in the platform's Railway extension points, whatever the answer (each is
+    loaded from the service's or the frontend's own folder): the two `MetadataSchemaRailway`
+    (S3), `RailwayManager` with its copy of `recommendations.json` (S5), and
+    `frontend/src/entities/Railway/` (S7–S12). Everything else is the `railway_use_case` package
+    in `usecases_examples/Railway/`.
+  - *Proposal:* a); it meets the requirement with the plan's existing design (Q3 d, S4, S15).
+    Q10 and Q24 decide only where the always-on service is deployed.
 
 ### Handover
 
@@ -2190,12 +2426,12 @@ this plan.
   erfolgreich durchgeführt und protokolliert. Vielen Dank für Ihre Teilnahme!" in the start dialog (Q3 d).
   - *Proposal:* F26 as planned (what the study used); decided by the study lead.
 - 💡 **(Q23) Free-run mode and scenario picker: dropped or kept?** Handover: both dropped. Plan: §1.7
-  drops free-run mode, but §1.5.3 and Q13 a) keep the single run ("Szenario" + "Modus" + "▶ Laden &
+  drops free-run mode, but §1.5.3 and Q13 d) keep the single run ("Szenario" + "Modus" + "▶ Laden &
   Starten"), which is `railway_sim`'s Free Mode with the scenario dropdown: the plan contradicts
   itself.
   - a) Keep the single run: remove "free-run mode" from §1.7; Q13 decides which functions stay.
-  - b) Drop it: Q13 b) or c), and the "Szenario" dropdown goes.
-  - *Proposal:* a), resolved together with Q13 and Q16.
+  - b) Drop it: Q13 b), and the "Szenario" dropdown goes.
+  - *Proposal:* a), resolved together with Q13 (Q16 is decided: b).
 - 💡 **(Q24) Deployment: InteractiveAI's compose or its own?** Handover: the simulator in
   InteractiveAI's compose, on the same server. Plan (Q10): its own compose next to it, as
   PowerGrid's simulator. Both run on the same server and are reached only through the platform's
