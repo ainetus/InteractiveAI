@@ -213,7 +213,7 @@ Reused concepts:
 | `RailwayManager` (Recommendation Service) | Answers Railway recommendation requests with the open decision's entry of its copy of `recommendations.json`, looked up by the event's `scenario_id`, `decision_index` and `run_mode`. Not for ranking or changing recommendations, and not for reading the scenario files. | 🟨 modified: "Get recommendation" shows the scenario's options with their KPIs (or the Ko-Lernen choices); events without them still get today's catalog. |
 | `MetadataSchemaRailway` (Event and Context Service) | Says which Railway fields an event or context may carry. Not for the meaning of the fields. | 🟨 modified: the services accept the scenario, session and infrastructure fields. |
 | Railway `Context.vue` (centre panel) | Shows the latest context: map, ZWL, link map, status. Not for controls that change the simulation. | 🟨 modified: the participant sees the track network, the time-distance diagram and the link map instead of a geographic map. |
-| Railway `Assistant.vue` (right panel) | Shows the event, asks for recommendations, lets the operator choose and apply one. Not for computing options. | 🟨 modified: German KPI table; in Ko-Lernen the choice is "train, then action" as in the screenshot. |
+| Railway `Assistant.vue` (right panel) | Shows the event, asks for recommendations, lets the operator choose and apply one. Not for computing options. | 🟨 modified: German KPI labels under the platform's cards; in Ko-Lernen the choice is "train, then action" as in the screenshot. |
 | Railway `ScenarioLoader.vue` (start dialog, mounted by `Assistant.vue`) | The "Szenario-Loader": session start, introductions, next scenario, end screen, as a modal over the page while no scenario runs (Q3 d). Not for play/pause/speed. | 🟩 added: the participant starts the Experiment and moves to the next scenario here (Q27). |
 | Railway `Timeline.vue` (bottom panel) | The progress across the session ("Experiment i/n · <scenario name> · Schritt N") above the shared `Timeline`, and "✕ Beenden" while a session runs, as in `railway_sim`. No other controls. | 🟨 modified: the participant sees where they are in the session. |
 | Railway questionnaire (`public/surveys/railway/`) | The reflection questions, once after the Experiment as Railway's chain of the post-logout survey (Q5 d). Not PowerGrid's chain. | 🟩 added: participants answer the reflection questions in the platform. |
@@ -280,16 +280,16 @@ labels are used in the step tables. All texts are German as quoted.
   says "Keine Entscheidung erforderlich".
 - **F17** Header of an open decision: badge "⚠ Entscheidung erforderlich", the scenario name, the
   decision description.
-- **F18 Empfehlungsmodus:** one recommendation per option; a KPI table with rows "Lok. Verspätung",
-  "Glob. Verspätung", "Energieeffizienz", "Anschlüsse" (values as "… min", "… %", "… gefährdet") and
-  one column per option ("Option A", "Option B", …); "Lösung vorschlagen" with a confirmation "Lösung
-  bestätigen" ("Möchtest du diese Lösung wirklich anwenden?", "Abbrechen" / "Bestätigen"). The two
-  modes are compared in §1.5.2.
+- **F18 Empfehlungsmodus:** the platform's recommendation cards, one per option ("R0: <option
+  label>", …), and below them Railway's KPI table, one column per recommendation, with the rows
+  "Lokale Verspätung", "Gesamtverspätung", "Energie", "Anschlüsse" (Q17 b); the platform's apply
+  and confirmation, in German from Railway's locales (S7). Not the screenshot's table ("Option A",
+  …, values with units and colours). The two modes are compared in §1.5.2.
 - **F19 Ko-Lernen:** "Zug auswählen:" (one button per train, label from `train_labels`), then
   "Aktion auswählen:" ("⏸ Warten", "🚦 Vorfahrt", "🔀 Umleiten"), then "Lösung vorschlagen".
   Infeasible combinations (`kpis.feasible = "False"`) are visible but blocked with the reason (the
   recommendation's `description`); `feasible` is not shown as a KPI. Optional "Vorschau:
-  Auswirkungen" KPI preview. The selected train is highlighted in the Kartenansicht (local UI state, as
+  Auswirkungen" KPI preview, with F18's KPI labels. The selected train is highlighted in the Kartenansicht (local UI state, as
   `railway_sim`'s `/session/selected_train`).
 - **F20** After applying: the panel closes, the card loses its criticality, the trains move again
   ("✓ Lösung angewendet.").
@@ -347,10 +347,10 @@ they differ in who builds the solution and when the KPIs are shown.
 | | "Recommendation" (`recommendation`, "Empfehlungsmodus") | "Co-Learning" (`colearning`, "Ko-Lernen") |
 |---|---|---|
 | Who proposes | The system: all options of the decision point, side by side. | The participant: picks a train, then an action. |
-| What the panel shows | The KPI table of all options (F18). | "Zug auswählen:", "Aktion auswählen:" ("⏸ Warten", "🚦 Vorfahrt", "🔀 Umleiten"), then the KPIs of the chosen combination only ("Vorschau: Auswirkungen", F19). |
+| What the panel shows | The recommendation cards of all options and their KPI table (F18). | "Zug auswählen:", "Aktion auswählen:" ("⏸ Warten", "🚦 Vorfahrt", "🔀 Umleiten"), then the KPIs of the chosen combination only ("Vorschau: Auswirkungen", F19). |
 | How the choice becomes an option | The chosen column is the option. | `match_colearning()` maps train and action to an option: `train_to_option` if the scenario has it, otherwise the first option where the train is not held ("Vorfahrt"), held ("Warten") or rerouted ("Umleiten"). |
 | Infeasible choices | none | Actions in `invalid_actions` are shown but blocked: "Diese Aktion ist für dieses Szenario nicht möglich." |
-| Button | "Lösung vorschlagen" → "Lösung bestätigen" | "Lösung vorschlagen" |
+| Button | the platform's apply with its confirmation, in German (F18) | "Lösung vorschlagen" |
 | Recorded as | `decisions[].source = "recommendation"` | `decisions[].source = "colearning"` with `train` and `action` |
 | In `railway_sim`'s Experiment (§1.5.3) | 3 of the 6 runs; first or second half, the first mode drawn at random. | The other 3 runs. |
 | Reflection questions in `railway_sim`'s Experiment | none | After each run; in the platform once at the end instead (F24, Q5 d). |
@@ -1740,7 +1740,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S9 | | `feat(railway): draw the time-distance diagram from the context history` | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot `05-zwl`. | F12–F14 | S8 | - |
 | S17 | | `feat(railway): draw the link map from the context` | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | F31 | S8 | - |
 | S10 | | `feat(railway): show scenario status and the open decision in the centre panel` | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | F4, F17, F35, F36 | S8 | Q19, Q4 (confirmation) |
-| S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q17, Q18, Q28, Q8 (confirmation) |
+| S11 | | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | D11, F15–F20, F37, F38 | S5, S7, S8 | Q28, Q8 (confirmation) |
 | S12 | | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | `ScenarioLoader.vue` (start dialog: the Experiment, the single run if Q13 keeps it), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | F21–F26, F32, F34, F39 | S4, S7 | Q13, Q22, Q23 |
 
 ### Phase 5: final check and deployment
@@ -2332,7 +2332,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     Railway's "Add a solution" button, which has no handler on `main`; the `SOLUTION` trace type
     exists but nothing sends it.
   - Which runs are Ko-Lernen is not Q8's question but the run list's (Q6, decided: per run, as
-    `railway_sim`'s Experiment, §1.5.3). Where the choice sits (assistant or centre panel) is Q18.
+    `railway_sim`'s Experiment, §1.5.3). Where the choice sits is Q18 (decided: the assistant panel).
   - a) Two-step choice in the assistant panel, as in `railway_sim` and the reference screenshot
     (F19): first "Zug auswählen:" (one button per train, labelled by `train_labels`), then "Aktion
     auswählen:" ("Warten", "Vorfahrt", "Umleiten"; an action in `invalid_actions` shows the reason and cannot be
@@ -2344,7 +2344,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     - In the use case only, no core change: `CAB.vue` already loads Railway's own `Assistant.vue`
       (as PowerGrid's `AgentChoice.vue`, §4.2.3). In a Ko-Lernen run (the card's `run_mode`) it shows
       `ColearningChoice.vue` instead of the shared `Recommendations.vue`; the Empfehlungsmodus keeps
-      `Recommendations.vue` (its cards or the screenshot's table: Q17). Request, `AWARD` trace and apply stay Railway's existing
+      `Recommendations.vue` (its cards and KPI table, Q17 b). Request, `AWARD` trace and apply stay Railway's existing
       `getRecommendation()` call and `onSelection()`, which `ColearningChoice.vue` calls with the
       matched recommendation. Built from the shared atoms (`Button.vue`, `Card.vue`).
     - What `Recommendations.vue` does that `ColearningChoice.vue` must do itself: the
@@ -2729,19 +2729,167 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
 Where the handover notes of `railway_sim` (§9 "UI features", §3 "Target architecture") differ from
 this plan.
 
-- 💡 **(Q17) Recommendations: the platform's cards, or the screenshot's KPI table?** Handover: the
+- ✅ ~~**(Q17) Recommendations: the platform's cards, or the screenshot's KPI table?**~~ **Decided
+  2026-11-10:** b), the platform's cards with the handover's labels; F18, F19, §1.5.2 and the
+  Components follow it. Handover: the
   platform's recommendation cards, "no development", KPI labels "Lokale Verspätung",
-  "Gesamtverspätung", "Energie", "Anschlüsse". Plan (F18): a KPI table with one column per option,
+  "Gesamtverspätung", "Energie", "Anschlüsse". Source: the handover's §1 "Short version" ("event
+  cards, the assistant panel and recommendation cards work with no development", from the
+  platform maintainers' directives), §9.1 row 4 ("Recommendation cards with KPIs (Empfehlungsmodus)
+  | InteractiveAI | exists (check KPI names)") and §9.2 item 4 (one card per option, the four
+  labels as a mapping of the KPI keys). Its reason is effort: reuse what the platform has and put
+  the new frontend work into the centre panel; it does not compare with the screenshot. Plan (F18): a KPI table with one column per option,
   labels "Lok. Verspätung", "Glob. Verspätung", "Energieeffizienz", "Anschlüsse", which changes the
   Railway `Assistant.vue` (S11).
-  - a) The screenshot's table and labels (F18 as planned).
-  - b) The platform's cards with the handover's labels; F18 shrinks to the German labels.
+  - a) The screenshot's table and labels (F18 as planned): `railway_sim`'s Empfehlungsmodus
+    (`Assistant.vue` at `b612187`), one column per option ("Option A", …), the option labels as
+    buttons in an "Aktion" row, values with units ("… min", "… %", "… gefährdet") coloured by
+    `railway_sim`'s thresholds, "Lösung vorschlagen" with a confirmation. A Railway panel of its own
+    for the Empfehlungsmodus, next to `ColearningChoice.vue`.
+  - b) The platform's cards with the handover's labels; F18 shrinks to the German labels. This is
+    Railway's `Assistant.vue` on `main`: `Recommendations.vue`'s cards ("R0: <option label>", …),
+    "Apply", and below them a KPI table, also one column per recommendation, with plain numbers.
+    Not quite "no development": that table's rows are fixed to the catalog's keys (`cost`,
+    `nb_impacted_passengers`, `total_cost`, `delay`), so they become the scenario's KPI keys, with
+    their labels in Railway's locales (S7).
+
+  Mockup of both with scenario 1's options, Option B / R1 selected; same harness and caveats as
+  Q8 a):
+
+  ![Q17 a) and b), mockup with scenario 1](railway-use-case/iai_recommendations_q17_options_mockup.png)
   - *Proposal:* a): the screenshot is the visual target.
-- 💡 **(Q18) Ko-Lernen two-step choice: centre panel or assistant panel?** Handover: in the centre
-  panel. Plan (Q8, F19): in the assistant panel, as in `railway_sim`, with the selected train
+- ✅ ~~**(Q18) Ko-Lernen two-step choice: centre panel or assistant panel?**~~ **Decided
+  2026-11-10:** a), the assistant panel: b) is not less complex (the same components, plus shared
+  state in both directions) and a) is the better UI (the reference screenshot, the choice next to
+  the card and its decision text). Handover: in the centre
+  panel. Source: the handover's §9.3 item 5: the flat list of train + action cards comes "without
+  extra work"; "Decide with Janick whether the flat list is acceptable for the experiment. If not,
+  build the two-step choice in the centre panel." Also §9.1 row 5 ("InteractiveAI cards / centre
+  panel") and §9.4 item 16 (the train highlight, "only if the two-step choice (#5) is built"). It
+  gives no reason for the centre panel; it follows from §1, where "the main new frontend work is
+  the context view (centre panel)" and the assistant panel counts as finished platform code. Plan (Q8, F19): in the assistant panel, as in `railway_sim`, with the selected train
   highlighted in the Kartenansicht.
-  - a) Assistant panel (Q8 a), decided).
-  - b) Centre panel.
+  - a) Assistant panel (Q8 a), decided): where `railway_sim` and the reference screenshot have it.
+    The decision text, the choice and "Lösung vorschlagen" stay together on the right, next to the
+    card; the map in the centre only highlights the selected train. In the use case only:
+    Railway's own `Assistant.vue` and `ColearningChoice.vue` (S11).
+  - b) Centre panel, as the handover suggests: the choice below the map, so the selected train and
+    the choice are seen together; the assistant panel keeps the decision text only. The map gets
+    less room (F3: the drawing fits the panel without scrolling), the choice is lost on the "ZWL
+    Diagramm" and "Linienansicht" tabs unless each tab repeats it, and the apply then starts in
+    `Context.vue`, not in the assistant panel, where the platform's request, `AWARD` trace and
+    apply live (`onSelection()`, §4.2.5).
+
+  Mockup of both from the reference screenshot; b) moves its choice region into the centre panel
+  (green: where the choice sits):
+
+  ![Q18 a) and b), mockup from the reference screenshot](railway-use-case/iai_colearning_q18_placement_mockup.png)
+
+  Both options from opening the card to the applied choice. Notation: [UML sequence diagram in
+  Mermaid](https://mermaid.js.org/syntax/sequenceDiagram.html); the brackets name the folder each
+  component lives in: [Railway entity] = `frontend/src/entities/Railway/` (the frontend's extension
+  point for Railway), [frontend shared] = `frontend/src/stores/` and `frontend/src/api/`,
+  [recommendation service, Railway resources] = `backend/recommendation-service/resources/Railway/`,
+  [usecases_examples Railway] = `usecases_examples/Railway/`; "(added)" and "(modified)" mark what
+  S5 and S11 change, everything else stays as on `main`. Yellow: where the two options differ. The simulator part is the same in both options; only the frontend side differs.
+
+  a) Assistant panel:
+
+  ```mermaid
+  sequenceDiagram
+      actor P as Participant
+      participant Notif as Notifications.vue [Railway entity]
+      participant Asst as Assistant.vue [Railway entity] (modified)
+      participant CC as ColearningChoice.vue [Railway entity] (added)
+      participant Sel as colearning.ts [Railway entity] (added, selected train)
+      participant Map as Context.vue with NetworkMap.vue [Railway entity] (modified)
+      participant Store as services.ts and cards.ts [frontend shared] (unchanged)
+      participant Rec as RailwayManager [recommendation service, Railway resources] (modified)
+      participant Hist as Historic Service (unchanged)
+      participant Sim as app.py [usecases_examples Railway] (added)
+      P->>Notif: opens the decision card
+      Notif->>Asst: card selected, run_mode colearning
+      Asst->>Store: getRecommendation for the card
+      Store->>Rec: POST recommendation request with the event
+      Rec-->>Store: one recommendation per train and action from recommendations.json
+      Store-->>Asst: the list
+      rect rgb(255, 243, 191)
+          Asst->>CC: shows the list grouped by train
+          P->>CC: Zug auswählen
+          CC->>Sel: selected train
+          Sel-->>Map: highlights the train
+      end
+      P->>CC: Aktion auswählen
+      Note over CC: matches train and action to a recommendation, KPI preview or the reason
+      P->>CC: Lösung vorschlagen
+      rect rgb(255, 243, 191)
+          CC->>Asst: onSelection with the matched recommendation
+      end
+      Asst->>Store: sendTrace AWARD
+      Store->>Hist: POST trace
+      Asst->>Sim: POST railway-simu api v1 recommendations with actions[0] and event_id
+      Asst->>Store: resolveCriticality, the panel closes
+  ```
+
+  b) Centre panel:
+
+  ```mermaid
+  sequenceDiagram
+      actor P as Participant
+      participant Notif as Notifications.vue [Railway entity]
+      participant Asst as Assistant.vue [Railway entity] (modified)
+      participant Sel as colearning.ts [Railway entity] (added, list, selected train and choice)
+      participant Ctx as Context.vue with NetworkMap.vue [Railway entity] (modified)
+      participant CC as ColearningChoice.vue in Context.vue [Railway entity] (added)
+      participant Store as services.ts and cards.ts [frontend shared] (unchanged)
+      participant Rec as RailwayManager [recommendation service, Railway resources] (modified)
+      participant Hist as Historic Service (unchanged)
+      participant Sim as app.py [usecases_examples Railway] (added)
+      P->>Notif: opens the decision card
+      Notif->>Asst: card selected, run_mode colearning
+      Asst->>Store: getRecommendation for the card
+      Store->>Rec: POST recommendation request with the event
+      Rec-->>Store: one recommendation per train and action from recommendations.json
+      Store-->>Asst: the list
+      rect rgb(255, 243, 191)
+          Asst->>Sel: hands the list to the centre panel (new)
+          Note over Asst: shows the decision text only
+          Sel-->>Ctx: list present, shows ColearningChoice below the map
+          Ctx->>CC: the list grouped by train
+          P->>CC: Zug auswählen
+          CC->>Sel: selected train, the map highlights it
+      end
+      P->>CC: Aktion auswählen
+      Note over CC: matches train and action to a recommendation, KPI preview or the reason
+      P->>CC: Lösung vorschlagen
+      rect rgb(255, 243, 191)
+          CC->>Sel: the chosen recommendation (new)
+          Sel-->>Asst: watches the choice, calls onSelection (new)
+      end
+      Asst->>Store: sendTrace AWARD
+      Store->>Hist: POST trace
+      Asst->>Sim: POST railway-simu api v1 recommendations with actions[0] and event_id
+      Asst->>Store: resolveCriticality, the panel closes
+      rect rgb(255, 243, 191)
+          Sel-->>Ctx: list cleared, the choice disappears (new)
+      end
+  ```
+
+  - Both stay in Railway's own folders; no shared code changes. Both add and modify the same
+    components; they differ in what the components hold:
+
+    | Component | a) Assistant panel | b) Centre panel |
+    |---|---|---|
+    | `ColearningChoice.vue` | added, shown by `Assistant.vue` | added, shown by `Context.vue` |
+    | `colearning.ts` | added, holds the selected train | added, holds the list, the selected train and the choice |
+    | `Assistant.vue` | modified: shows `ColearningChoice.vue` in Ko-Lernen runs and receives the choice directly | modified: hands the list over, shows the decision text only, watches for the choice |
+    | `Context.vue` | modified anyway for the map, ZWL and link map (S8, S9, S17), plus the train highlight | the same, plus the choice below the map |
+  - a) keeps the Components table's responsibility of `Context.vue`, "Not for controls that change
+    the simulation"; b) would put the choice that changes the simulation there.
+  - b) needs three more hand-overs through `colearning.ts` (the list to the centre panel, the
+    choice back to `Assistant.vue`, clearing it after the apply), because the request and
+    `onSelection()` stay in `Assistant.vue`, where the platform calls them. Moving them into
+    `Context.vue` instead would copy the trace and apply path into a second place.
   - *Proposal:* a). Q8 a), the two-step choice, is decided.
 - 💡 **(Q19) Status line: also state and mode?** Handover: scenario name, "Szenario 2 von 6", step,
   state ("Läuft", "Entscheidung erforderlich", "Abgeschlossen") and mode ("Empfehlungsmodus",
