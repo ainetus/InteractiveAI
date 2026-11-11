@@ -258,11 +258,12 @@ labels are used in the step tables. All texts are German as quoted.
 
 In the screenshot the Szenario-Loader is the bottom panel, with three columns: "Szenario" (dropdown of
 §1.5.1), "Modus" (§1.5.2) and "Module" (§1.5.3). In the platform it is a start dialog with the same
-choices, and the bottom panel keeps only the progress (F23, Q3 d). Which choices are kept is Q13.
+choices, and the bottom panel keeps only the progress (F23, Q3 d). It keeps the Experiment and the
+single run (Q13 d, Q23 a).
 
 - **F21** Session start in the start dialog: no participant code (D10, Q11); the Experiment (the run
-  list of Q6, modes set per run, F38), plus the single run with "Szenario" and "Modus" only if Q13
-  keeps it; "▶ Laden & Starten", "✕ Beenden".
+  list of Q6, modes set per run, F38), plus the single run with "Szenario" and "Modus" (Q13 d,
+  Q23 a); "▶ Laden & Starten", "✕ Beenden".
 - **F22** Before each scenario: the scenario introduction ("📋 Szenario-Einführung — Run i/n", texts
   per scenario from `railway_sim`'s `SCENARIO_INTROS`, moved into the scenario files as
   `introduction`, Q26 a), then "Weiter" starts the scenario (F25).
@@ -277,7 +278,9 @@ choices, and the bottom panel keeps only the progress (F23, Q3 d). Which choices
 - **F25** "Weiter" in the next scenario's introduction starts it; no questions between scenarios
   (Q5 d).
 - **F26** End: "✅ Experiment abgeschlossen — Alle Szenarien wurden erfolgreich durchgeführt und
-  protokolliert. Vielen Dank für Ihre Teilnahme!"; the logout then opens the questionnaire (F24).
+  protokolliert. Vielen Dank für Ihre Teilnahme!" and the hint "Bitte melden Sie sich jetzt oben
+  rechts ab. Danach folgen die Reflexionsfragen.", in the start dialog (Q22 b); the logout then opens
+  the questionnaire (F24).
 - **F27** A new session starts with a clean feed (no cards of the previous participant).
 
 #### 1.5.1 Scenarios
@@ -439,10 +442,11 @@ Changing a text, an option or a KPI means editing the scenario file; only the si
 
 ### 1.7 Dropped on purpose
 
-- Play, pause, speed and reset controls (Q4); free-run mode (unless Q13/Q23 keep the single run),
+- Play, pause, speed and reset controls (Q4); free-run mode as a mode of its own (the single run
+  replaces it, Q13 d, Q23 a),
   live conflict detection, `/resolve`;
   the participant code dialog ("Kürzel"), replaced by the platform's session id (D10); the Testprotokoll (Q16 b),
-  trying a scenario is done on the dev stack (§6), or as the single run if Q13 keeps it;
+  trying a scenario is done on the dev stack (§6), or as the single run (Q13 d);
   reflection questions between scenarios (Q5 d); users per participant (Q11).
 
 ## 2. Design requirements
@@ -1701,13 +1705,13 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S17 | - | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | feature | - | `feat(railway): draw the link map from the context` | | F31 | S8 | - |
 | S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | Q19, Q4 (confirmation) |
 | S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | | D11, F15–F20, F37, F38 | S5, S7, S8 | Q28, Q8 (confirmation) |
-| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment, the single run if Q13 keeps it), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | Q13, Q22, Q23 |
+| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | - |
 
 ### Phase 5: final check and deployment
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | | T4 | S8–S12, S17 | Q13 |
+| S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | | T4 | S8–S12, S17 | - |
 | S14 | - | CI job; Cypress job only if fast enough. | ci | - | `ci(railway): run the simulator and Railway schema tests` | | T5, T6 | S1–S5 | - |
 | S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q24 |
 
@@ -2092,19 +2096,19 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - c) Simulator config only; every scenario started by the experimenter from a terminal.
   - d) A start dialog and a progress bar, after PowerGrid's agent choice (§4.2.3). After login a
     Railway-owned modal, mounted by Railway's `Assistant.vue` when the latest context has no running
-    session (§4.2.6), offers the Experiment (and the single run if Q13 keeps it) and starts the chain with one
+    session (§4.2.6), offers the Experiment and the single run (Q13 d) and starts the chain with one
     `POST /api/v1/session` through `/railway-simu/`, sending the platform's trace session id
     (`currentTraceSessionId()`) as the experiment's `session_id` (D10). Between two scenarios the same modal shows the
     next introduction and "Weiter" (next). The bottom panel's Railway `Timeline.vue` shows a progress
     bar above the shared Timeline ("`Experiment i/n · <scenario name> · Schritt N`", F23, from the context's
     `session.scenario_position`), so the Timeline stays. The modal is the Szenario-Loader
-    (`ScenarioLoader.vue`) with the choices Q13 keeps.
+    (`ScenarioLoader.vue`) with the Experiment and the single run (Q13 d).
     - Extension points: only Railway's own panels, as `AgentChoice.vue`. No shared code: unlike the
       agent choice, nothing goes into the trace session, since the session lives in the simulator and
       comes back in the context; a reload shows the current progress.
     - Like a), it needs the scenario list and introductions before any context exists (Q26).
     - Differs from a): no permanent controls in the bottom panel, so the bottom panel no longer looks
-      like the screenshot; which Szenario-Loader functions remain is Q13.
+      like the screenshot; the Szenario-Loader keeps the Experiment and the single run (Q13 d).
   - e) Today's Railway page as it is, no start UI in the platform: the participant logs in and the
     page waits for whatever a simulator posts; the experimenter starts the session outside the
     platform (simulator config or command line: experiment), as PowerGrid's experimenter
@@ -2166,7 +2170,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - The modules answer most of it (§1.5.3): the Experiment defines both modes in one session (six
     runs, 3 + 3), the single run one run with its scenario and mode (the Testprotokoll is dropped,
     Q16 b).
-    So the session needs a run list either way; which modules are kept is Q13.
+    So the session needs a run list either way; both are kept (Q13 d).
   - Existing concept in InteractiveAI: none for playing scenarios in a row. PowerGrid plays one
     scenario per simulator run; the experimenter picks it in the simulator's dashboard ("🧩
     Scenario"), and starts, pauses, resets and loads the next one there (screenshot under Q3 b,
@@ -2398,7 +2402,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   `railway_sim`'s last commits. *Proposal:* no; follow-up if requested.~~ **Decided 2026-11-07:**
   needed. A third centre tab "Linienansicht" (F31), its data `infra.link_map` computed once per
   scenario in the simulator (S2), drawn by S17.
-- 💡 **(Q13) Which functions of the Szenario-Loader are kept?** The screenshot shows a single run
+- ✅ ~~**(Q13) Which functions of the Szenario-Loader are kept?**~~ **Decided 2026-11-11:** d),
+  following Q23 a): with the Testprotokoll dropped, keeping the single run leaves only d). The screenshot shows a single run
   ("Szenario" + "Modus" + "▶ Laden & Starten"), "Testprotokoll" and "Experiment" (§1.5.3); the plan
   had dropped the Testprotokoll in favour of the run list.
   The Testprotokoll is dropped (Q16 b, 2026-11-10), so only the single run and the Experiment
@@ -2884,7 +2889,8 @@ this plan.
   platform maintainers). Plan (Q5): the study lead.
   - *Proposal:* the study lead, with the maintainers' OK for options that touch the platform (Q5 a,
     c); Q5 d only adds a survey chain.
-- 💡 **(Q22) End screen: text and place?** Handover: "Vielen Dank – das Experiment ist beendet." in
+- ✅ ~~**(Q22) End screen: text and place?**~~ **Decided 2026-11-11:** b), F26 in the Szenario-Loader
+  with the logout hint. Handover: "Vielen Dank – das Experiment ist beendet." in
   the centre panel. Plan (F26): `railway_sim`'s "✅ Experiment abgeschlossen — Alle Szenarien wurden
   erfolgreich durchgeführt und protokolliert. Vielen Dank für Ihre Teilnahme!" in the start dialog (Q3 d).
   - a) The handover's text as a centre-panel state, in place of the map.
@@ -2918,9 +2924,10 @@ this plan.
     So the choice rests on what the study used and on the hint, not on the code.
   - *Proposal:* b), F26 as planned (what the study used) with the logout hint; decided by the study
     lead.
-- 💡 **(Q23) Free-run mode and scenario picker: dropped or kept?** Handover: both dropped. Plan: §1.7
-  drops free-run mode unless Q13 keeps the single run ("Szenario" + "Modus" + "▶ Laden & Starten",
-  §1.5.3, Q13 d), which is `railway_sim`'s Free Mode with the scenario dropdown.
+- ✅ ~~**(Q23) Free-run mode and scenario picker: dropped or kept?**~~ **Decided 2026-11-11:** a), as
+  proposed: the single run with the "Szenario" dropdown stays, so Q13 is d). Handover: both
+  dropped. Plan: §1.7 drops free-run mode unless Q13 keeps the single run ("Szenario" + "Modus" +
+  "▶ Laden & Starten", §1.5.3, Q13 d), which is `railway_sim`'s Free Mode with the scenario dropdown.
   - a) Keep the single run; Q13 decides which functions stay.
   - b) Drop it: Q13 b), and the "Szenario" dropdown goes.
   - *Proposal:* a), resolved together with Q13 (Q16 is decided: b).
