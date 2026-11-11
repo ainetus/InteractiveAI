@@ -175,7 +175,7 @@ Reused concepts:
 | Railway `Context.vue` (centre panel) | Shows the latest context: map, ZWL, link map, status. Not for controls that change the simulation. | 🟨 modified: the participant sees the track network, the time-distance diagram and the link map instead of a geographic map. |
 | Railway `Assistant.vue` (right panel) | Shows the event, asks for recommendations, lets the operator choose and apply one. Not for computing options. | 🟨 modified: German KPI labels under the platform's cards; in Ko-Lernen the choice is "train, then action" as in the screenshot. |
 | Railway `ScenarioLoader.vue` (start dialog, mounted by `Assistant.vue`) | The "Szenario-Loader": session start, introductions, next scenario, end screen, as a modal over the page while no scenario runs (Q3 d). Not for play/pause/speed. | 🟩 added: the participant starts the Experiment and moves to the next scenario here (Q27). |
-| Railway `Timeline.vue` (bottom panel) | The progress across the session ("Experiment i/n · <scenario name> · Schritt N") above the shared `Timeline`, and "✕ Beenden" while a session runs, as in `railway_sim`. No other controls. | 🟨 modified: the participant sees where they are in the session. |
+| Railway `Timeline.vue` (bottom panel) | The progress across the session ("`Experiment i/n · <scenario name> — <mode> · Schritt N`", Q19 c) above the shared `Timeline`, and "✕ Beenden" while a session runs, as in `railway_sim`. No other controls. | 🟨 modified: the participant sees where they are in the session. |
 | Railway questionnaire (`public/surveys/railway/`) | The reflection questions, once after the Experiment as Railway's chain of the post-logout survey (Q5 d). Not PowerGrid's chain. | 🟩 added: participants answer the reflection questions in the platform. |
 | Railway locales (`de`, `en`, `fr`) | The texts of the Railway page in the browser's language, German for the participants. Not a translation of the other use cases, and not the scenario texts (Q7 d1). | 🟩 added: the Railway page is in German. |
 | Frontend nginx `/railway-simu/` | Same-origin route from the browser to the simulator endpoints. Not for the platform services. | 🟩 added: no CORS and no public simulator port. |
@@ -267,8 +267,9 @@ single run (Q13 d, Q23 a).
 - **F22** Before each scenario: the scenario introduction ("📋 Szenario-Einführung — Run i/n", texts
   per scenario from `railway_sim`'s `SCENARIO_INTROS`, moved into the scenario files as
   `introduction`, Q26 a), then "Weiter" starts the scenario (F25).
-- **F23** While running, in the bottom panel: "`Experiment i/n · <scenario name> · Schritt N`" and
-  "✕ Beenden" (as `railway_sim`'s bottom panel; it ends the session, §4.2.6).
+- **F23** While running, in the bottom panel: "`Experiment i/n · <scenario name> — <mode> · Schritt N`"
+  (the mode as `railway_sim`'s Experiment banner, Q19 c) and "✕ Beenden" (as `railway_sim`'s bottom
+  panel; it ends the session, §4.2.6).
 - **F24** Once, at the end of the Experiment, not between scenarios (Q5 d): the reflection questions
   as Railway's chain of the post-logout survey, in German, free text. `railway_sim` asked two of the
   five at random after a run ("📋 Reflexionsfragen — Run i/n", "Ihre Antwort..."); the questions:
@@ -1703,9 +1704,9 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S8 | - | `NetworkMap.vue`, `grid.ts` + Vitest; `Context.vue` tabs when the context has `infra`, the Leaflet view kept for contexts without it; shots `04-map` and `00-baseline` (old path unchanged). | feature | - | `feat(railway): draw the track network and the trains from the context` | | D5, D20, F3, F7–F11, T5 | S2, S7 | - |
 | S9 | - | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot `05-zwl`. | feature | - | `feat(railway): draw the time-distance diagram from the context history` | | F12–F14 | S8 | - |
 | S17 | - | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | feature | - | `feat(railway): draw the link map from the context` | | F31 | S8 | - |
-| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | Q19, Q4 (confirmation) |
+| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | Q4 (confirmation) |
 | S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | | D11, F15–F20, F37, F38 | S5, S7, S8 | Q28, Q8 (confirmation) |
-| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue`, intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | - |
+| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue` (with the mode, Q19 c), intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | - |
 
 ### Phase 5: final check and deployment
 
@@ -2100,7 +2101,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     `POST /api/v1/session` through `/railway-simu/`, sending the platform's trace session id
     (`currentTraceSessionId()`) as the experiment's `session_id` (D10). Between two scenarios the same modal shows the
     next introduction and "Weiter" (next). The bottom panel's Railway `Timeline.vue` shows a progress
-    bar above the shared Timeline ("`Experiment i/n · <scenario name> · Schritt N`", F23, from the context's
+    bar above the shared Timeline ("`Experiment i/n · <scenario name> — <mode> · Schritt N`", F23, from the context's
     `session.scenario_position`), so the Timeline stays. The modal is the Szenario-Loader
     (`ScenarioLoader.vue`) with the Experiment and the single run (Q13 d).
     - Extension points: only Railway's own panels, as `AgentChoice.vue`. No shared code: unlike the
@@ -2871,14 +2872,35 @@ this plan.
     `onSelection()` stay in `Assistant.vue`, where the platform calls them. Moving them into
     `Context.vue` instead would copy the trace and apply path into a second place.
   - *Proposal:* a). Q8 a), the two-step choice, is decided.
-- 💡 **(Q19) Status line: also state and mode?** Handover: scenario name, "Szenario 2 von 6", step,
+- ✅ ~~**(Q19) Status line: also state and mode?**~~ **Decided 2026-11-11:** c), the mode only, in
+  the progress bar (F23). Handover: scenario name, "Szenario 2 von 6", step,
   state ("Läuft", "Entscheidung erforderlich", "Abgeschlossen") and mode ("Empfehlungsmodus",
   "Ko-Lernen"). Plan: "Schritt N" above the drawing (F4), "`Experiment i/n · <scenario name> ·
   Schritt N`" in the bottom panel's progress bar (F23); state and mode are shown nowhere (only the open decision,
   F17, F35).
   - a) As planned (the screenshot's look).
-  - b) Add state and mode to F4 (or F23).
-  - *Proposal:* b), small and helpful to the experimenter; decided by the study lead.
+  - b) Add state and mode to F4 (or F23): the badges "Läuft" and "Ko-Lernen" next to "Schritt N".
+  - c) Add the mode only, to F23: "`Experiment i/n · <scenario name> — <mode> · Schritt N`", as
+    `railway_sim`'s Experiment banner (§1.5.3).
+
+  ![Q19 a), b) in the status line and c) in the progress bar, mockup](railway-use-case/iai_status_line_q19_abc_mockup.png)
+
+  *Caveat:* drawn over shot `00-baseline` (the Railway page on `main`, today's Leaflet map in the
+  centre, which S8 replaces), not built; scenario 3 in Ko-Lernen, run 2 of 6.
+
+  | | a) as planned | b) state and mode in F4 | c) mode in F23 |
+  |---|---|---|---|
+  | Cost | None on top of the plan: "Schritt N" in `StatusBar.vue` (S10) and the progress text in `ScenarioProgress.vue` (S12) are built anyway. | a), plus a mapping of `scenario.state` (`running`, `paused_for_decision`, `complete`) to three labels and colours and of `scenario.mode` to two labels; 5 texts × 3 locales (S7's files); Vitest for the mapping; shot `06-status`. | a), plus `scenario.mode` in the progress text and its two labels; 2 texts × 3 locales; the progress bar's shot. |
+  | Advantages | Fewest texts; the screenshot's control bar row as it was. | All the handover asks; state and mode next to the drawing, where the participant looks. | The mode in every frame of the recordings and for the experimenter at a glance; the same as `railway_sim`'s Experiment banner, which the study used. |
+  | Disadvantages | The mode is shown nowhere: only the assistant panel's layout (list or two-step choice, Q8) tells it; F23 drops the mode `railway_sim`'s banner had. | The state repeats what is shown already: `paused_for_decision` is the F35 prompt and the assistant panel's badge, `complete` never stays on screen (the Szenario-Loader takes over, Q3 d, Q22 b); only "Läuft" is new, and the moving trains show it. | No state, as the handover asked; the bottom panel is less in view than the status line. |
+
+  - The same in all three: the frontend reads only the latest context, which carries `scenario.state`
+    and `scenario.mode` already (§4.1.2); no shared code, no simulator change. "Schritt N" shows in
+    both F4 and F23 in every option.
+  - For the study lead in b) and c): the participant sees the mode named. `railway_sim` named it too
+    (its Experiment banner), so the study did so already.
+  - *Proposal (2026-11-11):* c), the gap a) leaves at the lowest cost, without repeating the state;
+    replaces the earlier proposal b). Decided by the study lead.
 - ✅ ~~**(Q20) Session start: simulator config or Szenario-Loader?**~~ **Decided 2026-11-10** with
   Q3 d): the start dialog. Handover: simplest is participant
   and mode in the simulator config, a start screen only if the experimenter cannot be at the
