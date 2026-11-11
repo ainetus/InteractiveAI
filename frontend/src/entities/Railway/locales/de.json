@@ -80,7 +80,6 @@
   "survey.thanks": "Vielen Dank, Ihre Antworten wurden gespeichert.",
   "survey.title": "Bevor Sie sich abmelden",
   "to": "bis",
-
   "card.actions.move_user.tooltip": "Aufgabe an eine Kollegin oder einen Kollegen übergeben",
   "card.event_type.HARDWARE": "Fahrzeug",
   "card.event_type.IMPACT": "Auswirkung",
@@ -106,5 +105,6 @@
   "Railway.kpis.nb_impacted_passengers": "Betroffene Reisende",
   "Railway.kpis.total_cost": "Gesamtkosten",
   "Railway.kpis.delay": "Verspätung",
-  "Railway.kpis.best": "Beste"
+  "Railway.kpis.best": "Beste",
+  "Railway.tab.map": "Kartenansicht"
 }

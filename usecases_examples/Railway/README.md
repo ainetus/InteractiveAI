@@ -189,7 +189,8 @@ python usecases_examples/Railway/devstack/smoke.py
 
 posts one event and one context through the gateway and reads them back (exit code 0 when all
 pass). `devstack/seed.py` posts one Railway event and context in the current schema, for the page
-to show something.
+to show something. `curl -X DELETE http://localhost:3200/cardspub/cards` clears the feed, the dev
+stack's stand-in for `resources/deleteAllCards.sh`.
 
 ### 2.3 Screenshots and video
 

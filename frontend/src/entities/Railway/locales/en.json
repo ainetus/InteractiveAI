@@ -24,6 +24,6 @@
   "Railway.kpis.nb_impacted_passengers": "Number of impacted passengers",
   "Railway.kpis.total_cost": "Total cost",
   "Railway.kpis.delay": "Delay",
-  "Railway.kpis.best": "Best"
-
+  "Railway.kpis.best": "Best",
+  "Railway.tab.map": "Network map"
 }

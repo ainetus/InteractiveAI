@@ -10,7 +10,7 @@ and Recommendation services can run on SQLite with AUTH_DISABLED=true:
   /users/CurrentUserWithPerimeters with that user and entities ["Railway"];
 - keeps OperatorFabric's cards in memory: POST /cardspub/cards (the Event Service's
   CARDS_PUBLICATION_SERVICE), the /cards/cardSubscription stream, /cards/cards/<id>, deletes and
-  acknowledgements;
+  acknowledgements; DELETE /cardspub/cards deletes all, as resources/deleteAllCards.sh does;
 - serves the frontend: FRONTEND=dist serves the built bundle (FRONTEND_DIST), FRONTEND=vite proxies
   to the Vite dev server (VITE_URL), its HMR websocket included.
 
@@ -50,14 +50,18 @@ HEARTBEAT_S = 10
 # ---------------------------------------------------------------- OperatorFabric stand-in
 
 _cards = {}                       # card id -> card
-_subscribers = set()              # one queue per open card stream
+_subscribers = {}                 # one queue per open card stream -> True for a notification stream
 _lock = threading.Lock()
 
 
 def _broadcast(event):
+    """A card change goes to the notification streams; the page opens one next to its range
+    stream, and a card sent on both would be added twice (the page's handler awaits the card
+    before it looks for duplicates). Without a notification stream, to every stream."""
     line = "data:" + json.dumps(event)
     with _lock:
-        for q in list(_subscribers):
+        targets = [q for q, notification in _subscribers.items() if notification] or list(_subscribers)
+        for q in targets:
             q.put(line)
 
 
@@ -186,7 +190,7 @@ class Handler(BaseHTTPRequestHandler):
         not for the notification one)."""
         q = queue.Queue()
         with _lock:
-            _subscribers.add(q)
+            _subscribers[q] = not replay
             snapshot = list(_cards.values()) if replay else []
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -216,7 +220,7 @@ class Handler(BaseHTTPRequestHandler):
             pass
         finally:
             with _lock:
-                _subscribers.discard(q)
+                _subscribers.pop(q, None)
 
     def _local(self, path):
         """Answer the Keycloak and OperatorFabric routes; False if the path is not one of them."""
@@ -250,6 +254,13 @@ class Handler(BaseHTTPRequestHandler):
             entities = json.loads(self._body() or b"[]")
             card = acknowledge_card(path.rsplit("/", 1)[1], entities)
             return self._send(201 if card else 404, b"") or True
+        if path == "/cardspub/cards" and m == "DELETE":
+            # dev stack only: all cards, as resources/deleteAllCards.sh clears OperatorFabric's
+            with _lock:
+                ids = list(_cards)
+            for card_id in ids:
+                delete_card(card_id)
+            return self._send(200, {"deleted": len(ids)}) or True
         if path.startswith("/cardspub/cards/") and m == "DELETE":
             card = delete_card(path.rsplit("/", 1)[1])
             return self._send(200 if card else 404, b"") or True

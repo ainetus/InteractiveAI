@@ -1,5 +1,10 @@
 <template>
-  <Context :tabs="[$t('cab.tab.map')]">
+  <!-- The simulator's contexts carry the track network (infra): Railway's own views. Contexts
+       without it, of other publishers, keep today's geographic map (D20). -->
+  <Context v-if="context?.data.infra" :tabs="[$t('Railway.tab.map')]">
+    <NetworkMap v-if="appStore.tab.context === 0" :context="context.data" />
+  </Context>
+  <Context v-else :tabs="[$t('cab.tab.map')]">
     <Map
       v-if="appStore.tab.context === 0"
       :tile-layers="[
@@ -11,10 +16,11 @@
 <script setup lang="ts">
 import '@/entities/Railway/i18n'
 
-import { onBeforeMount, onUnmounted, watchEffect } from 'vue'
+import { computed, onBeforeMount, onUnmounted, watchEffect } from 'vue'
 
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
+import NetworkMap from '@/entities/Railway/CAB/NetworkMap.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'
@@ -26,6 +32,8 @@ const servicesStore = useServicesStore()
 const mapStore = useMapStore()
 const cardsStore = useCardsStore()
 const appStore = useAppStore()
+
+const context = computed(() => servicesStore.context('Railway'))
 
 watchEffect(() => {
   for (const train of cardsStore.cards('Railway'))
@@ -48,7 +56,9 @@ watchEffect(() => {
 
 onBeforeMount(async () => {
   await servicesStore.getContext('Railway', (context) => {
-    for (const train of context.data.trains)
+    for (const train of context.data.trains) {
+      // only GPS trains go on the geographic map; the simulator's are on grid cells
+      if (train.latitude === undefined || train.longitude === undefined) continue
       mapStore.addContextWaypoint({
         lat: train.latitude,
         lng: train.longitude,
@@ -58,6 +68,7 @@ onBeforeMount(async () => {
           return acc
         }, undefined)
       })
+    }
   })
 })
 

@@ -19,5 +19,6 @@
   "recommendations.button3": "Coût",
   "recommendations.button4": "Impact client",
   "recommendations.description": "Description solution",
-  "recommendations.modal": "Vous êtes sur le point d'appliquer {recommendation}. Voulez-vous continuer ?"
+  "recommendations.modal": "Vous êtes sur le point d'appliquer {recommendation}. Voulez-vous continuer ?",
+  "Railway.tab.map": "Plan du réseau"
 }
