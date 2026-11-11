@@ -16,6 +16,7 @@
 - Railway: the operator applies a simulator recommendation from the assistant ("Lösung anwenden"); in Ko-Lernen they pick a train, then an action (actions not offered are greyed out, infeasible ones say why), and propose it. The choice goes to the simulator through the frontend's new `/railway-simu/` nginx proxy (`RAILWAY_SIMU_UPSTREAM`, default `http://host.docker.internal:5124/`), which resumes the run. Catalog recommendations are still applied through `/transport_plan`.
 - Railway: when the simulator is reachable, a start dialog over the page starts the Experiment (six runs, each with its introduction and "Weiter") or a single run, and ends with "Experiment abgeschlossen" and a hint to log out; a bar above the timeline shows "Experiment i/6 · scenario — mode · Schritt N" and "✕ Beenden". Without the simulator the page stays as before.
 - Survey: after logging out of Railway, the post-logout survey asks the experiment's reflection questions, in German (`CHAINS.Railway`).
+- Railway simulator: a `Dockerfile` and its own `docker-compose.yml` run it next to the platform, always on and idle until a participant starts the Experiment; the frontend image is built with `VITE_RAILWAY_SIMU=/railway-simu`. The users service loads the `cabProcess` perimeter of the Dispatcher, Planner and Supervisor groups from its config, so `railway_user` gets its cards on a fresh database without `loadTestConf.sh`.
 
 ## 1.5.2 (2026-11-05)
 

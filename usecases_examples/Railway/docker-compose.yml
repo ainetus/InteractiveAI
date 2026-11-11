@@ -1,0 +1,25 @@
+# The Railway simulator next to InteractiveAI, on the same host (as PowerGrid's simulator).
+#
+# The browser never calls it directly: the frontend's nginx forwards /railway-simu/ to it
+# (RAILWAY_SIMU_UPSTREAM, default http://host.docker.internal:5124/), and it posts its events and
+# contexts to the platform through the frontend's nginx (RAILWAY_PLATFORM_URL). It always runs
+# (restart: unless-stopped), idle until a participant starts the Experiment in the page.
+#
+# Run, from this folder, once InteractiveAI is up (config/dev/cab-standalone):
+#   docker compose up -d --build
+services:
+  railway-simulator:
+    build: .
+    image: railway-simulator
+    container_name: railway-simulator
+    restart: unless-stopped
+    ports:
+      - "5124:5124"
+    extra_hosts:
+      # reaches the platform published on this host (port 3200)
+      - "host.docker.internal:host-gateway"
+    environment:
+      - RAILWAY_PLATFORM_URL=${RAILWAY_PLATFORM_URL:-http://host.docker.internal:3200}
+      - RAILWAY_PUBLISHER_USER=${RAILWAY_PUBLISHER_USER:-publisher_test}
+      - RAILWAY_PUBLISHER_PASSWORD=${RAILWAY_PUBLISHER_PASSWORD:-test}
+      - RAILWAY_STEPS_PER_SECOND=${RAILWAY_STEPS_PER_SECOND:-1}

@@ -17,6 +17,9 @@ contexts the InteractiveAI platform shows. Design and plan:
   - [2.2 Check](#22-check)
   - [2.3 Screenshots and video](#23-screenshots-and-video)
   - [2.4 Compared with railway_sim](#24-compared-with-railway_sim)
+- [3 Deployment](#3-deployment)
+  - [3.1 Run the simulator next to the platform](#31-run-the-simulator-next-to-the-platform)
+  - [3.2 Checklist before a session](#32-checklist-before-a-session)
 
 ## 1 Simulator
 
@@ -238,3 +241,43 @@ Remaining differences, each on purpose (decisions in
   headless one of the screenshot, the actions' emojis show as boxes.
 - **Drawing:** the track network is scaled to the panel; the trains held at the open decision are
   highlighted.
+
+## 3 Deployment
+
+### 3.1 Run the simulator next to the platform
+
+The simulator runs in its own container on the platform's host, as PowerGrid's simulator does
+(`Dockerfile`, `docker-compose.yml` in this folder). It always runs (`restart: unless-stopped`) and
+stays idle until a participant starts the Experiment in the Railway page; nobody starts a
+simulation by hand.
+
+1. Start InteractiveAI (`config/dev/cab-standalone`, [README](../../README.md)), with
+   `VITE_RAILWAY_SIMU=/railway-simu` (build time; the default of `docker-compose.sh`) and
+   `RAILWAY_SIMU_UPSTREAM` (run time, default `http://host.docker.internal:5124/`).
+2. From this folder: `docker compose up -d --build`.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `RAILWAY_PLATFORM_URL` | `http://host.docker.internal:3200` | the platform's frontend, through which the simulator posts its events and contexts |
+| `RAILWAY_PUBLISHER_USER`, `RAILWAY_PUBLISHER_PASSWORD` | `publisher_test` / `test` | the platform user it publishes as |
+| `RAILWAY_STEPS_PER_SECOND` | `1` | the pace of the scenarios |
+
+- The browser reaches the simulator only through the frontend nginx's `/railway-simu/`; it has
+  no login of its own, so its port 5124 should not be open beyond the host.
+- `railway_user` receives the Railway cards through the `cabProcess` perimeter of its group,
+  which the users service now loads from its config (`users-docker.yml`, `users-kubernetes.yml`,
+  the Kubernetes ConfigMap) into an empty database. An existing database keeps what
+  `resources/loadTestConf.sh` loaded once; the use case's registration in the Event, Context and
+  Recommendation services also stays in their databases.
+- On Kubernetes the ConfigMap's nginx config needs the same `/railway-simu/` location and the
+  frontend pod a `RAILWAY_SIMU_UPSTREAM` that resolves there; see the open point in
+  [`docs/plans/railway-use-case.md`](../../docs/plans/railway-use-case.md).
+
+### 3.2 Checklist before a session
+
+1. The simulator answers: `curl http://localhost:5124/health` gives `{"status": "ok"}`.
+2. Delete the previous participant's cards: `resources/deleteAllCards.sh` (F27).
+3. The participant logs in as `railway_user`, starts the Experiment in the start dialog and, after
+   the end screen, logs out, which opens the reflection questions.
+4. Keep the session id (the participant field of the survey's JSON and of the session report) with
+   the participant's name, outside the platform: the platform logs no user (D10).

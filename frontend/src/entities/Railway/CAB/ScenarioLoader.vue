@@ -137,7 +137,9 @@ watch(
 
 onBeforeMount(async () => {
   try {
-    scenarios.value = (await getScenarios()).data
+    const { data } = await getScenarios()
+    // without a /railway-simu/ location, nginx answers with the app's index.html
+    scenarios.value = Array.isArray(data) ? data : []
     scenarioId.value = scenarios.value[0]?.id
   } catch {
     // no simulator: no start dialog, today's page
