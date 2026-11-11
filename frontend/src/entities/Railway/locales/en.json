@@ -25,5 +25,8 @@
   "Railway.kpis.total_cost": "Total cost",
   "Railway.kpis.delay": "Delay",
   "Railway.kpis.best": "Best",
-  "Railway.tab.map": "Network map"
+  "Railway.tab.map": "Network map",
+  "Railway.tab.zwl": "Time-distance diagram",
+  "Railway.zwl.step": "Step",
+  "Railway.zwl.distance": "Distance (cells)"
 }

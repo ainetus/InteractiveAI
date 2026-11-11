@@ -106,5 +106,8 @@
   "Railway.kpis.total_cost": "Gesamtkosten",
   "Railway.kpis.delay": "Verspätung",
   "Railway.kpis.best": "Beste",
-  "Railway.tab.map": "Kartenansicht"
+  "Railway.tab.map": "Kartenansicht",
+  "Railway.tab.zwl": "ZWL Diagramm",
+  "Railway.zwl.step": "Schritt",
+  "Railway.zwl.distance": "Strecke (Zellen)"
 }

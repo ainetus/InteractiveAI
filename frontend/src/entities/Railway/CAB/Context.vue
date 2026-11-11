@@ -1,8 +1,9 @@
 <template>
   <!-- The simulator's contexts carry the track network (infra): Railway's own views. Contexts
        without it, of other publishers, keep today's geographic map (D20). -->
-  <Context v-if="context?.data.infra" :tabs="[$t('Railway.tab.map')]">
+  <Context v-if="context?.data.infra" :tabs="[$t('Railway.tab.map'), $t('Railway.tab.zwl')]">
     <NetworkMap v-if="appStore.tab.context === 0" :context="context.data" />
+    <ZwlDiagram v-if="appStore.tab.context === 1" :context="context.data" />
   </Context>
   <Context v-else :tabs="[$t('cab.tab.map')]">
     <Map
@@ -21,6 +22,7 @@ import { computed, onBeforeMount, onUnmounted, watchEffect } from 'vue'
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
 import NetworkMap from '@/entities/Railway/CAB/NetworkMap.vue'
+import ZwlDiagram from '@/entities/Railway/CAB/ZwlDiagram.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'

@@ -60,6 +60,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { trainColor } from '../colors'
 import { edgePoint, headingAngle, piecePath, pieces, trackBounds } from '../grid'
 import type { Cell, Railway } from '../types'
 
@@ -71,7 +72,6 @@ const props = defineProps<{
 }>()
 
 const S = 10 // cell size in drawing units; the SVG scales to the panel
-const COLORS = ['#0084d4', '#00b388', '#7b5cd6', '#daaa00', '#e0607e', '#4a4a4a']
 
 const infra = computed(() => props.context.infra!)
 
@@ -112,7 +112,7 @@ const stations = computed(() => infra.value.stations.filter((station) => station
 
 const trains = computed(() =>
   props.context.trains
-    .map((train, index) => ({ train, color: COLORS[index % COLORS.length] }))
+    .map((train, index) => ({ train, color: trainColor(index) }))
     // not departed yet (no position) or arrived: not drawn (F8)
     .filter(({ train }) => train.position && !train.done)
     .map(({ train, color }) => {

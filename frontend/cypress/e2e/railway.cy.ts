@@ -148,4 +148,16 @@ describe('Railway page', () => {
     cy.contains('.railway-network text', 'Station 1').should('exist')
     cy.screenshot('04-map', { capture: 'viewport' })
   })
+
+  it('draws the time-distance diagram from the history', () => {
+    login()
+    startRun('scenario1', 'recommendation')
+    // scenario 1 pauses at step 40: the trains' lines up to the decision
+    waitForRun('paused_for_decision')
+    cy.get('.railway-network', { timeout: 20000 }).should('be.visible')
+    cy.contains('.cab-tab', 'Time-distance diagram').click()
+    cy.get('.railway-zwl [data-train="Train_0"] .actual', { timeout: 20000 }).should('exist')
+    cy.contains('.railway-zwl .now text', 'Step 40').should('exist')
+    cy.screenshot('05-zwl', { capture: 'viewport' })
+  })
 })
