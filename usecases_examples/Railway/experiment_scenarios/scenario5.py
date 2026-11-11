@@ -14,6 +14,13 @@ Konfliktzone: Row 7 (P205 fährt ost, G501/P312 fahren west)
 SCENARIO_5 = {
     "id":   "scenario5",
     "name": "Szenario 5 — Fahrt auf Sichtweite",
+    # Draft, written from the scenario's own situation: replace with railway_sim's SCENARIO_INTROS text.
+    "introduction": (
+        "Nach einer Streckenkontrolle gilt auf dem Abschnitt eine Höchstgeschwindigkeit von 40 km/h, "
+        "P 205 verliert dadurch Zeit. "
+        "Die geplante Kreuzung mit G 501 und P 312 auf dem eingleisigen Abschnitt ist so nicht mehr möglich. "
+        "Entscheiden Sie über die Kreuzungsreihenfolge."
+    ),
     "map":  "maps/map5.json",
 
     "agent_defs": [

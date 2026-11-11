@@ -7,6 +7,7 @@
 
 - Railway: the Event and Context services accept the fields of the scripted Railway simulator (scenario, decision, run mode and session in events; session, scenario state, track network, history and decisions in contexts). All are optional, so existing Railway publishers keep working.
 - Railway: the page is in German when the browser is set to German, including the platform texts it shows; English and French stay as before.
+- Railway simulator: plays the six scripted scenarios on the platform. It sends its events and contexts through the Event and Context services, pauses at each decision until the operator's choice arrives, and is started, moved on and stopped through `/railway-simu/` (an Experiment of six runs, or a single run).
 
 ## 1.5.2 (2026-11-05)
 

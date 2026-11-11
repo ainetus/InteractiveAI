@@ -20,6 +20,13 @@ Entscheidungspunkt bei Timestep 12:
 SCENARIO_3 = {
     "id":   "scenario3",
     "name": "Szenario 3 — Güterverkehr vs Personenverkehr",
+    # railway_sim's SCENARIO_INTROS text (b612187).
+    "introduction": (
+        "Güterzug G 3 fährt auf demselben Streckenabschnitt wie IC 3 und IR 35, jedoch mit deutlich "
+        "reduzierter Geschwindigkeit. Durch die unterschiedlichen Geschwindigkeiten entsteht ein "
+        "Dispositionskonflikt: Die Schnellzüge holen G 3 ein und können den Streckenabschnitt nicht "
+        "wie geplant passieren. Entscheiden Sie, wie die Situation aufgelöst werden soll."
+    ),
     "map":  "maps/map3.json",
     "marey_link": {"start": [7, 1], "end": [7, 18]},
 

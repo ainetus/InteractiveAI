@@ -1,5 +1,9 @@
-# Simulator only (no Flask, no PIL). Flatland 4.2.6: the step rules in sim/ were measured on it.
+# The simulator (sim/, no PIL) and its platform integration (integration/, app.py).
+# Flatland 4.2.6: the step rules in sim/ were measured on it.
 flatland-rl==4.2.6
 numpy<2
+Flask==2.3.2
+requests
 # tests
 pytest
+requests-mock

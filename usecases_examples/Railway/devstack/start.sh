@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start the Railway dev stack without Docker: the Event, Context, Historic and Recommendation
-# services on SQLite (AUTH_DISABLED), registered for Railway, behind the dev gateway on port 3200.
-# Stops everything on Ctrl-C. Never expose it beyond localhost.
+# services on SQLite (AUTH_DISABLED), registered for Railway, and the Railway simulator, behind the
+# dev gateway on port 3200. Stops everything on Ctrl-C. Never expose it beyond localhost.
 #
 # Settings (environment):
 #   FRONTEND        dist (default): serve FRONTEND_DIST (default frontend/dist, build it first)
@@ -15,6 +15,9 @@
 #   DEVSTACK_HOME   where the venv, the SQLite files and the logs go
 #                   (default .cache/railway-devstack in the repo root, gitignored)
 #   GATEWAY_PORT    default 3200
+#   RAILWAY_STEPS_PER_SECOND  the simulator's pace (default 1; e.g. 4 for quick checks)
+#   RAILWAY_SIM_PYTHON  python with usecases_examples/Railway/requirements.txt (Flatland) installed;
+#                   default: a second venv per OS and CPU under DEVSTACK_HOME, made like the first
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,8 +34,8 @@ mkdir -p "$DATA" "$LOGS"
 py_version() { "$1" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null; }
 supported() { [[ "$1" == 3.11 || "$1" == 3.12 ]]; }
 
-if [[ -z "${DEVSTACK_PYTHON:-}" ]]; then
-    BASE="${DEVSTACK_BASE_PYTHON:-}"
+base_python() {
+    local BASE="${DEVSTACK_BASE_PYTHON:-}"
     if [[ -z "$BASE" ]]; then
         for candidate in python3.11 python3.12 python3; do
             if command -v "$candidate" >/dev/null && supported "$(py_version "$candidate")"; then
@@ -47,22 +50,31 @@ if [[ -z "${DEVSTACK_PYTHON:-}" ]]; then
         echo "DEVSTACK_BASE_PYTHON to it, or put python3.11 on PATH." >&2
         exit 1
     fi
-    VENV="$DEVSTACK_HOME/venv-$(uname -s)-$(uname -m)"   # host and container may share the checkout
+    echo "$BASE"
+}
+
+make_venv() {   # venv requirements; prints the venv's python
+    local VENV="$1" REQS="$2" BASE
     if [[ -x "$VENV/bin/python" ]] && ! supported "$(py_version "$VENV/bin/python")"; then
-        echo "recreating $VENV: made with Python $(py_version "$VENV/bin/python")"
+        echo "recreating $VENV: made with Python $(py_version "$VENV/bin/python")" >&2
         rm -rf "$VENV"
     fi
     if [[ ! -x "$VENV/bin/python" ]]; then
-        echo "creating $VENV with $BASE (Python $(py_version "$BASE"))"
+        BASE="$(base_python)"
+        echo "creating $VENV with $BASE (Python $(py_version "$BASE"))" >&2
         "$BASE" -m venv "$VENV"
     fi
-    if ! cmp -s "$HERE/requirements.txt" "$VENV/.requirements.txt"; then
-        "$VENV/bin/python" -m pip install -q -r "$HERE/requirements.txt"
-        cp "$HERE/requirements.txt" "$VENV/.requirements.txt"
+    if ! cmp -s "$REQS" "$VENV/.requirements.txt"; then
+        "$VENV/bin/python" -m pip install -q -r "$REQS" >&2
+        cp "$REQS" "$VENV/.requirements.txt"
     fi
-    DEVSTACK_PYTHON="$VENV/bin/python"
-fi
-PY="$DEVSTACK_PYTHON"
+    echo "$VENV/bin/python"
+}
+
+# host and container may share the checkout, so one venv per OS and CPU
+PY="${DEVSTACK_PYTHON:-$(make_venv "$DEVSTACK_HOME/venv-$(uname -s)-$(uname -m)" "$HERE/requirements.txt")}"
+SIM="$ROOT/usecases_examples/Railway"
+SIM_PY="${RAILWAY_SIM_PYTHON:-$(make_venv "$DEVSTACK_HOME/venv-sim-$(uname -s)-$(uname -m)" "$SIM/requirements.txt")}"
 
 PIDS=()
 stop() {
@@ -107,8 +119,19 @@ start_service recommendation-service 5400
 "$PY" -B "$HERE/gateway.py" >"$LOGS/gateway.log" 2>&1 &
 PIDS+=($!)
 
+# --- the Railway simulator, reached at /railway-simu/ through the gateway; it posts its events and
+# contexts through the gateway too, as on the server through the platform's nginx
+(
+    cd "$SIM"
+    exec env RAILWAY_PLATFORM_URL="http://127.0.0.1:$GATEWAY_PORT" \
+        RAILWAY_STEPS_PER_SECOND="${RAILWAY_STEPS_PER_SECOND:-1}" \
+        RAILWAY_SIMU_HOST=127.0.0.1 RAILWAY_SIMU_PORT=5124 PYTHONDONTWRITEBYTECODE=1 \
+        "$SIM_PY" app.py
+) >"$LOGS/railway-simulator.log" 2>&1 &
+PIDS+=($!)
+
 if [[ "$FRONTEND" == vite ]]; then
-    (cd "${FRONTEND_DIR:-$ROOT/frontend}" && exec npx vite --host 127.0.0.1 --port 5173 --strictPort) \
+    (cd "${FRONTEND_DIR:-$ROOT/frontend}" && exec env VITE_RAILWAY_SIMU=/railway-simu npx vite --host 127.0.0.1 --port 5173 --strictPort) \
         >"$LOGS/vite.log" 2>&1 &
     PIDS+=($!)
 fi
@@ -118,6 +141,7 @@ wait_for context-service http://127.0.0.1:5100/api/v1/health
 wait_for historic-service http://127.0.0.1:5200/api/v1/health
 wait_for recommendation-service http://127.0.0.1:5400/api/v1/health
 wait_for gateway "http://127.0.0.1:$GATEWAY_PORT/users/CurrentUserWithPerimeters"
+wait_for railway-simulator http://127.0.0.1:5124/health
 
 # --- register Railway in the three services (as resources/loadTestConf.sh); a repeat is refused
 for svc in "cab_event resources/cabUsecasesEvent/RailwayEvent.json" \

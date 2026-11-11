@@ -19,7 +19,7 @@ sys.path.insert(0, ROOT)
 
 from experiment_scenarios import ALL_SCENARIOS                      # noqa: E402
 from integration import payloads                                    # noqa: E402
-from integration.session import make_session                       # noqa: E402
+from integration.session import experiment_runs, make_session, single_run   # noqa: E402
 from sim.decisions import colearning_view, match_colearning, normalize_holds   # noqa: E402
 from sim.map_loader import load_map_json, station_markers          # noqa: E402
 from sim.marey import link_map, marey_mapping                       # noqa: E402
@@ -122,7 +122,7 @@ def test_invalid_colearning_action_is_not_feasible():
 @pytest.mark.parametrize("sid", sorted(ALL_SCENARIOS))
 def test_payloads_are_json_and_one_card_per_decision(sid):
     sc = ALL_SCENARIOS[sid]
-    session = make_session("P01", "recommendation", list(ALL_SCENARIOS))
+    session = make_session("S01", single_run(sid, "recommendation"))
     sent = []
 
     def on_event(p, e):
@@ -151,9 +151,9 @@ def test_station_markers_include_every_train_start():
 
 def test_session_order_is_reproducible():
     ids = list(ALL_SCENARIOS)
-    a = make_session("P07", "colearning", ids)["scenario_order"]
-    b = make_session("P07", "colearning", ids)["scenario_order"]
-    assert a == b and sorted(a) == sorted(ids)
+    a = make_session("S07", experiment_runs("S07", ids))["scenario_order"]
+    b = make_session("S07", experiment_runs("S07", ids))["scenario_order"]
+    assert a == b and sorted(r["scenario_id"] for r in a) == sorted(ids)
 
 
 @pytest.mark.parametrize("sid", sorted(ALL_SCENARIOS))

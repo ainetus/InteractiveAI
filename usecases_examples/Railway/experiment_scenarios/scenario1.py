@@ -12,6 +12,13 @@ Züge:
 SCENARIO_1 = {
     "id":   "scenario1",
     "name": "Szenario 1 — Zugreihenfolge",
+    # Draft, written from the scenario's own situation: replace with railway_sim's SCENARIO_INTROS text.
+    "introduction": (
+        "S 17, S 18 und IC 3 befahren einen gemeinsamen Streckenabschnitt. "
+        "Ein Hindernis hält S 17 auf, kurz darauf verspätet eine Signalstörung S 18. "
+        "Die geplante Zugreihenfolge im gemeinsamen Abschnitt lässt sich nicht mehr einhalten. "
+        "Entscheiden Sie, welcher Zug Vorfahrt erhält."
+    ),
     "map":  "maps/map1.json",
 
     "agent_defs": [

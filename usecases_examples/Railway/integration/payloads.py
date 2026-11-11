@@ -11,14 +11,16 @@ docs/plans/railway-use-case.md, section 4.1.2).
                             clicks to get recommendations)
 - recommendations()      -> agent response for POST /api/v1/recommendation
 
-Session info passed in by the caller:
-    session = {"session_id": "...", "participant": "P01", "mode": "recommendation" | "colearning",
-               "scenario_order": ["scenario3", ...], "scenario_position": 1}
+Session info passed in by the caller (integration/session.py):
+    session = {"session_id": "...", "scenario_order": [{"scenario_id": "scenario3", "mode": "colearning"}, ...],
+               "scenario_position": 0, "started_at": "...", "ended_at": None}
+The running scenario's mode is the mode of scenario_order[scenario_position].
 """
 
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from integration.session import current_run
 from sim.decisions import colearning_view, match_colearning
 from sim.map_loader import load_map_json, station_markers
 from sim.marey import link_map, marey_mapping, planned_paths
@@ -63,8 +65,12 @@ def _decision_point_at(scenario: dict, timestep: int) -> Optional[int]:
     return None
 
 
-def context_payload(player, session: dict, infra: dict) -> dict:
-    """Full, self-contained snapshot (the frontend only ever sees the latest one)."""
+def context_payload(player, session: dict, infra: dict, state: Optional[str] = None) -> dict:
+    """
+    Full, self-contained snapshot (the frontend only ever sees the latest one).
+
+    state overrides the player's state: "ready" before a run is started (Q29 a).
+    """
     trains = []
     frame = player.frame()
     for tid, s in sorted(player.timetable.schedules.items()):
@@ -92,8 +98,9 @@ def context_payload(player, session: dict, infra: dict) -> dict:
             "scenario": {
                 "id": player.scenario.get("id"),
                 "name": player.scenario.get("name"),
+                "mode": current_run(session)["mode"],
                 "step": player.step_index,
-                "state": player.state,
+                "state": state or player.state,
                 "decision_open": player.active_decision is not None,
             },
             "infra": infra,
@@ -127,8 +134,6 @@ def event_payload(player, event: dict, session: dict) -> Optional[dict]:
             "timestep": event["timestep"],
             "decision_index": dp_index,          # not None -> recommendations available on this card
             "session_id": session.get("session_id"),
-            "participant": session.get("participant"),
-            "mode": session.get("mode"),
         },
     }
 
@@ -160,8 +165,6 @@ def decision_event(player, dp_index: int, session: dict) -> Optional[dict]:
             "timestep": dp["timestep"],
             "decision_index": dp_index,
             "session_id": session.get("session_id"),
-            "participant": session.get("participant"),
-            "mode": session.get("mode"),
         },
     }
 

@@ -11,7 +11,7 @@ import json
 import config
 from experiment_scenarios import ALL_SCENARIOS
 from integration import payloads
-from integration.session import make_session
+from integration.session import current_run, experiment_runs, make_session, single_run
 from sim.decisions import match_colearning
 from sim.scenario_player import COMPLETE, PAUSED, Hooks, ScenarioPlayer
 
@@ -31,6 +31,7 @@ def _show(label, payload):
 
 def play(scenario_id: str, session: dict):
     sc = ALL_SCENARIOS[scenario_id]
+    mode = current_run(session)["mode"]
     infra = None
 
     def on_event(p, event):
@@ -45,18 +46,18 @@ def play(scenario_id: str, session: dict):
             infra = payloads.infra_payload(sc, p.timetable)
         _show("context", payloads.context_payload(p, session, infra))
         _show("recommendations", payloads.recommendations(sc, p.decision_index - 1,
-                                                          session["mode"], p.train_names))
+                                                          mode, p.train_names))
 
     hooks = Hooks(on_event=on_event, on_decision=on_decision)
     player = ScenarioPlayer(sc, hooks)
-    print(f"\n=== {sc['name']} ({session['mode']}) ===")
+    print(f"\n=== {sc['name']} ({mode}) ===")
 
     for _ in range(MAX_STEPS):
         if player.state == COMPLETE:
             break
         if player.state == PAUSED:
             dp = player.active_decision
-            if session["mode"] == "colearning":
+            if mode == "colearning":
                 idx, reason = match_colearning(sc, dp, config.COLEARNING_TRAIN, config.COLEARNING_ACTION)
                 if idx is None:
                     print(f"      Ko-Lernen choice not feasible ({reason}) -> option 0")
@@ -78,8 +79,9 @@ def play(scenario_id: str, session: dict):
 
 
 if __name__ == "__main__":
-    ids = [config.SCENARIO_ID] if config.SCENARIO_ID else list(ALL_SCENARIOS)
-    session = make_session(config.PARTICIPANT, config.MODE, ids)
-    for pos, sid in enumerate(session["scenario_order"]):
+    runs = single_run(config.SCENARIO_ID, config.MODE) if config.SCENARIO_ID \
+        else experiment_runs(config.SESSION_ID, list(ALL_SCENARIOS))
+    session = make_session(config.SESSION_ID, runs)
+    for pos, run in enumerate(session["scenario_order"]):
         session["scenario_position"] = pos
-        play(sid, session)
+        play(run["scenario_id"], session)

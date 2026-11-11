@@ -18,6 +18,13 @@ Züge:
 SCENARIO_4 = {
     "id":   "scenario4",
     "name": "Szenario 4 — Verschobene Kreuzung",
+    # Draft, written from the scenario's own situation: replace with railway_sim's SCENARIO_INTROS text.
+    "introduction": (
+        "Eine Signalstörung verspätet IR 35. "
+        "Dadurch erreicht IR 35 den Kreuzungsabschnitt gleichzeitig mit G 4 und IC 3, "
+        "und die geplante Kreuzung verschiebt sich. "
+        "Entscheiden Sie, welchem Zug Vorfahrt gewährt wird."
+    ),
     "map":  "maps/map4.json",
     "marey_link": {"start": [6, 18], "end": [6, 0]},
 

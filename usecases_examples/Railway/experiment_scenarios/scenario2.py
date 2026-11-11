@@ -24,6 +24,13 @@ Konflikt: Entscheidung bei Timestep 15
 SCENARIO_2 = {
     "id":   "scenario2",
     "name": "Szenario 2 — Türstörung",
+    # Draft, written from the scenario's own situation: replace with railway_sim's SCENARIO_INTROS text.
+    "introduction": (
+        "Eine Türstörung hält S 17 auf. "
+        "IR 35 und S 17-2 erreichen gleichzeitig einen eingleisigen Abschnitt, "
+        "den nur ein Zug zur selben Zeit befahren kann. "
+        "Entscheiden Sie, welcher Zug zuerst passiert."
+    ),
     "map":  "maps/map2.json",
     "marey_link": {"start": [9, 1], "end": [6, 18]},
 

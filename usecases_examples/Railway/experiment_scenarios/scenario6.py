@@ -18,6 +18,12 @@ Züge:
 SCENARIO_6 = {
     "id":   "scenario6",
     "name": "Szenario 6 — Anschlusskonflikt",
+    # Draft, written from the scenario's own situation: replace with railway_sim's SCENARIO_INTROS text.
+    "introduction": (
+        "IC 3 ist nach einer Betriebsstörung verspätet. "
+        "Reisende aus IC 3 sollen in S 12 umsteigen, der Anschluss ist gefährdet. "
+        "Entscheiden Sie, ob S 12 auf IC 3 wartet oder planmäßig weiterfährt."
+    ),
     "map":  "maps/map6.json",
     "marey_link": {"start": [8, 1], "end": [8, 17]},
 
