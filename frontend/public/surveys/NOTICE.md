@@ -78,3 +78,8 @@ possible so an upstream update stays easy to re-apply:
    `power-grid-evaluation-fr.html`). A chain given per language
    (`{ fr: [...], en: [...] }`) first asks the operator to pick one, and the
    language is recorded with the answers (`participantData.language`).
+6. **`surveychainer.html`** has a `Railway` chain and German texts (`TEXT.de`)
+   for it. Its only questionnaire, `railway/reflection.html` (the Railway
+   dispatcher experiment's reflection questions), is not from hmisurveys: it is
+   InteractiveAI's own page, under InteractiveAI's MPL-2.0, and only follows
+   the questionnaires' protocol (answers posted to `window.parent`).

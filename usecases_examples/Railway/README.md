@@ -100,7 +100,10 @@ p.apply_decision(i, source="recommendation" | "colearning", meta={...})
 ### 1.6 On the platform: session runner and HTTP app
 
 `python app.py` starts the simulator as a service (port 5124), idle until the page starts a
-session. The browser reaches it only through the frontend nginx's `/railway-simu/`; it sends events
+session: the Railway page's start dialog (the "Szenario-Loader", shown while no run goes on and the
+simulator answers `GET /api/v1/scenarios`) starts the Experiment or a single run for the login's
+trace session id, shows each run's introduction with "Weiter", and the end screen; the bar above the
+timeline shows the progress and "✕ Beenden". The browser reaches it only through the frontend nginx's `/railway-simu/`; it sends events
 and contexts to the platform's `/cab_event/` and `/cabcontext/` as `publisher_test`.
 
 | Route | Does |

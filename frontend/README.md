@@ -180,6 +180,12 @@ The chain lives at the top of `public/surveys/surveychainer.html`:
   (`PowerGrid`, `ATM`, `Railway`). Add an entry to give one use case its own
   questionnaires; use cases without an entry keep `DEFAULT_CHAIN`.
 
+`CHAINS.Railway` holds one questionnaire in German, the reflection questions of
+the Railway dispatcher experiment (`railway/reflection.html`, free text, all
+optional), played once after the Experiment. Unlike the other questionnaires it
+is InteractiveAI's own page, not one from hmisurveys. The Railway page's start
+dialog tells the participant to log out at the end, which opens it.
+
 Adding a questionnaire means copying its file from the hmisurveys repository
 into `public/surveys/` (keeping the folder layout the URLs use) and listing it in
 the relevant chain. A questionnaire must post its answers to `window.parent`,

@@ -1,6 +1,7 @@
 <template>
   <section class="cab-panel">
     <h1>{{ $t('cab.timeline') }}</h1>
+    <ScenarioProgress />
     <Timeline
       v-slot="{ card }"
       :now="servicesStore.context('Railway') && new Date(servicesStore.context('Railway')!.date)"
@@ -27,6 +28,7 @@ import { Zap } from 'lucide-vue-next'
 
 import SVG from '@/components/atoms/SVG.vue'
 import Timeline from '@/components/organisms/Timeline.vue'
+import ScenarioProgress from '@/entities/Railway/CAB/ScenarioProgress.vue'
 import { useServicesStore } from '@/stores/services'
 import { criticalityToColor } from '@/utils/utils'
 

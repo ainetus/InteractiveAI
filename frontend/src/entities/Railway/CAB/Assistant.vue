@@ -191,6 +191,7 @@
         v-if="appStore.tab.assistant === 3 && procedure && appStore.card('Railway')"
         :procedure />
     </Default>
+    <ScenarioLoader />
   </section>
 </template>
 <script setup lang="ts">
@@ -208,6 +209,7 @@ import Procedure from '@/components/organisms/CAB/Assistant/Procedure.vue'
 import Recommendations from '@/components/organisms/CAB/Assistant/Recommendations.vue'
 import { applyRecommendation } from '@/entities/Railway/api'
 import ColearningChoice from '@/entities/Railway/CAB/ColearningChoice.vue'
+import ScenarioLoader from '@/entities/Railway/CAB/ScenarioLoader.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'

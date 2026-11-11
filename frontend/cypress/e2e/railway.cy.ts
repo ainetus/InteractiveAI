@@ -1,7 +1,7 @@
 // The Railway page on the dev stack (usecases_examples/Railway/devstack) or any deployment:
 // CYPRESS_BASE_URL=http://localhost:3200, participant login from CYPRESS_USER / CYPRESS_PASSWORD
 // (the dev gateway accepts any). Each step of docs/plans/railway-use-case.md adds its named shots.
-// Every test starts from a clean feed and posts or starts what it shows.
+// Every test starts from a clean feed and posts what it shows, or starts it in the start dialog.
 
 const user = Cypress.env('USER') ?? 'railway_user'
 const password = Cypress.env('PASSWORD') ?? 'test'
@@ -66,16 +66,21 @@ function postTodayEventAndContext() {
   })
 }
 
-// Start a single run on the simulator through /railway-simu/, as the start dialog will (S12); until
-// then the spec starts sessions itself. After login, for the same reason as above.
+// A deployment without the simulator: GET /api/v1/scenarios fails, so the page shows no start
+// dialog and stays as today. Before login.
+function withoutSimulator() {
+  cy.intercept('GET', '/railway-simu/api/v1/scenarios', { statusCode: 404, body: {} })
+}
+
+// Start a single run in the start dialog (the Szenario-Loader, F21); it starts at once, without
+// an introduction (Q13 d). After login.
 function startRun(scenarioId: string, mode: 'recommendation' | 'colearning') {
-  cy.request('POST', '/railway-simu/api/v1/session', {
-    session_id: `cypress-${Date.now()}`,
-    kind: 'single',
-    scenario_id: scenarioId,
-    mode
+  cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).within(() => {
+    cy.get('select[name="scenario"]').select(scenarioId)
+    cy.get('select[name="mode"]').select(mode)
+    cy.get('[data-start="single"]').click()
   })
-  cy.request('POST', '/railway-simu/api/v1/session/next')
+  cy.get('.railway-loader', { timeout: 20000 }).should('not.exist')
 }
 
 // Wait until the latest context's data passes `check`.
@@ -101,6 +106,7 @@ describe('Railway page', () => {
   beforeEach(reset)
 
   it("shows today's page with a card and a context in today's schema", () => {
+    withoutSimulator()
     login()
     postTodayEventAndContext()
     // contexts without a track network keep the geographic map
@@ -137,6 +143,7 @@ describe('Railway page', () => {
   })
 
   it('is German in a German browser', () => {
+    withoutSimulator()
     login('de-DE')
     postTodayEventAndContext()
     cy.contains('h1', 'Zeitachse', { timeout: 20000 }).should('be.visible')
@@ -232,6 +239,62 @@ describe('Railway page', () => {
     cy.contains('.railway-colearning button', 'Lösung vorschlagen').click()
     cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
     waitForContext('the applied decision', (data) => data.decisions?.length === 1)
+  })
+
+  it('plays the Experiment from the start dialog to the end screen and the reflection', () => {
+    login('de-DE')
+    cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).should('be.visible')
+    cy.get('[data-start="experiment"]').click()
+    // run 1's introduction (F22), its scenario drawn from the trace session id
+    cy.contains('.railway-loader h1', 'Szenario-Einführung — Run 1/6', { timeout: 20000 }).should(
+      'be.visible'
+    )
+    cy.get('.railway-loader .introduction').should('not.be.empty')
+    cy.screenshot('10-intro', { capture: 'viewport' })
+
+    cy.contains('.railway-loader button', 'Weiter').click()
+    cy.get('.railway-loader', { timeout: 20000 }).should('not.exist')
+    cy.contains('.railway-progress', 'Experiment 1/6').should('be.visible')
+
+    // the end screen (F26) without playing six runs: the next contexts are rewritten into the
+    // last run's, complete, with the session ended
+    cy.intercept('GET', '/cabcontext/api/v1/contexts*', (req) => {
+      req.continue((res) => {
+        const context = Array.isArray(res.body) ? res.body[0] : res.body
+        const data = context?.data
+        if (!data?.session) return
+        data.session.scenario_position = data.session.scenario_order.length - 1
+        data.session.ended_at = new Date().toISOString()
+        data.scenario.state = 'complete'
+      })
+    })
+    cy.contains('.railway-loader h1', 'Experiment abgeschlossen', { timeout: 30000 }).should(
+      'be.visible'
+    )
+    cy.contains('.railway-loader', 'Bitte melden Sie sich jetzt oben rechts ab').should(
+      'be.visible'
+    )
+    cy.screenshot('12-end', { capture: 'viewport' })
+
+    // the logout opens the post-logout survey with Railway's chain (Q5 d)
+    cy.get('button[aria-label="Anmelden"]').click()
+    cy.contains('button', /^(Ja|Yes|Oui)$/).click()
+    cy.location('pathname', { timeout: 20000 }).should('eq', '/survey')
+    cy.get('iframe')
+      .its('0.contentDocument.body')
+      .should('not.be.empty')
+      .then(cy.wrap)
+      .within(() => {
+        cy.contains('button', 'Starten', { timeout: 20000 }).click()
+        cy.get('#surveyFrame')
+          .its('0.contentDocument.body')
+          .should('contain.text', 'Auf welche Logik habe ich mich gestützt?')
+      })
+    cy.get('iframe').should('be.visible')
+    // the page fades in after the route change; the shot waits for it, not for the app
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(1500)
+    cy.screenshot('11-reflection', { capture: 'viewport' })
   })
 
   it('draws the line view from the link map', () => {
