@@ -21,6 +21,8 @@
   </section>
 </template>
 <script setup lang="ts">
+import '@/entities/Railway/i18n'
+
 import { Zap } from 'lucide-vue-next'
 
 import SVG from '@/components/atoms/SVG.vue'

@@ -1,18 +1,16 @@
 <template>
-  <Context
-    :tabs="[
-      $t('cab.tab.map')
-    ]">
+  <Context :tabs="[$t('cab.tab.map')]">
     <Map
       v-if="appStore.tab.context === 0"
       :tile-layers="[
-  'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
-  'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
-]"
- />
+        'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+        'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'
+      ]" />
   </Context>
 </template>
 <script setup lang="ts">
+import '@/entities/Railway/i18n'
+
 import { onBeforeMount, onUnmounted, watchEffect } from 'vue'
 
 import Context from '@/components/organisms/CAB/Context.vue'
@@ -28,7 +26,6 @@ const servicesStore = useServicesStore()
 const mapStore = useMapStore()
 const cardsStore = useCardsStore()
 const appStore = useAppStore()
-
 
 watchEffect(() => {
   for (const train of cardsStore.cards('Railway'))

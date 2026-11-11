@@ -28,6 +28,8 @@
   </Notifications>
 </template>
 <script setup lang="ts">
+import '@/entities/Railway/i18n'
+
 import { Inbox, MoveRight, User } from 'lucide-vue-next'
 
 import Button from '@/components/atoms/Button.vue'

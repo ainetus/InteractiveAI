@@ -5,7 +5,9 @@
         <template v-if="appStore.tab.assistant === 2">
           {{ $t('cab.assistant.recommendations') }}
         </template>
-        <template v-if="appStore.tab.assistant === 3">{{ $t('cab.assistant.recommendations') }}</template>
+        <template v-if="appStore.tab.assistant === 3">
+          {{ $t('cab.assistant.recommendations') }}
+        </template>
       </template>
       <Event
         v-if="appStore.tab.assistant === 1 && appStore.card('Railway')"
@@ -42,12 +44,16 @@
             {{ $t('event.button.primary.passenger') }}
           </template>
         </template>
-        <template v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'" #tooltip>
+        <template
+          v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'"
+          #tooltip>
           {{ $t('event.tooltip.primary.passenger') }}
         </template>
       </Event>
       <Recommendations
-        v-if="(appStore.tab.assistant === 2 || appStore.tab.assistant === 3) && appStore.card('Railway')"
+        v-if="
+          (appStore.tab.assistant === 2 || appStore.tab.assistant === 3) && appStore.card('Railway')
+        "
         v-model:recommendations="recommendations"
         :buttons="[
           $t('recommendations.button1'),
@@ -75,38 +81,40 @@
         <template #button>
           <Button color="secondary">{{ $t('recommendations.button.secondary') }}</Button>
         </template>
-          <template #footer="{ selected }">
-            <div style="flex: none; overflow: auto">
-              <table v-if="recommendations.length">
-                <thead>
-                  <tr>
-                    <th>KPI</th>
-                    <th
-                      v-for="(recommendation, index) of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      R{{ index }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="key of ['cost', 'nb_impacted_passengers', 'total_cost', 'delay']" :key="key">
-                    <td>{{ $t(`Railway.kpis.${key}`) }}</td>
-                    <td
-                      v-for="recommendation of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      {{
-                        isFinite(Number(recommendation.kpis?.[key]))
-                          ? Number(recommendation.kpis?.[key])
-                          : recommendation.kpis?.[key]
-                      }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
+        <template #footer="{ selected }">
+          <div style="flex: none; overflow: auto">
+            <table v-if="recommendations.length">
+              <thead>
+                <tr>
+                  <th>KPI</th>
+                  <th
+                    v-for="(recommendation, index) of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    R{{ index }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="key of ['cost', 'nb_impacted_passengers', 'total_cost', 'delay']"
+                  :key="key">
+                  <td>{{ $t(`Railway.kpis.${key}`) }}</td>
+                  <td
+                    v-for="recommendation of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    {{
+                      isFinite(Number(recommendation.kpis?.[key]))
+                        ? Number(recommendation.kpis?.[key])
+                        : recommendation.kpis?.[key]
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </Recommendations>
       <Procedure
         v-if="appStore.tab.assistant === 3 && procedure && appStore.card('Railway')"
@@ -115,6 +123,8 @@
   </section>
 </template>
 <script setup lang="ts">
+import '@/entities/Railway/i18n'
+
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 

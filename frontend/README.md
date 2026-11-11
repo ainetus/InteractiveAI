@@ -110,6 +110,18 @@ type EntitiesTypes = {
 } as const
 ```
 
+### An extra language for your entity
+
+The platform's languages are `SUPPORT_LOCALES` (`en`, `fr`, in `src/plugins/i18n.ts`): every entity has
+an `en.json` and an `fr.json`, and `views/CAB.vue` switches to `<language>-<entity>` (e.g. `fr-PowerGrid`)
+by the browser's language. An entity can add a language of its own without a file for every entity: put
+it in its `locales/` (e.g. `de.json`) and register it as `<language>-<entity>` with
+`i18n.global.mergeLocaleMessage()`, from a module its panels import. vue-i18n then looks up
+`de-ENTITY`, then `de`, then the fallback `en`, so the file also holds the platform texts the entity's
+page shows (header, feed, assistant). Railway does this for German (`src/entities/Railway/i18n.ts`);
+its test checks that `de.json` has every key of the platform's and Railway's `en.json`. Pages outside
+an entity (login, post-logout survey) stay in the platform's languages.
+
 ### Type Support for your custom entity
 
 In `src/entities/ENTITY/types.ts`, you can define your custom types as follow:
