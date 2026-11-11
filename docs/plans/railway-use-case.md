@@ -40,6 +40,10 @@ run and screenshotted without Docker.
   (the repo's commitlint rule), so the planned messages of §7 have none either.
 - **2026-11-11:** Q4 (drop the time controls), Q2 a), Q28 a) and Q10 (own compose, so Q24) decided,
   Q6 and Q8 confirmed. No step is blocked by an open question any more.
+- **2026-11-11 (later):** S3–S15 implemented and committed (`b7e61eb`…`c663b77`), shots 00–14 in
+  [`railway-use-case/shots/`](railway-use-case/shots/). Left: S23, the Kubernetes route to the
+  simulator, blocked by Q30 (its address on the server); the draft introductions of scenarios 1, 2,
+  4, 5 and 6 wait for `railway_sim`'s texts.
 - **Base:** `main` at `600a1ce` (release 1.5.2).
 - **Inputs:**
   - the cleaned simulator: `railway_sim`'s simulator, cleaned and headless (Flatland
@@ -1654,6 +1658,7 @@ collections (their Railway requests still pass; events without `scenario_id` get
   | `06-status` | status line and open decision in the centre panel | S10 |
   | `07-decision-recommendation`, `08-decision-colearning`, `09-after-apply` | the decision panel per mode, after applying | S11 |
   | `10-intro`, `11-reflection`, `12-end` | the Szenario-Loader's introduction and end screen; the Railway chain of the post-logout survey | S12 |
+  | `14-compare` | scenario 3 in Ko-Lernen at its decision, the state of `railway_sim.png` | S13 |
 
 - **Documenting a step:** the step copies its shots into `docs/plans/railway-use-case/shots/`
   (committed, replacing older versions of the same shot) and links them from its "Carried out" row,
@@ -1677,7 +1682,7 @@ The dev stack and the screenshots come first, so every later step can be run and
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
 | S6 | - | `devstack/` gateway and start script, §6; seed script posting one Railway event and the §4.1.1 context in today's schema; `usecases_examples/Railway/README.md` with the dev stack, `docs/developer-guide.md`; a smoke script that posts one event and reads the context back. | feature | - | `feat(railway): run the platform locally without Docker` | b82cbb3 | T1, T2 | - | - |
-| S16 | - | `cypress/e2e/railway.cy.ts` (login through the gateway, `/cab/Railway`, shot `00-baseline`), `video` and screenshot settings in `cypress.config.ts`, one-line command in the Railway README and `frontend/README.md`; `shots/00-baseline.png`. | test | - | `test(railway): screenshot and record the Railway page on the dev stack` | a5fdde4 | T2, T4 | S6 | - |
+| S16 | - | `cypress/e2e/railway.cy.ts` (login through the gateway, `/cab/Railway`, shot `00-baseline`), `video` and screenshot settings in `cypress.config.ts`, one-line command in the Railway README and `frontend/README.md`; shot [`00-baseline`](railway-use-case/shots/00-baseline.png). | test | - | `test(railway): screenshot and record the Railway page on the dev stack` | a5fdde4 | T2, T4 | S6 | - |
 
 ### Phase 2: simulator in the repo ✅
 
@@ -1686,39 +1691,40 @@ The dev stack and the screenshots come first, so every later step can be run and
 | S1 | - | Add the cleaned simulator (without `__pycache__`), `tests/test_sim.py` green; simulator section in the Railway README. | chore | - | `chore(railway): add the scripted Railway simulator under usecases_examples` | ba54610 | F28–F30 | - | - |
 | S2 | - | `sim/marey.py`, `infra_payload()`; tests for every scenario's `marey_link` and `link_map`. | feature | - | `feat(railway): add ZWL distances, planned paths and the link map to the scenario infrastructure` | 1979e78 | F12, F14, F31 | S1 | - |
 
-### Phase 3: platform contract
+### Phase 3: platform contract ✅
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S3 | - | Both `MetadataSchemaRailway`, every added field optional; service tests with the payloads of §4.1.2 and with today's payloads; Postman Railway event example. | feature | - | `feat(railway): accept scenario, session and infrastructure fields in Railway events and contexts` | | D2, D4, D10, D20, T5 | - | - |
-| S4 | - | `publisher.py`, `loop.py`, `session.py` (run list seeded by `session_id`), the scenarios' `introduction`, `app.py` apply, scenario-list and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot `01-feed`. | feature | - | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F29, F38, F39, T3, T5 | S1, S3, S16 | - |
-| S5 | - | `export_recommendations.py` and the committed `recommendations.json` (test: file equals the script's output); its copy in `backend/recommendation-service/resources/Railway/` (test: copy equals the simulator's); `payloads.event_payload()` adds `run_mode`; `RailwayManager` looks the entry up, catalog for other events; tests; shot `02-recommendations`. | feature | - | `feat(railway): answer recommendation requests from a file generated by the simulator` | | D6, D15, F16, F18, F19, T5 | S1, S3, S4 | - |
+| S3 | - | Both `MetadataSchemaRailway`, every added field optional; service tests with the payloads of §4.1.2 and with today's payloads; Postman Railway event example. | feature | - | `feat(railway): accept scenario, session and infrastructure fields in Railway events and contexts` | b7e61eb | D2, D4, D10, D20, T5 | - | - |
+| S4 | - | `publisher.py`, `loop.py`, `session.py` (run list seeded by `session_id`), the scenarios' `introduction`, `app.py` apply, scenario-list and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot [`01-feed`](railway-use-case/shots/01-feed.png). | feature | - | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | 1b83049 | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F29, F38, F39, T3, T5 | S1, S3, S16 | - |
+| S5 | - | `export_recommendations.py` and the committed `recommendations.json` (test: file equals the script's output); its copy in `backend/recommendation-service/resources/Railway/` (test: copy equals the simulator's); `payloads.event_payload()` adds `run_mode`; `RailwayManager` looks the entry up, catalog for other events; tests; shot [`02-recommendations`](railway-use-case/shots/02-recommendations.png). | feature | - | `feat(railway): answer recommendation requests from a file generated by the simulator` | 2b4c7da | D6, D15, F16, F18, F19, T5 | S1, S3, S4 | - |
 
 
-### Phase 4: frontend
+### Phase 4: frontend ✅
 
 Each step adds its shots (§6) and commits them, and adds its new texts to Railway's `de.json`,
 `en.json` and `fr.json` (S7's files).
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S7 | - | Railway `de.json` registered as `de-Railway`, Railway texts translated; `frontend/README.md`; shot `03-german`. | feature | - | `feat(i18n): show the Railway page in German, English and French` | | D9, F1, F2, F5, F6 | S16 | - |
-| S8 | - | `NetworkMap.vue`, `grid.ts` + Vitest; `Context.vue` tabs when the context has `infra`, the Leaflet view kept for contexts without it; shots `04-map` and `00-baseline` (old path unchanged). | feature | - | `feat(railway): draw the track network and the trains from the context` | | D5, D20, F3, F7–F11, T5 | S2, S7 | - |
-| S9 | - | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot `05-zwl`. | feature | - | `feat(railway): draw the time-distance diagram from the context history` | | F12–F14 | S8 | - |
-| S17 | - | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | feature | - | `feat(railway): draw the link map from the context` | | F31 | S8 | - |
-| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | - |
-| S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | | D11, F15–F20, F37, F38 | S5, S7, S8 | - |
-| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue` (with the mode, Q19 c), intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | - |
+| S7 | - | Railway `de.json` registered as `de-Railway`, Railway texts translated; `frontend/README.md`; shot [`03-german`](railway-use-case/shots/03-german.png). | feature | - | `feat(i18n): show the Railway page in German, English and French` | 84391bc | D9, F1, F2, F5, F6 | S16 | - |
+| S8 | - | `NetworkMap.vue`, `grid.ts` + Vitest; `Context.vue` tabs when the context has `infra`, the Leaflet view kept for contexts without it; shots [`04-map`](railway-use-case/shots/04-map.png) and [`00-baseline`](railway-use-case/shots/00-baseline.png) (old path unchanged). | feature | - | `feat(railway): draw the track network and the trains from the context` | 8da776c | D5, D20, F3, F7–F11, T5 | S2, S7 | - |
+| S9 | - | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot [`05-zwl`](railway-use-case/shots/05-zwl.png). | feature | - | `feat(railway): draw the time-distance diagram from the context history` | 69b0200 | F12–F14 | S8 | - |
+| S17 | - | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot [`13-link-map`](railway-use-case/shots/13-link-map.png). | feature | - | `feat(railway): draw the link map from the context` | bb3d04a | F31 | S8 | - |
+| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot [`06-status`](railway-use-case/shots/06-status.png). | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | 6c44c50 | F4, F17, F35, F36 | S8 | - |
+| S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots [`07-decision-recommendation`](railway-use-case/shots/07-decision-recommendation.png), [`08-decision-colearning`](railway-use-case/shots/08-decision-colearning.png), [`09-after-apply`](railway-use-case/shots/09-after-apply.png) (committed with S13). | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | d0129eb | D11, F15–F20, F37, F38 | S5, S7, S8 | - |
+| S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue` (with the mode, Q19 c), intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots [`10-intro`](railway-use-case/shots/10-intro.png), [`11-reflection`](railway-use-case/shots/11-reflection.png), [`12-end`](railway-use-case/shots/12-end.png) (committed with S13), the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | 17e8657 | F21–F26, F32, F34, F39 | S4, S7 | - |
 
 ### Phase 5: final check and deployment
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | | T4 | S8–S12, S17 | - |
-| S14 | - | CI job; Cypress job only if fast enough. | ci | - | `ci(railway): run the simulator and Railway schema tests` | | T5, T6 | S1–S5 | - |
-| S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | | D1, D10, D12, D13, D17, F27 | S4, S5 | - |
+| S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README; shot [`14-compare`](railway-use-case/shots/14-compare.png); all shots refreshed. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | 4190e38 | T4 | S8–S12, S17 | - |
+| S14 | - | CI job; Cypress job only if fast enough. | ci | - | `ci(railway): run the simulator and Railway schema tests` | 6a4ee06 | T5, T6 | S1–S5 | - |
+| S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. Done without the ConfigMap location and the server's `RAILWAY_SIMU_UPSTREAM` (S23). | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | c663b77 | D1, D10, D12, D13, D17, F27 | S4, S5 | - |
+| S23 | - | The `/railway-simu/` location in the ConfigMap's nginx key (pushed with `apply-nginx-conf.sh` after the frontend pod with the new `start-webui.sh` runs) and `RAILWAY_SIMU_UPSTREAM` on the frontend pod in `values.ovh.yaml`. Left out of S15: without a resolvable upstream the frontend's nginx does not start. | feature | - | `feat(deploy): route /railway-simu/ to the Railway simulator on Kubernetes` | | D1, D12 | S15 | Q30 |
 
-### Phase 6: decisions settled with others
+### Phase 6: decisions settled with others ✅
 
 The open findings (Code Review Findings): decisions to confirm with the `railway_sim` author and
 SystemX. Each records its answer in the plan; they run alongside the other phases and unblock the
@@ -1726,11 +1732,11 @@ steps that name the question in Blocked by.
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S18 | 1 | Decide Q4: decided 2026-11-11, the time controls are dropped. | decision | low | `docs(plans): record the confirmation of Q4` | | - | - | - |
-| S19 | 2 | Confirm Q2: decided 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q2` | | - | - | - |
-| S20 | 3 | Confirm Q6: confirmed 2026-11-11. | decision | medium | `docs(plans): record the confirmation of Q6` | | - | - | - |
-| S21 | 4 | Confirm Q8: confirmed 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q8` | | - | - | - |
-| S22 | 5 | Decide Q10: decided 2026-11-11, its own compose, as proposed. | decision | medium | `docs(plans): record the deployment decision of Q10` | | - | - | - |
+| S18 | 1 | Decide Q4: decided 2026-11-11, the time controls are dropped. | decision | low | `docs(plans): record the confirmation of Q4` | 091b3cc | - | - | - |
+| S19 | 2 | Confirm Q2: decided 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q2` | 091b3cc | - | - | - |
+| S20 | 3 | Confirm Q6: confirmed 2026-11-11. | decision | medium | `docs(plans): record the confirmation of Q6` | 091b3cc | - | - | - |
+| S21 | 4 | Confirm Q8: confirmed 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q8` | 091b3cc | - | - | - |
+| S22 | 5 | Decide Q10: decided 2026-11-11, its own compose, as proposed. | decision | medium | `docs(plans): record the deployment decision of Q10` | 091b3cc | - | - | - |
 
 ## Limitations
 
@@ -2709,6 +2715,20 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - *Proposal:* a): the context stays the only status source (design principles), a reload works,
     and nobody has to clean up between participants (one participant at a time, Assumptions).
     Needs one more `scenario.state` value, `ready`, set by `SessionRunner`, not by the player.
+- **(Q30) Kubernetes: where does the Railway simulator run, and under which address does the
+  frontend pod reach it?** Blocks S23. Found while implementing S15 (2026-11-11): the compose
+  deployment (S15) runs the simulator on the platform's host, reached as
+  `http://host.docker.internal:5124/`; on the public Kubernetes deployment that name does not
+  resolve, and nginx does not start with an upstream it cannot resolve, so the ConfigMap's
+  `/railway-simu/` location and `RAILWAY_SIMU_UPSTREAM` in `values.ovh.yaml` wait for the address.
+  - a) Behind the passerelle, as PowerGrid's simulator
+    (`https://interactivepowergrid.passerelle.irt-systemx.fr/`): a vhost for the Railway
+    simulator on a host of SystemX's choice, running its own compose (S15).
+  - b) In the cluster: a Deployment and Service for the simulator image, upstream
+    `http://<service>.cab.svc.cluster.local:5124/`; needs the image built and pushed by
+    `docker-build-push.yml` and a chart template.
+  - *Proposal:* a), since it repeats PowerGrid's setup and needs no chart change; decided with
+    SystemX (the platform maintainers).
 
 ### Handover
 
