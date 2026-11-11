@@ -23,7 +23,7 @@ PowerGrid uses:
 - recommendations come from the Recommendation Service: Railway's extension point
   (`RailwayManager`) looks up the open decision's hard-coded recommendations in a file generated
   from the scenarios; there is no Railway agent yet, a deviation from the maintainers' directive
-  still to be confirmed, and the lookup can later move into an agent route of the simulator (Q2);
+  (Q2 a)), and the lookup can later move into an agent route of the simulator (follow-up);
 - every operator action is logged by the platform (Historic Service traces).
 
 At the end, the CAB page `/cab/Railway` looks the same as, or very close to, the reference screenshot
@@ -38,6 +38,8 @@ run and screenshotted without Docker.
 - **2026-11-08:** phases 1 and 2 done (S6, S16, S1, S2): dev stack, screenshot spec, simulator in the
   repo with ZWL distances, planned paths and link map. Commit subjects have no trailing period
   (the repo's commitlint rule), so the planned messages of §7 have none either.
+- **2026-11-11:** Q4 (drop the time controls), Q2 a), Q28 a) and Q10 (own compose, so Q24) decided,
+  Q6 and Q8 confirmed. No step is blocked by an open question any more.
 - **Base:** `main` at `600a1ce` (release 1.5.2).
 - **Inputs:**
   - the cleaned simulator: `railway_sim`'s simulator, cleaned and headless (Flatland
@@ -69,7 +71,7 @@ run and screenshotted without Docker.
   copy of that file by the event's ids. No agent for now; the lookup can move into a route of the
   simulator's HTTP app later. (§2 D6, Q2.)
 - **The simulator sets the pace;** the participant does not control time. No play, pause, speed or
-  reset in the participant UI. (§2 D8; Q4 proposed, finding 1.)
+  reset in the participant UI. (§2 D8, Q4.)
 - **The operator's choice returns to the simulator the way PowerGrid's does:** one POST per applied
   recommendation through the frontend's same-origin proxy. The experiment controls (start a session,
   next scenario) use the same route. (Q1, Q3.)
@@ -502,13 +504,13 @@ architecture. Labels `D1`… are stable (referenced by the steps); the groups on
   `GET …/contexts/{date}` returns the one closest to a date); there is no "changes only"
   mechanism.
 - **D6 Recommendations.** Directive: recommendations come from an agent called by the
-  Recommendation Service. Railway deviates for now (Q2, to be confirmed): `RailwayManager` receives
+  Recommendation Service. Railway deviates for now (Q2 a)): `RailwayManager` receives
   `{event, context}` from the Recommendation Service and answers
   with the documented JSON list of `{title, description, use_case, agent_type, kpis, actions}`
   (`docs/AIAgent_integration.md`); KPI values are strings (`"best": "False"` style). The list is the
   entry of its copy of `recommendations.json` for the event's `scenario_id`, `decision_index` and
   `run_mode`; no agent is called. The lookup can later move into a route of the simulator's HTTP app,
-  which meets the directive (Q2 ab).
+  which meets the directive (Q2, follow-up).
 - **D3 Never post to OperatorFabric directly** (`:2102/cards`, `/cardspub`) and never log in as
   `admin`. The simulator authenticates as `publisher_test` (`POST /auth/token`, form-encoded
   `username`, `password`, `grant_type=password`, `clientId=opfab-client`) and sends
@@ -809,8 +811,8 @@ Legend: green added, yellow modified (dashed border), grey unchanged.
 - **Event Service:** only its Railway schema changes (S3); its card and trace calls are today's.
 - **The simulator reaches Keycloak, the Event and the Context Service through the frontend nginx**
   with the platform's public URL, as PowerGrid's does; nginx is left out of the arrows.
-- **Deployment unit of the Railway package:** own compose next to the platform or a service in its
-  compose (Q10); the diagram holds either way.
+- **Deployment unit of the Railway package:** its own compose next to the platform, as PowerGrid's
+  simulator (Q10).
 
 #### 4.1.1 Current data model
 
@@ -1689,8 +1691,8 @@ The dev stack and the screenshots come first, so every later step can be run and
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
 | S3 | - | Both `MetadataSchemaRailway`, every added field optional; service tests with the payloads of §4.1.2 and with today's payloads; Postman Railway event example. | feature | - | `feat(railway): accept scenario, session and infrastructure fields in Railway events and contexts` | | D2, D4, D10, D20, T5 | - | - |
-| S4 | - | `publisher.py`, `loop.py`, `session.py` (run list seeded by `session_id`), the scenarios' `introduction`, `app.py` apply, scenario-list and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot `01-feed`. | feature | - | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F29, F38, F39, T3, T5 | S1, S3, S16 | Q4, Q6 (confirmation) |
-| S5 | - | `export_recommendations.py` and the committed `recommendations.json` (test: file equals the script's output); its copy in `backend/recommendation-service/resources/Railway/` (test: copy equals the simulator's); `payloads.event_payload()` adds `run_mode`; `RailwayManager` looks the entry up, catalog for other events; tests; shot `02-recommendations`. | feature | - | `feat(railway): answer recommendation requests from a file generated by the simulator` | | D6, D15, F16, F18, F19, T5 | S1, S3, S4 | Q2 (confirmation) |
+| S4 | - | `publisher.py`, `loop.py`, `session.py` (run list seeded by `session_id`), the scenarios' `introduction`, `app.py` apply, scenario-list and session routes; simulator in the dev stack's start script with `RAILWAY_STEPS_PER_SECOND`, `/railway-simu/` in the dev gateway and `VITE_RAILWAY_SIMU=/railway-simu` for the dev frontend; tests with `requests_mock` for the token reuse and request count, Flask test client for the routes; shot `01-feed`. | feature | - | `feat(railway): publish events and contexts from a session runner and receive the operator's choice` | | D3, D7, D8, D14, D16, D18, D19, F20, F21, F25, F29, F38, F39, T3, T5 | S1, S3, S16 | - |
+| S5 | - | `export_recommendations.py` and the committed `recommendations.json` (test: file equals the script's output); its copy in `backend/recommendation-service/resources/Railway/` (test: copy equals the simulator's); `payloads.event_payload()` adds `run_mode`; `RailwayManager` looks the entry up, catalog for other events; tests; shot `02-recommendations`. | feature | - | `feat(railway): answer recommendation requests from a file generated by the simulator` | | D6, D15, F16, F18, F19, T5 | S1, S3, S4 | - |
 
 
 ### Phase 4: frontend
@@ -1704,8 +1706,8 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S8 | - | `NetworkMap.vue`, `grid.ts` + Vitest; `Context.vue` tabs when the context has `infra`, the Leaflet view kept for contexts without it; shots `04-map` and `00-baseline` (old path unchanged). | feature | - | `feat(railway): draw the track network and the trains from the context` | | D5, D20, F3, F7–F11, T5 | S2, S7 | - |
 | S9 | - | `ZwlDiagram.vue`, `zwl.ts` + Vitest; shot `05-zwl`. | feature | - | `feat(railway): draw the time-distance diagram from the context history` | | F12–F14 | S8 | - |
 | S17 | - | `LinkMap.vue` (track pieces from `grid.ts`), `linkmap.ts` + Vitest for the placement; third tab; shot `13-link-map`. | feature | - | `feat(railway): draw the link map from the context` | | F31 | S8 | - |
-| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | Q4 (confirmation) |
-| S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | | D11, F15–F20, F37, F38 | S5, S7, S8 | Q28, Q8 (confirmation) |
+| S10 | - | `StatusBar.vue`, decision prompt "Entscheidung erforderlich – bitte Ereigniskarte öffnen", optional train table; shot `06-status`. | feature | - | `feat(railway): show scenario status and the open decision in the centre panel` | | F4, F17, F35, F36 | S8 | - |
+| S11 | - | `Assistant.vue`, `ColearningChoice.vue`, `api.ts` apply; nginx `/railway-simu/` location with its default upstream in every nginx config of the repo (the ConfigMap's in S15) and `start-webui.sh`, `.secrets.example`, `.env.example`, compose files, the old apply to `/transport_plan` kept for catalog recommendations (D20), `CHANGELOG.md` "Added" line; shots `07`–`09`. | feature | - | `feat(railway): choose and apply recommendations in German, train then action in Ko-Lernen` | | D11, F15–F20, F37, F38 | S5, S7, S8 | - |
 | S12 | - | `ScenarioLoader.vue` (start dialog: the Experiment and the single run, Q13 d; end screen with the logout hint, Q22 b), `ScenarioProgress.vue` in `Timeline.vue` (with the mode, Q19 c), intros, end screen; the reflection page `public/surveys/railway/` and `CHAINS.Railway` (`de` only, Q5) in `surveychainer.html`, played after logout; `frontend/README.md`; shots `10`–`12`, the spec starts sessions through the Szenario-Loader. | feature | - | `feat(railway): start sessions, move on between scenarios and ask the reflection questions at logout` | | F21–F26, F32, F34, F39 | S4, S7 | - |
 
 ### Phase 5: final check and deployment
@@ -1714,7 +1716,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 |---|---|---|---|---|---|---|---|---|---|
 | S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | | T4 | S8–S12, S17 | - |
 | S14 | - | CI job; Cypress job only if fast enough. | ci | - | `ci(railway): run the simulator and Railway schema tests` | | T5, T6 | S1–S5 | - |
-| S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | | D1, D10, D12, D13, D17, F27 | S4, S5 | Q10, Q24 |
+| S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | | D1, D10, D12, D13, D17, F27 | S4, S5 | - |
 
 ### Phase 6: decisions settled with others
 
@@ -1724,11 +1726,11 @@ steps that name the question in Blocked by.
 
 | ID | Findings | Step | Category | Severity | Commit message | Commit(s) | Req. | Needs | Blocked by |
 |---|---|---|---|---|---|---|---|---|---|
-| S18 | 1 | Confirm Q4 with the `railway_sim` author. | decision | low | `docs(plans): record the confirmation of Q4` | | - | - | - |
-| S19 | 2 | Confirm Q2 with the `railway_sim` author. | decision | medium | `docs(plans): record the confirmation of Q2` | | - | - | - |
-| S20 | 3 | Confirm Q6 with the `railway_sim` author. | decision | medium | `docs(plans): record the confirmation of Q6` | | - | - | - |
-| S21 | 4 | Confirm Q8 with the `railway_sim` author. | decision | medium | `docs(plans): record the confirmation of Q8` | | - | - | - |
-| S22 | 5 | Decide Q10 with SystemX. | decision | medium | `docs(plans): record the deployment decision of Q10` | | - | - | - |
+| S18 | 1 | Decide Q4: decided 2026-11-11, the time controls are dropped. | decision | low | `docs(plans): record the confirmation of Q4` | | - | - | - |
+| S19 | 2 | Confirm Q2: decided 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q2` | | - | - | - |
+| S20 | 3 | Confirm Q6: confirmed 2026-11-11. | decision | medium | `docs(plans): record the confirmation of Q6` | | - | - | - |
+| S21 | 4 | Confirm Q8: confirmed 2026-11-11, a). | decision | medium | `docs(plans): record the confirmation of Q8` | | - | - | - |
+| S22 | 5 | Decide Q10: decided 2026-11-11, its own compose, as proposed. | decision | medium | `docs(plans): record the deployment decision of Q10` | | - | - | - |
 
 ## Limitations
 
@@ -1761,7 +1763,7 @@ with a `TODO` per limitation that has a fix; the simulator has no `TODO`s today.
 - The simulator's routes have no authentication of their own: any user of the deployment can start
   or stop a Railway session through `/railway-simu/` (Assumptions).
 - A scenario change needs the Recommendation Service image rebuilt, for its copy of
-  `recommendations.json` (Q2 ab).
+  `recommendations.json` (Q2 a)).
 - A clean feed (F27) needs `deleteAllCards.sh` by hand before a session.
 - Reflection answers are a downloaded JSON file, as for the post-logout survey, not stored by the
   platform (Q5).
@@ -1846,7 +1848,7 @@ None (D20): the platform's Railway parts stay backwards compatible; only
 | Store reflection answers in the platform. | Needs a trace step or service change, outside the generic pipeline. | Q5, Limitations | - | - |
 | Export script of the decision log over the historic traces. | Needed after the experiment, not for running it. | §2 D10 | - | - |
 | Cypress job in CI. | Only if the run fits the CI budget. | T6 | - | - |
-| Recommendations from an agent route of the simulator instead of `RailwayManager`'s file. | The lookup in the file is enough for the experiment; the route can follow (Q2 ab). | Q2 | - | - |
+| Recommendations from an agent route of the simulator instead of `RailwayManager`'s file. | The lookup in the file is enough for the experiment; the route can follow (Q2 a)). | Q2 | - | - |
 | A dashboard for the experimenter. | The start dialog meets the requirement (Q3 d). | Q3 b) | - | - |
 | Mark a "best" option. | The scenarios define none. | §2 D6 | - | - |
 | Scenario texts (cards, decision questions, option labels) in English and French. | Needs per-language texts in the scenario files and the language in the session. | Q7 | - | - |
@@ -1864,11 +1866,11 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
 
 | Fixed | ID | Source | Category | Severity | Finding | Commit message |
 |---|---|---|---|---|---|---|
-|  | 1 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522272271) | decision | low | `docs/plans/railway-use-case.md:2063` (Q4): to settle with the `railway_sim` author; per "Plan B" the simulation runs at a configured constant stepping speed. Open: Q4 is still 💡; its proposal (drop play, pause, speed and reset, pace `RAILWAY_STEPS_PER_SECOND`) matches the comment. Planned in S18. | `docs(plans): record the confirmation of Q4` |
-|  | 2 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522508725) | decision | medium | `docs/plans/railway-use-case.md:1667` at 4c41d66 (Q2): double-check the decision with the `railway_sim` author. Open: Q2 is decided as ab) (2026-11-10), not yet confirmed. Planned in S19. | `docs(plans): record the confirmation of Q2` |
-|  | 3 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522513695) | decision | medium | `docs/plans/railway-use-case.md:2035` (Q6): double-check the decision with the `railway_sim` author. Open: Q6 is decided (six runs as `railway_sim`'s Experiment), not yet confirmed. Planned in S20. | `docs(plans): record the confirmation of Q6` |
-|  | 4 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522846116) | decision | medium | `docs/plans/railway-use-case.md:2171` (Q8): double-check the decision with the `railway_sim` author; the two levels (train, then action) are not clear yet. Open: Q8 is decided as a), not yet confirmed; §1.5.2 notes that only "Vorfahrt" leads to an option in all six scenarios, so the second level is in effect fixed. Planned in S21. | `docs(plans): record the confirmation of Q8` |
-|  | 5 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522858147) | decision | medium | `docs/plans/railway-use-case.md:2246` (Q10): to decide with SystemX (the platform maintainers). Open: Q10 is still 💡. Planned in S22. | `docs(plans): record the deployment decision of Q10` |
+| ✅❌ | 1 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522272271) | decision | low | `docs/plans/railway-use-case.md:2063` (Q4): to settle with the `railway_sim` author; per "Plan B" the simulation runs at a configured constant stepping speed. Decided 2026-11-11 as the proposal and the comment: play, pause, speed and reset are dropped, the pace is `RAILWAY_STEPS_PER_SECOND` (S18). | `docs(plans): record the confirmation of Q4` |
+| ✅❌ | 2 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522508725) | decision | medium | `docs/plans/railway-use-case.md:1667` at 4c41d66 (Q2): double-check the decision with the `railway_sim` author. Decided 2026-11-11 as a): `RailwayManager`'s copy of `recommendations.json`, no agent; the agent route stays a follow-up (S19). | `docs(plans): record the confirmation of Q2` |
+| ✅❌ | 3 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522513695) | decision | medium | `docs/plans/railway-use-case.md:2035` (Q6): double-check the decision with the `railway_sim` author. Confirmed 2026-11-11: six runs as `railway_sim`'s Experiment (S20). | `docs(plans): record the confirmation of Q6` |
+| ✅❌ | 4 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522846116) | decision | medium | `docs/plans/railway-use-case.md:2171` (Q8): double-check the decision with the `railway_sim` author; the two levels (train, then action) are not clear yet. Confirmed 2026-11-11 as a) (S21); §1.5.2 notes that only "Vorfahrt" leads to an option in all six scenarios, so the second level is in effect fixed. | `docs(plans): record the confirmation of Q8` |
+| ✅❌ | 5 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522858147) | decision | medium | `docs/plans/railway-use-case.md:2246` (Q10): to decide with SystemX (the platform maintainers). Decided 2026-11-11 as proposed: the simulator in its own compose next to the platform, as PowerGrid's, plus the k8s values; Q24 follows (S22). | `docs(plans): record the deployment decision of Q10` |
 
 - **Issue references:** the PR closes no issue (its description is empty), and the branch references
   none in the code.
@@ -1905,7 +1907,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     b) would break the no-continuous-requests rule (§2 D7), c) would need a change to the platform
     services. Q3 can use the same route.
 - ✅ ~~**(Q2) Where does the agent run?**~~
-  **Decided 2026-11-10: ab), a) now with the option of b) later.** `RailwayManager` looks the open
+  **Decided 2026-11-11: a)**, which confirms a) of 2026-11-10's ab); the agent route (b) stays a
+  follow-up. **Decided 2026-11-10: ab), a) now with the option of b) later.** `RailwayManager` looks the open
   decision's recommendations up in its copy of `recommendations.json` (in `resources/Railway/`) by
   the event's `scenario_id`, `decision_index` and `run_mode`; the simulator's `export_recommendations.py`
   writes the file from the scenario files, and a test checks that the copy equals the simulator's
@@ -2155,8 +2158,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - *Proposal (2026-11-10):* d), which follows an existing pattern (PowerGrid's `AgentChoice.vue`)
     without shared code and keeps the Timeline; b) can be added later on the same endpoints. Was a),
     which keeps the screenshot's bottom panel.
-- ✅ ~~**(Q6) One mode per session, or both modes per session?**~~ **Decided 2026-11-10:** as
-  `railway_sim`'s Experiment: six runs, the scenarios shuffled and split, 3 per mode, the first mode
+- ✅ ~~**(Q6) One mode per session, or both modes per session?**~~ **Decided 2026-11-10, confirmed 2026-11-11:**
+  as `railway_sim`'s Experiment: six runs, the scenarios shuffled and split, 3 per mode, the first mode
   drawn at random (F39); the single run is a one-run list (Q13). The draw
   is seeded by the `session_id` (F29, D10). The cleaned simulator
   has one mode per session (`usecases_examples/Railway/integration/session.py`,
@@ -2184,7 +2187,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     Experiment did but seeded. Decided as such (above).
   - Data model impact of the run list: the mode moves from `session.mode` to the current run
     (`scenario.mode`), and `session.scenario_order` holds the runs; §4.1.2 shows this.
-- 💡 **(Q4) Drop play, pause, speed and reset?** The screenshot shows them in the control bar above
+- ✅ ~~**(Q4) Drop play, pause, speed and reset?**~~ **Decided 2026-11-11:** dropped, as proposed. The screenshot shows them in the control bar above
   the Kartenansicht ("▶ Start", "⏸ Pause", "↻ Zurücksetzen", "Tempo" slider with "1×"; red boxes
   below), the design requirement D8 says the participant must not control time. *Proposal:* drop
   them; keep "Schritt N" in the status line (green box); the pace is `RAILWAY_STEPS_PER_SECOND`.
@@ -2295,7 +2298,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - *Proposal:* d) with d1): it keeps PowerGrid's mechanism and touches no shared code (Q15); the
     registration uses vue-i18n's API from the Railway folder, which no use case does today (New
     patterns). d2) only if English or French participants are planned.
-- ✅ ~~**(Q8) Ko-Lernen: how does the participant choose?**~~ **Decided 2026-11-10:** a), the
+- ✅ ~~**(Q8) Ko-Lernen: how does the participant choose?**~~ **Decided 2026-11-10, confirmed 2026-11-11:** a), the
   two-step choice in the use case only (`ColearningChoice.vue`, S11). The recommendation list already has one
   recommendation per train and action (`actions[0].train`, `actions[0].action`; blocked ones with
   `feasible: "False"`); the question is how the assistant panel shows it.
@@ -2316,7 +2319,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - a) Two-step choice in the assistant panel, as in `railway_sim` and the reference screenshot
     (F19): first "Zug auswählen:" (one button per train, labelled by `train_labels`), then "Aktion
     auswählen:" ("Warten", "Vorfahrt", "Umleiten"; an action in `invalid_actions` shows the reason and cannot be
-    applied, §1.5.2; actions a train does not offer: Q28), then the
+    applied, §1.5.2; actions a train does not offer are greyed out, Q28 a)), then the
     KPI preview and "Lösung vorschlagen". The panel groups the list by `actions[0].train`
     (`ColearningChoice.vue`, S11). `railway_sim` showed only the matched option's KPIs ("Vorschau:
     Auswirkungen"), not its label, and "Lösung vorschlagen" applied it at once, without the
@@ -2342,7 +2345,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
       preview are a mockup after the reference screenshot and F18/F19, in a screenshot harness
       without the panel frame. No emoji in the action buttons (the harness has no emoji font). In
       scenario 3 every train offers only "Vorfahrt", so "Warten" and "Umleiten" are greyed out once a
-      train is chosen; whether actions that are not offered are shown at all is Q28.
+      train is chosen, as Q28 a) decides.
   - b) Flat list: the platform default, the list as separate recommendation cards in the shared
     `Recommendations.vue`, one card per train and action, the blocked ones included; only the KPI
     table's `feasible` row tells them apart. No new component. Both modes as the flat list,
@@ -2370,7 +2373,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     its own reduced `devstack/requirements.txt`, S6).
   - b) One in-memory mock of all services. Faster to start, but the schema checks of S3 are not
     exercised and the mock drifts from the services.
-- 💡 **(Q10) Deployment:** the simulator in `config/dev/cab-standalone/docker-compose.yml` as a
+- ✅ ~~**(Q10) Deployment:**~~ **Decided 2026-11-11:** its own compose, as proposed. The simulator in `config/dev/cab-standalone/docker-compose.yml` as a
   service, or in its own compose next to it (as PowerGrid's simulator,
   `usecases_examples/PowerGrid/docker-compose.yml`, reached through `host.docker.internal`)? *Proposal:* its own compose, as
   PowerGrid, plus the k8s values; decided with the platform maintainers.
@@ -2520,7 +2523,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - *Proposal:* a); it meets the requirement with the plan's existing design (Q3 d, S4, S15).
     Q10 and Q24 decide only where the always-on service is deployed.
 
-- 💡 **(Q28) Ko-Lernen: show actions a train does not offer?** F19 shows `invalid_actions` as blocked;
+- ✅ ~~**(Q28) Ko-Lernen: show actions a train does not offer?**~~ **Decided 2026-11-11:** a), all three
+  actions, the ones not offered greyed out (S11). F19 shows `invalid_actions` as blocked;
   actions not in a train's `train_actions` (in scenario 3 every train offers only "Vorfahrt") are not
   covered. A train's action is one of three kinds (from the scenarios' `colearning_config`):
   - offered and possible: "Vorfahrt" in every scenario;
@@ -2546,7 +2550,8 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   "Vorfahrt" offered), the same harness and caveats as Q8 a):
 
   ![Q28 a) and b), mockup with scenarios 1 and 3](railway-use-case/iai_colearning_q28_options_mockup.png)
-  - *Proposal:* a), as the reference screenshot. Decided by the study lead; left open on 2026-11-10.
+  - *Proposal:* a), as the reference screenshot. Left open on 2026-11-10 for the study lead; decided
+    2026-11-11.
 
 - ✅ ~~**(Q29) Session start: a context right away, and a session nobody ended?**~~ **Decided
   2026-11-10:** a); §4.2.6, §5 `app.py` and `loop.py`, T5 and the Assumptions follow it. Two gaps of
@@ -2953,7 +2958,7 @@ this plan.
   - a) Keep the single run; Q13 decides which functions stay.
   - b) Drop it: Q13 b), and the "Szenario" dropdown goes.
   - *Proposal:* a), resolved together with Q13 (Q16 is decided: b).
-- 💡 **(Q24) Deployment: InteractiveAI's compose or its own?** Handover: the simulator in
+- ✅ ~~**(Q24) Deployment: InteractiveAI's compose or its own?**~~ **Decided 2026-11-11 with Q10:** its own. Handover: the simulator in
   InteractiveAI's compose, on the same server. Plan (Q10): its own compose next to it, as
   PowerGrid's simulator. Both run on the same server and are reached only through the platform's
-  nginx (D1). Decided with Q10 and the platform maintainers.
+  nginx (D1).
