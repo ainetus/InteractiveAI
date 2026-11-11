@@ -55,6 +55,21 @@ describe('Railway page', () => {
     cy.request('POST', '/railway-simu/api/v1/session/stop')
   })
 
+  it("shows a decision's recommendations from the Recommendation Service", () => {
+    // after login: the page ignores a context that was there before its first poll (stores/services.ts)
+    login()
+    startRun('scenario3', 'recommendation')
+    // scenario 3 pauses at step 16 with the conflict card that carries the decision
+    cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
+    cy.contains('button', 'Get recommendation').click()
+    cy.contains('IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit', { timeout: 20000 }).should(
+      'be.visible'
+    )
+    cy.contains('G 3 weicht aus — IC 3 + IR 35 überholen').should('be.visible')
+    cy.screenshot('02-recommendations', { capture: 'viewport' })
+    cy.request('POST', '/railway-simu/api/v1/session/stop')
+  })
+
   it('is German in a German browser', () => {
     login('de-DE')
     cy.contains('h1', 'Zeitachse', { timeout: 20000 }).should('be.visible')

@@ -71,10 +71,11 @@ without a platform (`requests_mock`, Flask's test client).
 | `integration/publisher.py` | `Publisher`: sends events and contexts to the platform with one reused token |
 | `integration/loop.py` | `SessionRunner`: plays the run list at the configured pace, sends what the hooks report |
 | `app.py` | the HTTP app: scenario list, session start / next / stop, the applied choice |
+| `export_recommendations.py`, `recommendations.json` | every decision's recommendations per mode, generated from the scenario files; copied to the Recommendation Service |
 | `experiment_scenarios/` | the six scenarios (German texts, with their introductions) |
 | `maps/` | `map1`–`map6`, drawn maps |
 | `run_scenario.py`, `config.py` | terminal demo |
-| `tests/` | pytest: `test_sim.py`, `test_integration.py` |
+| `tests/` | pytest: `test_sim.py`, `test_integration.py`, `test_recommendations.py` |
 
 The player has no thread and no timer; the caller sets the pace:
 
@@ -120,6 +121,17 @@ and contexts to the platform's `/cab_event/` and `/cabcontext/` as `publisher_te
   `http://127.0.0.1:3200`), `RAILWAY_PUBLISHER_USER`, `RAILWAY_PUBLISHER_PASSWORD` (default
   `publisher_test` / `test`). `RAILWAY_SIMU_HOST`, `RAILWAY_SIMU_PORT` (default `0.0.0.0`, 5124).
 - **One session at a time** per simulator process, so one participant at a time.
+- **Recommendations:** the simulator does not answer recommendation requests. The Recommendation
+  Service's `RailwayManager` answers them from its copy of `recommendations.json`, looked up by the
+  card's `scenario_id`, `decision_index` and `run_mode`; other Railway events get its catalog as
+  before. After changing a scenario, regenerate both files:
+
+  ```sh
+  python export_recommendations.py
+  ```
+
+  `tests/test_recommendations.py` fails while either file differs from the script's output. The
+  Recommendation Service's image has to be rebuilt for a new copy.
 - **Introductions:** scenario 3's is `railway_sim`'s text; those of scenarios 1, 2, 4, 5 and 6 are
   drafts written from the scenarios' situations, to be replaced by `railway_sim`'s texts.
 

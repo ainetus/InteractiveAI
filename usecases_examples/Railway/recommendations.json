@@ -1,0 +1,762 @@
+{
+ "scenario1/0/recommendation": [
+  {
+   "title": "S 18 Vorfahrt — S 17 und IC 3 warten",
+   "description": "Aufgrund der Verspätungen von S 17 und S 18 ist die geplante Zugreihenfolge im gemeinsamen Streckenabschnitt nicht mehr einzuhalten. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "33",
+    "global_delay": "25",
+    "energy": "76",
+    "anschluss": "3"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "IC 3 Vorfahrt — S 17 folgt nach 5, S 18 wartet",
+   "description": "Aufgrund der Verspätungen von S 17 und S 18 ist die geplante Zugreihenfolge im gemeinsamen Streckenabschnitt nicht mehr einzuhalten. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "28",
+    "global_delay": "20",
+    "energy": "80",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  },
+  {
+   "title": "S 17 Vorfahrt — S 18 wartet, IC 3 wartet",
+   "description": "Aufgrund der Verspätungen von S 17 und S 18 ist die geplante Zugreihenfolge im gemeinsamen Streckenabschnitt nicht mehr einzuhalten. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "35",
+    "global_delay": "28",
+    "energy": "72",
+    "anschluss": "3"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 2
+    }
+   ]
+  }
+ ],
+ "scenario1/0/colearning": [
+  {
+   "title": "S 17: vorfahrt",
+   "description": "S 17 Vorfahrt — S 18 wartet, IC 3 wartet",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "35",
+    "global_delay": "28",
+    "energy": "72",
+    "anschluss": "3",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 2,
+     "train": "Train_0",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "S 17: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  },
+  {
+   "title": "S 18: vorfahrt",
+   "description": "S 18 Vorfahrt — S 17 und IC 3 warten",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "33",
+    "global_delay": "25",
+    "energy": "76",
+    "anschluss": "3",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "S 18: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  },
+  {
+   "title": "IC 3: vorfahrt",
+   "description": "IC 3 Vorfahrt — S 17 folgt nach 5, S 18 wartet",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "28",
+    "global_delay": "20",
+    "energy": "80",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_2",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "IC 3: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  }
+ ],
+ "scenario2/0/recommendation": [
+  {
+   "title": "IR 35 wartet — S 17-2 passiert zuerst",
+   "description": "IR 35 und S 17-2 nähern sich gleichzeitig einem eingleisigen Abschnitt. Entscheiden Sie, welcher Zug zuerst passiert.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "14",
+    "global_delay": "8",
+    "energy": "78",
+    "anschluss": "1"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "IR 35 weiterfahren — S 17-2 wartet",
+   "description": "IR 35 und S 17-2 nähern sich gleichzeitig einem eingleisigen Abschnitt. Entscheiden Sie, welcher Zug zuerst passiert.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "24",
+    "global_delay": "14",
+    "energy": "72",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  }
+ ],
+ "scenario2/0/colearning": [
+  {
+   "title": "IR 35: vorfahrt",
+   "description": "IR 35 weiterfahren — S 17-2 wartet",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "24",
+    "global_delay": "14",
+    "energy": "72",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "IR 35: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  },
+  {
+   "title": "S 17-2: vorfahrt",
+   "description": "IR 35 wartet — S 17-2 passiert zuerst",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "14",
+    "global_delay": "8",
+    "energy": "78",
+    "anschluss": "1",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_2",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "S 17-2: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  }
+ ],
+ "scenario3/0/recommendation": [
+  {
+   "title": "IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit",
+   "description": "G 3 fährt mit halber Geschwindigkeit und blockiert den Streckenabschnitt. Wie soll disponiert werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "20",
+    "global_delay": "18",
+    "energy": "85",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "G 3 weicht aus — IC 3 überholt, G 3 fährt vor IR 35",
+   "description": "G 3 fährt mit halber Geschwindigkeit und blockiert den Streckenabschnitt. Wie soll disponiert werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "12",
+    "global_delay": "7",
+    "energy": "74",
+    "anschluss": "1"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  },
+  {
+   "title": "G 3 weicht aus — IC 3 + IR 35 überholen",
+   "description": "G 3 fährt mit halber Geschwindigkeit und blockiert den Streckenabschnitt. Wie soll disponiert werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "8",
+    "global_delay": "4",
+    "energy": "72",
+    "anschluss": "0"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 2
+    }
+   ]
+  }
+ ],
+ "scenario3/0/colearning": [
+  {
+   "title": "G 3 vorne: vorfahrt",
+   "description": "IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "20",
+    "global_delay": "18",
+    "energy": "85",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_0",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "IC 3 dann G 3: vorfahrt",
+   "description": "G 3 weicht aus — IC 3 überholt, G 3 fährt vor IR 35",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "12",
+    "global_delay": "7",
+    "energy": "74",
+    "anschluss": "1",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "IC 3 dann IR 35: vorfahrt",
+   "description": "G 3 weicht aus — IC 3 + IR 35 überholen",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "8",
+    "global_delay": "4",
+    "energy": "72",
+    "anschluss": "0",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario3",
+     "decision_index": 0,
+     "option_index": 2,
+     "train": "Train_2",
+     "action": "vorfahrt"
+    }
+   ]
+  }
+ ],
+ "scenario4/0/recommendation": [
+  {
+   "title": "G 4 + IC 3 zuerst — IR 35 wartet 15 Schritte",
+   "description": "Infolge der Signalstörung hat IR 35 Verspätung und nähert sich gleichzeitig mit G 4 und IC 3 dem Kreuzungsabschnitt. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "16",
+    "global_delay": "8",
+    "energy": "78",
+    "anschluss": "1"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "IR 35 zuerst — G 4 + IC 3 warten 12 Schritte",
+   "description": "Infolge der Signalstörung hat IR 35 Verspätung und nähert sich gleichzeitig mit G 4 und IC 3 dem Kreuzungsabschnitt. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "24",
+    "global_delay": "14",
+    "energy": "72",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  },
+  {
+   "title": "IR 35 wartet 12 Schritte — G 4 passiert, IC 3 wartet 20 Schritte",
+   "description": "Infolge der Signalstörung hat IR 35 Verspätung und nähert sich gleichzeitig mit G 4 und IC 3 dem Kreuzungsabschnitt. Bitte entscheiden Sie, welchem Zug Vorfahrt gewährt werden soll.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "18",
+    "global_delay": "10",
+    "energy": "75",
+    "anschluss": "1"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 2
+    }
+   ]
+  }
+ ],
+ "scenario4/0/colearning": [
+  {
+   "title": "IR 35: vorfahrt",
+   "description": "IR 35 zuerst — G 4 + IC 3 warten 12 Schritte",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "24",
+    "global_delay": "14",
+    "energy": "72",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_0",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "G4 dann IC3: vorfahrt",
+   "description": "G 4 + IC 3 zuerst — IR 35 wartet 15 Schritte",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "16",
+    "global_delay": "8",
+    "energy": "78",
+    "anschluss": "1",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "G4 dann IR35: vorfahrt",
+   "description": "IR 35 wartet 12 Schritte — G 4 passiert, IC 3 wartet 20 Schritte",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "18",
+    "global_delay": "10",
+    "energy": "75",
+    "anschluss": "1",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario4",
+     "decision_index": 0,
+     "option_index": 2,
+     "train": "Train_2",
+     "action": "vorfahrt"
+    }
+   ]
+  }
+ ],
+ "scenario5/0/recommendation": [
+  {
+   "title": "P 205 Vorfahrt — G 501 und P 312 warten",
+   "description": "Durch die Geschwindigkeitsreduktion auf dem Streckenabschnitt ist die ursprünglich geplante Kreuzungsreihenfolge nicht mehr möglich. Welchem Zug soll Vorfahrt gewährt werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "20",
+    "global_delay": "14",
+    "energy": "78",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "G 501 Vorfahrt — P 205 und P 312 warten",
+   "description": "Durch die Geschwindigkeitsreduktion auf dem Streckenabschnitt ist die ursprünglich geplante Kreuzungsreihenfolge nicht mehr möglich. Welchem Zug soll Vorfahrt gewährt werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "29",
+    "global_delay": "20",
+    "energy": "72",
+    "anschluss": "3"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  },
+  {
+   "title": "P 312 Vorfahrt — P 205 und G 501 warten",
+   "description": "Durch die Geschwindigkeitsreduktion auf dem Streckenabschnitt ist die ursprünglich geplante Kreuzungsreihenfolge nicht mehr möglich. Welchem Zug soll Vorfahrt gewährt werden?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "28",
+    "global_delay": "23",
+    "energy": "70",
+    "anschluss": "3"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 2
+    }
+   ]
+  }
+ ],
+ "scenario5/0/colearning": [
+  {
+   "title": "P 205: vorfahrt",
+   "description": "P 205 Vorfahrt — G 501 und P 312 warten",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "20",
+    "global_delay": "14",
+    "energy": "78",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_0",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "P 205: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  },
+  {
+   "title": "G 501: vorfahrt",
+   "description": "G 501 Vorfahrt — P 205 und P 312 warten",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "29",
+    "global_delay": "20",
+    "energy": "72",
+    "anschluss": "3",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "G 501: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  },
+  {
+   "title": "P 312: vorfahrt",
+   "description": "P 312 Vorfahrt — P 205 und G 501 warten",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "28",
+    "global_delay": "23",
+    "energy": "70",
+    "anschluss": "3",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "option_index": 2,
+     "train": "Train_2",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "P 312: warten",
+   "description": "Diese Aktion ist für dieses Szenario nicht möglich.",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "feasible": "False"
+   },
+   "actions": []
+  }
+ ],
+ "scenario6/0/recommendation": [
+  {
+   "title": "S 12 passieren lassen — Passagiere über Anschlussverlust informieren, Späterer Anschluss: IR 35",
+   "description": "IC 3 hat durch die Betriebsstörung 8 Zeitschritte Verspätung. S 12 nähert sich dem Kreuzungspunkt. Soll S 12 auf IC 3 warten oder normal weiterfahren?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "0",
+    "global_delay": "8",
+    "energy": "90",
+    "anschluss": "0"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario6",
+     "decision_index": 0,
+     "option_index": 0
+    }
+   ]
+  },
+  {
+   "title": "S 12 wartet 7 Schritte — Anschluss für IC 3 sichern",
+   "description": "IC 3 hat durch die Betriebsstörung 8 Zeitschritte Verspätung. S 12 nähert sich dem Kreuzungspunkt. Soll S 12 auf IC 3 warten oder normal weiterfahren?",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "7",
+    "global_delay": "4",
+    "energy": "82",
+    "anschluss": "2"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario6",
+     "decision_index": 0,
+     "option_index": 1
+    }
+   ]
+  }
+ ],
+ "scenario6/0/colearning": [
+  {
+   "title": "IC 3: vorfahrt",
+   "description": "S 12 wartet 7 Schritte — Anschluss für IC 3 sichern",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "7",
+    "global_delay": "4",
+    "energy": "82",
+    "anschluss": "2",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario6",
+     "decision_index": 0,
+     "option_index": 1,
+     "train": "Train_0",
+     "action": "vorfahrt"
+    }
+   ]
+  },
+  {
+   "title": "S 12: vorfahrt",
+   "description": "S 12 passieren lassen — Passagiere über Anschlussverlust informieren, Späterer Anschluss: IR 35",
+   "use_case": "Railway",
+   "agent_type": "AI",
+   "kpis": {
+    "local_delay": "0",
+    "global_delay": "8",
+    "energy": "90",
+    "anschluss": "0",
+    "feasible": "True"
+   },
+   "actions": [
+    {
+     "scenario_id": "scenario6",
+     "decision_index": 0,
+     "option_index": 0,
+     "train": "Train_1",
+     "action": "vorfahrt"
+    }
+   ]
+  }
+ ]
+}

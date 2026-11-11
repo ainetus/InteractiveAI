@@ -134,6 +134,9 @@ def event_payload(player, event: dict, session: dict) -> Optional[dict]:
             "timestep": event["timestep"],
             "decision_index": dp_index,          # not None -> recommendations available on this card
             "session_id": session.get("session_id"),
+            # the run's mode, the third part of the recommendations' key; not "mode", which
+            # RailwayManager's catalog path reads as its sorting
+            "run_mode": current_run(session)["mode"],
         },
     }
 
@@ -165,6 +168,9 @@ def decision_event(player, dp_index: int, session: dict) -> Optional[dict]:
             "timestep": dp["timestep"],
             "decision_index": dp_index,
             "session_id": session.get("session_id"),
+            # the run's mode, the third part of the recommendations' key; not "mode", which
+            # RailwayManager's catalog path reads as its sorting
+            "run_mode": current_run(session)["mode"],
         },
     }
 

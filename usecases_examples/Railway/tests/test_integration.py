@@ -146,8 +146,8 @@ def test_a_run_pauses_at_its_decision_and_the_choice_resumes_it():
     paused = pub.contexts[-1]
     assert scenario(paused)["state"] == PAUSED and scenario(paused)["decision_open"] is True
     card = pub.events[-1]["data"]
-    assert (card["scenario_id"], card["decision_index"], card["timestep"], card["session_id"]) == \
-        ("scenario3", 0, 16, "S1")
+    assert (card["scenario_id"], card["decision_index"], card["timestep"], card["session_id"], card["run_mode"]) == \
+        ("scenario3", 0, 16, "S1", "recommendation")
 
     sent = len(pub.contexts)
     for _ in range(10):
