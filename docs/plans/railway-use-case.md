@@ -2903,6 +2903,19 @@ this plan.
 
   *Caveat:* drawn over shot `00-baseline` (the Railway page on `main`), not built; b) in
   `railway_sim`'s modal style (`Timeline.vue` at b612187).
+  - Technically b) is a little lighter, by a few lines, not by design:
+    - b) adds one view to `ScenarioLoader.vue`, which has the start view, the introductions and
+      the view between runs anyway (Q3 d) and already picks its view from the latest context; the
+      end screen's condition (`session.ended_at` set, last run `complete`, §4.2.6) is one it
+      checks.
+    - a) needs the same condition in the dialog, which must not show its start view over the end
+      state, plus a state in `Context.vue` that hides the map and shows the text: b)'s logic and a
+      second component that knows the session state.
+    - The same in both: the files (`Context.vue` changes anyway in S8, `ScenarioLoader.vue` is new
+      anyway in S12), no shared code, shot `12-end`, the logout and the questionnaire. The logout
+      hint is one line of text in the same view.
+
+    So the choice rests on what the study used and on the hint, not on the code.
   - *Proposal:* b), F26 as planned (what the study used) with the logout hint; decided by the study
     lead.
 - 💡 **(Q23) Free-run mode and scenario picker: dropped or kept?** Handover: both dropped. Plan: §1.7
