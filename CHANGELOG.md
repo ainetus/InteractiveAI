@@ -1,6 +1,12 @@
 # Changelog
 
 
+## Unreleased
+
+### Added
+
+- Railway: the Event and Context services accept the fields of the scripted Railway simulator (scenario, decision, run mode and session in events; session, scenario state, track network, history and decisions in contexts). All are optional, so existing Railway publishers keep working.
+
 ## 1.5.2 (2026-11-05)
 
 ### Added

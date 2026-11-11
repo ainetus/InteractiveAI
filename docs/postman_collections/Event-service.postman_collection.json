@@ -77,7 +77,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"use_case\": \"Railway\",\r\n    \"criticality\": \"HIGH\",\r\n    \"title\": \"Signal alarm\",\r\n    \"description\": \"this is a description\",\r\n    \"data\": {\r\n        \"event_type\": \"VOYAGEUR\",\r\n        \"id_train\": \"TGV 88210\",\r\n        \"num_rame\": \"18\",\r\n        \"tmp_rame\": \"27\",\r\n        \"delay\": \"15\",\r\n        \"agent_id\": \"TGV 88210\"\r\n    }\r\n}",
+					"raw": "{\n    \"use_case\": \"Railway\",\n    \"criticality\": \"HIGH\",\n    \"title\": \"Dispositionskonflikt \u2014 G 3 f\u00e4hrt langsam\",\n    \"description\": \"G 3 f\u00e4hrt mit halber Geschwindigkeit und blockiert den Streckenabschnitt.\",\n    \"start_date\": \"2026-11-20T09:00:16+00:00\",\n    \"data\": {\n        \"id_event\": \"4f1c_scenario3_16\",\n        \"event_type\": \"INFRASTRUCTURE\",\n        \"id_train\": \"Train_0\",\n        \"agent_id\": \"0\",\n        \"delay\": 0,\n        \"scenario_id\": \"scenario3\",\n        \"timestep\": 16,\n        \"decision_index\": 0,\n        \"session_id\": \"4f1c\",\n        \"run_mode\": \"colearning\"\n    }\n}",
 					"options": {
 						"raw": {
 							"language": "json"
