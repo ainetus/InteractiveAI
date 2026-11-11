@@ -25,5 +25,18 @@
   "Railway.zwl.step": "Pas",
   "Railway.zwl.distance": "Distance (cellules)",
   "Railway.tab.linkmap": "Vue de la ligne",
-  "Railway.linkmap.level": "Niveau {level}"
+  "Railway.linkmap.level": "Niveau {level}",
+  "Railway.status.step": "Pas {step}",
+  "Railway.status.decision": "Décision requise – veuillez ouvrir la carte d'événement",
+  "Railway.status.trains": "Tableau des trains",
+  "Railway.trains.name": "Train",
+  "Railway.trains.planned_departure": "Départ prévu",
+  "Railway.trains.actual_departure": "Départ",
+  "Railway.trains.planned_arrival": "Arrivée prévue",
+  "Railway.trains.actual_arrival": "Arrivée",
+  "Railway.trains.delay": "Retard",
+  "Railway.trains.status": "État",
+  "Railway.trains.state.waiting": "en attente",
+  "Railway.trains.state.running": "en route",
+  "Railway.trains.state.arrived": "arrivé"
 }

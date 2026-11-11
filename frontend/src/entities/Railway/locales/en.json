@@ -30,5 +30,18 @@
   "Railway.zwl.step": "Step",
   "Railway.zwl.distance": "Distance (cells)",
   "Railway.tab.linkmap": "Line view",
-  "Railway.linkmap.level": "Level {level}"
+  "Railway.linkmap.level": "Level {level}",
+  "Railway.status.step": "Step {step}",
+  "Railway.status.decision": "Decision required – please open the event card",
+  "Railway.status.trains": "Train table",
+  "Railway.trains.name": "Train",
+  "Railway.trains.planned_departure": "Planned departure",
+  "Railway.trains.actual_departure": "Departure",
+  "Railway.trains.planned_arrival": "Planned arrival",
+  "Railway.trains.actual_arrival": "Arrival",
+  "Railway.trains.delay": "Delay",
+  "Railway.trains.status": "Status",
+  "Railway.trains.state.waiting": "waiting",
+  "Railway.trains.state.running": "running",
+  "Railway.trains.state.arrived": "arrived"
 }

@@ -8,11 +8,19 @@
       $t('Railway.tab.zwl'),
       ...(context.data.infra.link_map ? [$t('Railway.tab.linkmap')] : [])
     ]">
-    <NetworkMap v-if="appStore.tab.context === 0" :context="context.data" />
-    <ZwlDiagram v-if="appStore.tab.context === 1" :context="context.data" />
-    <LinkMap
-      v-if="appStore.tab.context === 2 && context.data.infra.link_map"
-      :context="context.data" />
+    <div class="railway-centre">
+      <StatusBar :context="context.data" />
+      <div class="railway-view">
+        <NetworkMap
+          v-if="appStore.tab.context === 0"
+          :context="context.data"
+          :highlighted="highlighted" />
+        <ZwlDiagram v-if="appStore.tab.context === 1" :context="context.data" />
+        <LinkMap
+          v-if="appStore.tab.context === 2 && context.data.infra.link_map"
+          :context="context.data" />
+      </div>
+    </div>
   </Context>
   <Context v-else :tabs="[$t('cab.tab.map')]">
     <Map
@@ -32,6 +40,7 @@ import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
 import LinkMap from '@/entities/Railway/CAB/LinkMap.vue'
 import NetworkMap from '@/entities/Railway/CAB/NetworkMap.vue'
+import StatusBar from '@/entities/Railway/CAB/StatusBar.vue'
 import ZwlDiagram from '@/entities/Railway/CAB/ZwlDiagram.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
@@ -46,6 +55,13 @@ const cardsStore = useCardsStore()
 const appStore = useAppStore()
 
 const context = computed(() => servicesStore.context('Railway'))
+
+// while a decision is open, the trains it is about: those held right now (F35)
+const highlighted = computed(() =>
+  context.value?.data.scenario?.decision_open
+    ? context.value.data.trains.filter((train) => train.failure).map((train) => train.id_train)
+    : []
+)
 
 watchEffect(() => {
   for (const train of cardsStore.cards('Railway'))
@@ -88,3 +104,17 @@ onUnmounted(() => {
   servicesStore.stopContext()
 })
 </script>
+<style lang="scss">
+.railway-centre {
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  .railway-view {
+    position: relative;
+    flex: 1;
+    > * {
+      position: absolute;
+    }
+  }
+}
+</style>

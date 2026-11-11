@@ -111,5 +111,18 @@
   "Railway.zwl.step": "Schritt",
   "Railway.zwl.distance": "Strecke (Zellen)",
   "Railway.tab.linkmap": "Linienansicht",
-  "Railway.linkmap.level": "Ebene {level}"
+  "Railway.linkmap.level": "Ebene {level}",
+  "Railway.status.step": "Schritt {step}",
+  "Railway.status.decision": "Entscheidung erforderlich – bitte Ereigniskarte öffnen",
+  "Railway.status.trains": "Zugtabelle",
+  "Railway.trains.name": "Zug",
+  "Railway.trains.planned_departure": "Abfahrt geplant",
+  "Railway.trains.actual_departure": "Abfahrt",
+  "Railway.trains.planned_arrival": "Ankunft geplant",
+  "Railway.trains.actual_arrival": "Ankunft",
+  "Railway.trains.delay": "Verspätung",
+  "Railway.trains.status": "Status",
+  "Railway.trains.state.waiting": "wartet",
+  "Railway.trains.state.running": "unterwegs",
+  "Railway.trains.state.arrived": "angekommen"
 }
