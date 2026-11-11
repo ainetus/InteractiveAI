@@ -160,4 +160,15 @@ describe('Railway page', () => {
     cy.contains('.railway-zwl .now text', 'Step 40').should('exist')
     cy.screenshot('05-zwl', { capture: 'viewport' })
   })
+
+  it('draws the line view from the link map', () => {
+    login()
+    startRun('scenario3', 'recommendation')
+    // scenario 3 at its decision: G 3 on the main line, IC 3 and IR 35 behind it
+    waitForRun('paused_for_decision')
+    cy.get('.railway-network', { timeout: 20000 }).should('be.visible')
+    cy.contains('.cab-tab', 'Line view').click()
+    cy.get('.railway-linkmap [data-train="Train_0"]', { timeout: 20000 }).should('exist')
+    cy.screenshot('13-link-map', { capture: 'viewport' })
+  })
 })

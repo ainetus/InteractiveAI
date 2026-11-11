@@ -109,5 +109,7 @@
   "Railway.tab.map": "Kartenansicht",
   "Railway.tab.zwl": "ZWL Diagramm",
   "Railway.zwl.step": "Schritt",
-  "Railway.zwl.distance": "Strecke (Zellen)"
+  "Railway.zwl.distance": "Strecke (Zellen)",
+  "Railway.tab.linkmap": "Linienansicht",
+  "Railway.linkmap.level": "Ebene {level}"
 }

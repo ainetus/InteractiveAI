@@ -23,5 +23,7 @@
   "Railway.tab.map": "Plan du réseau",
   "Railway.tab.zwl": "Graphique espace-temps",
   "Railway.zwl.step": "Pas",
-  "Railway.zwl.distance": "Distance (cellules)"
+  "Railway.zwl.distance": "Distance (cellules)",
+  "Railway.tab.linkmap": "Vue de la ligne",
+  "Railway.linkmap.level": "Niveau {level}"
 }

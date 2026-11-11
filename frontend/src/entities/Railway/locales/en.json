@@ -28,5 +28,7 @@
   "Railway.tab.map": "Network map",
   "Railway.tab.zwl": "Time-distance diagram",
   "Railway.zwl.step": "Step",
-  "Railway.zwl.distance": "Distance (cells)"
+  "Railway.zwl.distance": "Distance (cells)",
+  "Railway.tab.linkmap": "Line view",
+  "Railway.linkmap.level": "Level {level}"
 }

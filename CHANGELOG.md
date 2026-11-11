@@ -11,6 +11,7 @@
 - Railway: "Get recommendation" on a decision card of the simulator shows the scenario's options with their KPIs, or the Ko-Lernen choices of train and action. Other Railway events still get the recommendation catalog.
 - Railway: for the simulator's contexts the centre panel shows the "Kartenansicht": the scenario's track network, its stations and the trains with their direction, held trains in red. Contexts without a track network keep the geographic map.
 - Railway: a "ZWL Diagramm" tab shows each train's distance along the scenario's line against the step, the planned paths dashed and the current step as a line.
+- Railway: a "Linienansicht" tab shows the scenario's line straight, in three rows (the main line and the side tracks above and below it), with its stations and trains.
 
 ## 1.5.2 (2026-11-05)
 
