@@ -13,6 +13,7 @@
 - Railway: a "ZWL Diagramm" tab shows each train's distance along the scenario's line against the step, the planned paths dashed and the current step as a line.
 - Railway: a "Linienansicht" tab shows the scenario's line straight, in three rows (the main line and the side tracks above and below it), with its stations and trains.
 - Railway: a status line above the drawing shows the step and, while a decision is open, "Entscheidung erforderlich – bitte Ereigniskarte öffnen" with the held trains highlighted; a train table lists planned and actual departures and arrivals, delays and states.
+- Railway: the operator applies a simulator recommendation from the assistant ("Lösung anwenden"); in Ko-Lernen they pick a train, then an action (actions not offered are greyed out, infeasible ones say why), and propose it. The choice goes to the simulator through the frontend's new `/railway-simu/` nginx proxy (`RAILWAY_SIMU_UPSTREAM`, default `http://host.docker.internal:5124/`), which resumes the run. Catalog recommendations are still applied through `/transport_plan`.
 
 ## 1.5.2 (2026-11-05)
 

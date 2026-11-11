@@ -185,8 +185,8 @@ def recommendations(scenario: dict, dp_index: int, mode: str, train_names: dict)
     reads the scenario definition (scenario_id + decision_index come from the event data).
 
     recommendation mode: one recommendation per scenario option.
-    colearning mode:     one per train + action; infeasible ones are listed with
-                         feasible="False", empty KPIs and the reason (old UI showed them as blocked).
+    colearning mode:     one per train + action offered; infeasible ones are listed with
+                         feasible="False", no KPIs, the reason, and no option_index (shown blocked).
     actions[0] tells the simulator what to apply: {"scenario_id", "decision_index", "option_index"}.
     """
     dp = scenario["decision_points"][dp_index]
@@ -208,10 +208,14 @@ def recommendations(scenario: dict, dp_index: int, mode: str, train_names: dict)
         for action in view["train_actions"].get(train, []):
             idx, reason = match_colearning(scenario, dp, train, action)
             label = view["train_labels"].get(train, train_names.get(train, train))
+            # train, action and the train's label for the two-step choice (Zug, then Aktion);
+            # option_index only when the choice is feasible, so a blocked one cannot be applied
+            choice = {"scenario_id": scenario["id"], "decision_index": dp_index,
+                      "train": train, "action": action, "train_label": label}
             title = f"{label}: {action}"
             if idx is None:
                 out.append({"title": title, "description": reason, "use_case": USE_CASE,
-                            "agent_type": "AI", "kpis": {"feasible": "False"}, "actions": []})
+                            "agent_type": "AI", "kpis": {"feasible": "False"}, "actions": [choice]})
                 continue
             out.append({
                 "title": title,
@@ -219,7 +223,6 @@ def recommendations(scenario: dict, dp_index: int, mode: str, train_names: dict)
                 "use_case": USE_CASE,
                 "agent_type": "AI",
                 "kpis": {**_kpis_as_strings(dp["options"][idx].get("kpis", {})), "feasible": "True"},
-                "actions": [{"scenario_id": scenario["id"], "decision_index": dp_index,
-                             "option_index": idx, "train": train, "action": action}],
+                "actions": [{**choice, "option_index": idx}],
             })
     return out

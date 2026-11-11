@@ -124,5 +124,21 @@
   "Railway.trains.status": "Status",
   "Railway.trains.state.waiting": "wartet",
   "Railway.trains.state.running": "unterwegs",
-  "Railway.trains.state.arrived": "angekommen"
+  "Railway.trains.state.arrived": "angekommen",
+  "Railway.event.ask": "Empfehlung anfordern",
+  "Railway.decision.badge": "Entscheidung erforderlich",
+  "Railway.decision.none": "Keine Entscheidung erforderlich",
+  "Railway.decision.applied": "Lösung angewendet.",
+  "Railway.kpis.local_delay": "Lokale Verspätung",
+  "Railway.kpis.global_delay": "Gesamtverspätung",
+  "Railway.kpis.energy": "Energie",
+  "Railway.kpis.anschluss": "Anschlüsse",
+  "Railway.colearning.train": "Zug auswählen:",
+  "Railway.colearning.action": "Aktion auswählen:",
+  "Railway.colearning.not_offered": "Für diesen Zug nicht angeboten",
+  "Railway.colearning.preview": "Vorschau: Auswirkungen",
+  "Railway.colearning.submit": "Lösung vorschlagen",
+  "Railway.colearning.actions.warten": "⏸ Warten",
+  "Railway.colearning.actions.vorfahrt": "🚦 Vorfahrt",
+  "Railway.colearning.actions.umleiten": "🔀 Umleiten"
 }

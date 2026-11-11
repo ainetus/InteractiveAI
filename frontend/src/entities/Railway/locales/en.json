@@ -43,5 +43,21 @@
   "Railway.trains.status": "Status",
   "Railway.trains.state.waiting": "waiting",
   "Railway.trains.state.running": "running",
-  "Railway.trains.state.arrived": "arrived"
+  "Railway.trains.state.arrived": "arrived",
+  "Railway.event.ask": "Get recommendation",
+  "Railway.decision.badge": "Decision required",
+  "Railway.decision.none": "No decision required",
+  "Railway.decision.applied": "Solution applied.",
+  "Railway.kpis.local_delay": "Local delay",
+  "Railway.kpis.global_delay": "Total delay",
+  "Railway.kpis.energy": "Energy",
+  "Railway.kpis.anschluss": "Connections",
+  "Railway.colearning.train": "Choose a train:",
+  "Railway.colearning.action": "Choose an action:",
+  "Railway.colearning.not_offered": "Not offered for this train",
+  "Railway.colearning.preview": "Preview: effects",
+  "Railway.colearning.submit": "Propose solution",
+  "Railway.colearning.actions.warten": "⏸ Wait",
+  "Railway.colearning.actions.vorfahrt": "🚦 Priority",
+  "Railway.colearning.actions.umleiten": "🔀 Reroute"
 }

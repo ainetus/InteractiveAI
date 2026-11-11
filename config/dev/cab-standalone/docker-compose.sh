@@ -62,6 +62,8 @@ echo "RL_AGENT_3_NAME=${RL_AGENT_3_NAME:-}" >> .env
 echo "RL_AGENT_3_TIMEOUT=${RL_AGENT_3_TIMEOUT:-}" >> .env
 echo "VITE_POWERGRID_SIMU=${VITE_POWERGRID_SIMU:-/powergrid-simu}" >> .env
 echo "POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM:-http://host.docker.internal:5122/}" >> .env
+echo "VITE_RAILWAY_SIMU=${VITE_RAILWAY_SIMU:-/railway-simu}" >> .env
+echo "RAILWAY_SIMU_UPSTREAM=${RAILWAY_SIMU_UPSTREAM:-http://host.docker.internal:5124/}" >> .env
 echo "COGNITIVE_TOKEN=${COGNITIVE_TOKEN:-}" >> .env
 
 # Echo the generated .env for confidence, with credential values masked: this file now

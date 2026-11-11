@@ -31,7 +31,8 @@ def test_every_decision_has_both_modes():
     for key, recos in data.items():
         sid, index, mode = key.split("/")
         options = ALL_SCENARIOS[sid]["decision_points"][int(index)]["options"]
-        applicable = [r for r in recos if r["actions"]]
+        applicable = [r for r in recos if "option_index" in r["actions"][0]]
+        assert all(r["kpis"]["feasible"] == "False" for r in recos if r not in applicable)
         assert applicable and all(r["actions"][0]["scenario_id"] == sid for r in applicable)
         assert all(0 <= r["actions"][0]["option_index"] < len(options) for r in applicable)
         if mode == "recommendation":

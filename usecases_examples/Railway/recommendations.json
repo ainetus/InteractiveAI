@@ -75,9 +75,10 @@
     {
      "scenario_id": "scenario1",
      "decision_index": 0,
-     "option_index": 2,
      "train": "Train_0",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "S 17",
+     "option_index": 2
     }
    ]
   },
@@ -89,7 +90,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "train": "Train_0",
+     "action": "warten",
+     "train_label": "S 17"
+    }
+   ]
   },
   {
    "title": "S 18: vorfahrt",
@@ -107,9 +116,10 @@
     {
      "scenario_id": "scenario1",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "S 18",
+     "option_index": 0
     }
    ]
   },
@@ -121,7 +131,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "train": "Train_1",
+     "action": "warten",
+     "train_label": "S 18"
+    }
+   ]
   },
   {
    "title": "IC 3: vorfahrt",
@@ -139,9 +157,10 @@
     {
      "scenario_id": "scenario1",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_2",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IC 3",
+     "option_index": 1
     }
    ]
   },
@@ -153,7 +172,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario1",
+     "decision_index": 0,
+     "train": "Train_2",
+     "action": "warten",
+     "train_label": "IC 3"
+    }
+   ]
   }
  ],
  "scenario2/0/recommendation": [
@@ -213,9 +240,10 @@
     {
      "scenario_id": "scenario2",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IR 35",
+     "option_index": 1
     }
    ]
   },
@@ -227,7 +255,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "train": "Train_1",
+     "action": "warten",
+     "train_label": "IR 35"
+    }
+   ]
   },
   {
    "title": "S 17-2: vorfahrt",
@@ -245,9 +281,10 @@
     {
      "scenario_id": "scenario2",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_2",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "S 17-2",
+     "option_index": 0
     }
    ]
   },
@@ -259,7 +296,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario2",
+     "decision_index": 0,
+     "train": "Train_2",
+     "action": "warten",
+     "train_label": "S 17-2"
+    }
+   ]
   }
  ],
  "scenario3/0/recommendation": [
@@ -338,9 +383,10 @@
     {
      "scenario_id": "scenario3",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_0",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "G 3 vorne",
+     "option_index": 0
     }
    ]
   },
@@ -360,9 +406,10 @@
     {
      "scenario_id": "scenario3",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IC 3 dann G 3",
+     "option_index": 1
     }
    ]
   },
@@ -382,9 +429,10 @@
     {
      "scenario_id": "scenario3",
      "decision_index": 0,
-     "option_index": 2,
      "train": "Train_2",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IC 3 dann IR 35",
+     "option_index": 2
     }
    ]
   }
@@ -465,9 +513,10 @@
     {
      "scenario_id": "scenario4",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_0",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IR 35",
+     "option_index": 1
     }
    ]
   },
@@ -487,9 +536,10 @@
     {
      "scenario_id": "scenario4",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "G4 dann IC3",
+     "option_index": 0
     }
    ]
   },
@@ -509,9 +559,10 @@
     {
      "scenario_id": "scenario4",
      "decision_index": 0,
-     "option_index": 2,
      "train": "Train_2",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "G4 dann IR35",
+     "option_index": 2
     }
    ]
   }
@@ -592,9 +643,10 @@
     {
      "scenario_id": "scenario5",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_0",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "P 205",
+     "option_index": 0
     }
    ]
   },
@@ -606,7 +658,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "train": "Train_0",
+     "action": "warten",
+     "train_label": "P 205"
+    }
+   ]
   },
   {
    "title": "G 501: vorfahrt",
@@ -624,9 +684,10 @@
     {
      "scenario_id": "scenario5",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "G 501",
+     "option_index": 1
     }
    ]
   },
@@ -638,7 +699,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "train": "Train_1",
+     "action": "warten",
+     "train_label": "G 501"
+    }
+   ]
   },
   {
    "title": "P 312: vorfahrt",
@@ -656,9 +725,10 @@
     {
      "scenario_id": "scenario5",
      "decision_index": 0,
-     "option_index": 2,
      "train": "Train_2",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "P 312",
+     "option_index": 2
     }
    ]
   },
@@ -670,7 +740,15 @@
    "kpis": {
     "feasible": "False"
    },
-   "actions": []
+   "actions": [
+    {
+     "scenario_id": "scenario5",
+     "decision_index": 0,
+     "train": "Train_2",
+     "action": "warten",
+     "train_label": "P 312"
+    }
+   ]
   }
  ],
  "scenario6/0/recommendation": [
@@ -730,9 +808,10 @@
     {
      "scenario_id": "scenario6",
      "decision_index": 0,
-     "option_index": 1,
      "train": "Train_0",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "IC 3",
+     "option_index": 1
     }
    ]
   },
@@ -752,9 +831,10 @@
     {
      "scenario_id": "scenario6",
      "decision_index": 0,
-     "option_index": 0,
      "train": "Train_1",
-     "action": "vorfahrt"
+     "action": "vorfahrt",
+     "train_label": "S 12",
+     "option_index": 0
     }
    ]
   }

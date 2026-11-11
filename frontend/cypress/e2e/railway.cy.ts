@@ -78,17 +78,23 @@ function startRun(scenarioId: string, mode: 'recommendation' | 'colearning') {
   cy.request('POST', '/railway-simu/api/v1/session/next')
 }
 
-// Wait until the latest context says the run is in `state`.
-function waitForRun(state: string, tries = 120) {
+// Wait until the latest context's data passes `check`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function waitForContext(what: string, check: (data: any) => boolean, tries = 120) {
   cy.request('/cabcontext/api/v1/contexts').then(({ body }) => {
     const context = Array.isArray(body) ? body[0] : body
-    if (context?.data?.scenario?.state === state) return
-    if (tries <= 0) throw new Error(`the run never reached ${state}`)
+    if (context?.data && check(context.data)) return
+    if (tries <= 0) throw new Error(`the context never showed ${what}`)
     // pacing the poll of the context, not waiting for the page
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(500, { log: false })
-    waitForRun(state, tries - 1)
+    waitForContext(what, check, tries - 1)
   })
+}
+
+// Wait until the latest context says the run is in `state`.
+function waitForRun(state: string) {
+  waitForContext(`the run ${state}`, (data) => data.scenario?.state === state)
 }
 
 describe('Railway page', () => {
@@ -172,6 +178,60 @@ describe('Railway page', () => {
     cy.contains('button', 'Zugtabelle').click()
     cy.contains('.railway-trains', 'unterwegs').should('be.visible')
     cy.screenshot('06-status', { capture: 'viewport' })
+  })
+
+  it("applies one of a decision's options in Empfehlungsmodus", () => {
+    login('de-DE')
+    startRun('scenario3', 'recommendation')
+    waitForRun('paused_for_decision')
+    cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
+    cy.contains('button', 'Empfehlung anfordern').click()
+    cy.contains('.railway-decision .badge', 'Entscheidung erforderlich', { timeout: 20000 }).should(
+      'be.visible'
+    )
+    cy.contains('.cab-recommendation', 'G 3 weicht aus — IC 3 + IR 35 überholen').click()
+    cy.contains('.railway-kpis td', 'Lokale Verspätung').should('be.visible')
+    cy.screenshot('07-decision-recommendation', { capture: 'viewport' })
+
+    // "Anwenden", confirmed: the choice goes to the simulator through /railway-simu/, which
+    // resumes the run (F20)
+    cy.contains('button', 'Anwenden').click()
+    cy.contains('button', 'Ja').click()
+    cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
+    waitForContext('the applied decision', (data) => data.decisions?.length === 1)
+    waitForRun('running')
+    cy.contains('.railway-status', 'Entscheidung erforderlich', { timeout: 20000 }).should(
+      'not.exist'
+    )
+    // the trains move on past the decision's step 16: their lines in the ZWL diagram go on
+    cy.contains('.railway-status .step', /Schritt (1[7-9]|[2-9]\d)/, { timeout: 20000 }).should(
+      'be.visible'
+    )
+    cy.contains('.cab-tab', 'ZWL Diagramm').click()
+    cy.get('.railway-zwl [data-train="Train_0"] .actual').should('exist')
+    cy.screenshot('09-after-apply', { capture: 'viewport' })
+  })
+
+  it('chooses a train, then an action, in Ko-Lernen', () => {
+    login('de-DE')
+    startRun('scenario2', 'colearning')
+    waitForRun('paused_for_decision')
+    cy.contains('Dispositionskonflikt — Entscheidung erforderlich', { timeout: 30000 }).click()
+    cy.contains('button', 'Empfehlung anfordern').click()
+    cy.contains('.railway-colearning button', 'S 17-2', { timeout: 20000 }).click()
+    // umleiten is not offered for S 17-2; warten is offered but not feasible and says why
+    cy.contains('.railway-colearning button', 'Umleiten').should('be.disabled')
+    cy.contains('.railway-colearning button', 'Warten').click()
+    cy.get('.railway-colearning .reason').should('be.visible')
+    cy.contains('.railway-colearning button', 'Lösung vorschlagen').should('be.disabled')
+    cy.contains('.railway-colearning button', 'Vorfahrt').click()
+    cy.contains('.railway-colearning h3', 'Vorschau: Auswirkungen').should('be.visible')
+    cy.screenshot('08-decision-colearning', { capture: 'viewport' })
+
+    // "Lösung vorschlagen" applies at once, without a confirmation (Q8 a)
+    cy.contains('.railway-colearning button', 'Lösung vorschlagen').click()
+    cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
+    waitForContext('the applied decision', (data) => data.decisions?.length === 1)
   })
 
   it('draws the line view from the link map', () => {

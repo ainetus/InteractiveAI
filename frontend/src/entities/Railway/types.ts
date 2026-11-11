@@ -139,5 +139,6 @@ export type Railway = {
     option_index?: number
     train?: string
     action?: string
+    train_label?: string
   }
 }

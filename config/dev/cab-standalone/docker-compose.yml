@@ -149,6 +149,8 @@ services:
       # PowerGrid simulator upstream for the /powergrid-simu/ nginx proxy:
       #   local -> http://host.docker.internal:5122/   LAN -> http://192.168.208.61:5100/
       - POWERGRID_SIMU_UPSTREAM=${POWERGRID_SIMU_UPSTREAM}
+      # Railway simulator upstream for the /railway-simu/ nginx proxy (default: host port 5124).
+      - RAILWAY_SIMU_UPSTREAM=${RAILWAY_SIMU_UPSTREAM:-http://host.docker.internal:5124/}
       # Injected into the nginx /cognitive-api/ proxy at container start, so the token
       # is never baked into the public JS bundle. Restart the container to change it.
       - COGNITIVE_TOKEN=${COGNITIVE_TOKEN}

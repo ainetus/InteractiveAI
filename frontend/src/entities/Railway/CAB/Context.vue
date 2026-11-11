@@ -42,6 +42,7 @@ import LinkMap from '@/entities/Railway/CAB/LinkMap.vue'
 import NetworkMap from '@/entities/Railway/CAB/NetworkMap.vue'
 import StatusBar from '@/entities/Railway/CAB/StatusBar.vue'
 import ZwlDiagram from '@/entities/Railway/CAB/ZwlDiagram.vue'
+import { selectedTrain } from '@/entities/Railway/colearning'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'
@@ -56,12 +57,13 @@ const appStore = useAppStore()
 
 const context = computed(() => servicesStore.context('Railway'))
 
-// while a decision is open, the trains it is about: those held right now (F35)
-const highlighted = computed(() =>
-  context.value?.data.scenario?.decision_open
-    ? context.value.data.trains.filter((train) => train.failure).map((train) => train.id_train)
-    : []
-)
+// while a decision is open, the trains it is about: those held right now (F35), or the train
+// chosen in Ko-Lernen (F19)
+const highlighted = computed(() => {
+  if (!context.value?.data.scenario?.decision_open) return []
+  if (selectedTrain.value) return [selectedTrain.value]
+  return context.value.data.trains.filter((train) => train.failure).map((train) => train.id_train)
+})
 
 watchEffect(() => {
   for (const train of cardsStore.cards('Railway'))
