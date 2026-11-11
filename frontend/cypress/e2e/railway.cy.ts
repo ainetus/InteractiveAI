@@ -256,13 +256,14 @@ describe('Railway page', () => {
     cy.get('.railway-loader', { timeout: 20000 }).should('not.exist')
     cy.contains('.railway-progress', 'Experiment 1/6').should('be.visible')
 
-    // the end screen (F26) without playing six runs: the next contexts are rewritten into the
-    // last run's, complete, with the session ended
+    // the end screen (F26) without playing six runs: the latest context is rewritten into the
+    // last run's, complete, with the session ended, under a new id so the page takes it
     cy.intercept('GET', '/cabcontext/api/v1/contexts*', (req) => {
       req.continue((res) => {
         const context = Array.isArray(res.body) ? res.body[0] : res.body
         const data = context?.data
         if (!data?.session) return
+        context.id_context = `${context.id_context}-end`
         data.session.scenario_position = data.session.scenario_order.length - 1
         data.session.ended_at = new Date().toISOString()
         data.scenario.state = 'complete'
@@ -295,6 +296,48 @@ describe('Railway page', () => {
     // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(1500)
     cy.screenshot('11-reflection', { capture: 'viewport' })
+  })
+
+  it('plays a scenario in Empfehlungsmodus from login to its end', () => {
+    login('de-DE')
+    startRun('scenario2', 'recommendation')
+    waitForRun('paused_for_decision')
+    cy.contains('Dispositionskonflikt — Entscheidung erforderlich', { timeout: 30000 }).click()
+    cy.contains('button', 'Empfehlung anfordern').click()
+    cy.get('.cab-recommendation', { timeout: 20000 }).first().click()
+    cy.contains('button', 'Anwenden').click()
+    cy.contains('button', 'Ja').click()
+    cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
+    waitForRun('complete')
+    cy.contains('.railway-progress', 'Einzelner Lauf · Szenario 2', { timeout: 20000 }).should(
+      'contain.text',
+      'abgeschlossen'
+    )
+    cy.contains('.railway-progress button', 'Neue Sitzung').click()
+    cy.get('.railway-loader[data-view="start"]').should('be.visible')
+  })
+
+  it('plays a scenario in Ko-Lernen from login to its end, as the reference screenshot', () => {
+    login('de-DE')
+    startRun('scenario3', 'colearning')
+    waitForRun('paused_for_decision')
+    cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
+    cy.contains('button', 'Empfehlung anfordern').click()
+    cy.contains('.railway-colearning button', 'IC 3 dann IR 35', { timeout: 20000 }).should(
+      'be.visible'
+    )
+    // the state of docs/plans/railway-use-case/railway_sim.png: scenario 3 in Ko-Lernen at step 16
+    cy.screenshot('14-compare', { capture: 'viewport' })
+
+    cy.contains('.railway-colearning button', 'IC 3 dann IR 35').click()
+    cy.contains('.railway-colearning button', 'Vorfahrt').click()
+    cy.contains('.railway-colearning button', 'Lösung vorschlagen').click()
+    cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
+    waitForRun('complete')
+    cy.contains('.railway-progress', 'Ko-Lernen', { timeout: 20000 }).should(
+      'contain.text',
+      'abgeschlossen'
+    )
   })
 
   it('draws the line view from the link map', () => {

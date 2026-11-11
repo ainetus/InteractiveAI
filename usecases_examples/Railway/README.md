@@ -16,6 +16,7 @@ contexts the InteractiveAI platform shows. Design and plan:
   - [2.1 Start](#21-start)
   - [2.2 Check](#22-check)
   - [2.3 Screenshots and video](#23-screenshots-and-video)
+  - [2.4 Compared with railway_sim](#24-compared-with-railway_sim)
 
 ## 1 Simulator
 
@@ -203,6 +204,37 @@ With the dev stack running and seeded, from `frontend/`:
 CYPRESS_BASE_URL=http://localhost:3200 npx cypress run --spec cypress/e2e/railway.cy.ts
 ```
 
-The shots go to `frontend/cypress/screenshots/railway.cy.ts/` (1600×900), the video to
-`frontend/cypress/videos/`; both are gitignored. Against another deployment, set `CYPRESS_BASE_URL`
+The spec plays one scenario per mode from login to its end, the Experiment's start dialog, end
+screen and reflection questions, and takes the named shots on the way. The shots go to
+`frontend/cypress/screenshots/railway.cy.ts/` (1600×900), the video to `frontend/cypress/videos/`;
+both are gitignored. The shots of the current state are committed in
+[`docs/plans/railway-use-case/shots/`](../../docs/plans/railway-use-case/shots/). Against another deployment, set `CYPRESS_BASE_URL`
 and a participant login (`CYPRESS_USER`, `CYPRESS_PASSWORD`).
+
+### 2.4 Compared with railway_sim
+
+The same state in both: scenario 3 in Ko-Lernen, paused at its decision at step 16, the Ko-Lernen
+choice open (shot `14-compare`).
+
+| `railway_sim` (the prototype this replaces) | InteractiveAI |
+|---|---|
+| ![railway_sim: scenario 3 in Ko-Lernen at step 16](../../docs/plans/railway-use-case/railway_sim.png) | ![InteractiveAI: scenario 3 in Ko-Lernen at step 16](../../docs/plans/railway-use-case/shots/14-compare.png) |
+
+Remaining differences, each on purpose (decisions in
+[`docs/plans/railway-use-case.md`](../../docs/plans/railway-use-case.md)):
+
+- **No time controls:** "Start", "Pause", "Zurücksetzen" and "Tempo" are gone; the simulator sets
+  the pace (`RAILWAY_STEPS_PER_SECOND`) and the run pauses itself at its decision (Q4).
+- **No Szenario-Loader panel:** the bottom panel stays the platform's Zeitachse. The scenario, mode
+  and Experiment are chosen in a start dialog over the page, which also shows the introductions and
+  the end screen; the bar above the Zeitachse shows the progress, the mode and "✕ Beenden" (Q3 d,
+  Q19 c). The Testprotokoll is dropped (Q16 b).
+- **Above the drawing:** "Schritt N", the open decision's prompt and the "Zugtabelle" (F4, F35,
+  F36), and a third tab, "Linienansicht" (Q12).
+- **Feed:** the platform's cards, in German ("Meldungen"), with the platform's event type
+  ("Infrastruktur") instead of `Train_0 — INFRASTRUCTURE`.
+- **Ko-Lernen choice:** the platform's buttons; the actions stay greyed out until a train is chosen,
+  then only those that train does not offer (Q28 a). In a browser without an emoji font, as the
+  headless one of the screenshot, the actions' emojis show as boxes.
+- **Drawing:** the track network is scaled to the panel; the trains held at the open decision are
+  highlighted.
