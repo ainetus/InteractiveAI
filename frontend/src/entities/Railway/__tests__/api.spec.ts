@@ -33,14 +33,16 @@ describe('session controls', () => {
   })
 
   it('go to the simulator through /railway-simu/', async () => {
-    const { nextScenario, startSession, stopSession } = await import('../api')
+    const { endRun, nextScenario, startSession, stopSession } = await import('../api')
     await startSession({ session_id: 's1', kind: 'experiment' })
     await nextScenario()
+    await endRun()
     await stopSession()
     // start and next without the platform's error modal: the start dialog shows the error
     expect(post.mock.calls).toEqual([
       ['/railway-simu/api/v1/session', { session_id: 's1', kind: 'experiment' }, { _silent: true }],
       ['/railway-simu/api/v1/session/next', undefined, { _silent: true }],
+      ['/railway-simu/api/v1/session/end-run'],
       ['/railway-simu/api/v1/session/stop']
     ])
   })

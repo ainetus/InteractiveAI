@@ -260,6 +260,23 @@ describe('Railway page', () => {
     cy.get('.railway-loader[data-view="start"]').should('be.visible')
   })
 
+  it('ends the current scenario and moves on in the Experiment', () => {
+    login('de-DE')
+    cy.get('[data-start="experiment"]', { timeout: 20000 }).click()
+    cy.contains('.railway-loader h1', 'Run 1/6', { timeout: 20000 }).should('be.visible')
+    cy.contains('.railway-loader button', 'Weiter').click()
+    cy.get('.railway-loader', { timeout: 20000 }).should('not.exist')
+    // the Experiment's bar: end the run, or the whole Experiment (finding 6)
+    cy.contains('.railway-progress [data-stop]', 'Experiment beenden').should('be.visible')
+    cy.get('.railway-progress [data-end-run]', { timeout: 20000 }).should('be.visible')
+    waitForContext('run 1 moving', (data) => (data.scenario?.step ?? 0) >= 8)
+    cy.screenshot('17-end-run', { capture: 'viewport' })
+
+    cy.get('.railway-progress [data-end-run]').click()
+    cy.contains('.railway-loader h1', 'Run 2/6', { timeout: 20000 }).should('be.visible')
+    cy.contains('.railway-loader button', 'Experiment beenden').should('be.visible')
+  })
+
   it('plays the Experiment from the start dialog to the end screen and the reflection', () => {
     login('de-DE')
     cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).should('be.visible')

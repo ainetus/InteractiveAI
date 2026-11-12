@@ -74,8 +74,9 @@
           {{ $t(`Railway.mode.${session!.scenario_order[view.position].mode}`) }}
         </p>
         <div class="buttons">
+          <!-- introductions come in the Experiment only (a single run has none, Q13 d) -->
           <Button color="secondary" @click="act(stopSession)">
-            {{ $t('Railway.loader.stop') }}
+            {{ $t('Railway.loader.stop_experiment') }}
           </Button>
           <Button @click="act(nextScenario)">{{ $t('Railway.loader.next') }}</Button>
         </div>

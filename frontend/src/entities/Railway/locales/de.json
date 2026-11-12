@@ -157,6 +157,7 @@
   "Railway.loader.intro": "📋 Szenario-Einführung — Run {run}/{runs}",
   "Railway.loader.next": "Weiter",
   "Railway.loader.stop": "✕ Beenden",
+  "Railway.loader.stop_experiment": "✕ Experiment beenden",
   "Railway.loader.loading": "Wird geladen …",
   "Railway.loader.error": "Der Simulator hat die Anfrage abgelehnt: {error}",
   "Railway.loader.end_title": "✅ Experiment abgeschlossen",
@@ -168,5 +169,6 @@
   "Railway.progress.single": "Einzelner Lauf · {name} — {mode} · {step}",
   "Railway.progress.complete": "abgeschlossen",
   "Railway.progress.standalone": "Standalone-Modus · geografische Karte für eine externe Simulation",
-  "Railway.progress.back_loader": "▶ Szenario-Loader"
+  "Railway.progress.back_loader": "▶ Szenario-Loader",
+  "Railway.progress.end_run": "Szenario beenden"
 }

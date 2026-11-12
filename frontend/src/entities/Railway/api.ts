@@ -44,6 +44,11 @@ export function nextScenario() {
   return http.post<Session>(simu('/session/next'), undefined, { _silent: true })
 }
 
+/** Ends the current run early ("Szenario beenden", Experiment only); the next introduction follows. */
+export function endRun() {
+  return http.post<Session>(simu('/session/end-run'))
+}
+
 /** Ends the session ("✕ Beenden", Q26 a). */
 export function stopSession() {
   return http.post<Session>(simu('/session/stop'))

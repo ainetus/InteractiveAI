@@ -115,7 +115,8 @@ and contexts to the platform's `/cab_event/` and `/cabcontext/` as `publisher_te
 | `GET /api/v1/scenarios` | id, name and introduction of every scenario |
 | `POST /api/v1/session` | starts a session: `{"session_id", "kind": "experiment"}` (six runs, three per mode, seeded by the session id) or `{"session_id", "kind": "single", "scenario_id", "mode"}`; posts run 1 as `ready`; ends a running session of another `session_id` first; 409 for the same one |
 | `POST /api/v1/session/next` | starts run 1, or the next run after a complete one |
-| `POST /api/v1/session/stop` | ends the session ("✕ Beenden") |
+| `POST /api/v1/session/end-run` | ends the current run early, as at its last step ("Szenario beenden", Experiment); 409 if no run is going on |
+| `POST /api/v1/session/stop` | ends the session ("✕ Beenden", "✕ Experiment beenden") |
 | `POST /api/v1/recommendations` | the applied choice, `actions[0]` of the recommendation plus the card's `event_id`; 409 when it is not the open decision |
 | `GET /health` | `{"status": "ok"}` |
 

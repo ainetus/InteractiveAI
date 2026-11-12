@@ -76,6 +76,7 @@
   "Railway.loader.intro": "📋 Scenario introduction — run {run}/{runs}",
   "Railway.loader.next": "Continue",
   "Railway.loader.stop": "✕ End",
+  "Railway.loader.stop_experiment": "✕ End experiment",
   "Railway.loader.loading": "Loading …",
   "Railway.loader.error": "The simulator refused the request: {error}",
   "Railway.loader.end_title": "✅ Experiment complete",
@@ -87,5 +88,6 @@
   "Railway.progress.single": "Single run · {name} — {mode} · {step}",
   "Railway.progress.complete": "complete",
   "Railway.progress.standalone": "Standalone mode · geographic map for an external simulation",
-  "Railway.progress.back_loader": "▶ Scenario loader"
+  "Railway.progress.back_loader": "▶ Scenario loader",
+  "Railway.progress.end_run": "End scenario"
 }

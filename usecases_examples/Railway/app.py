@@ -9,6 +9,8 @@ source: everything the page shows comes from the contexts and the cards (D5, D11
                                      {"session_id", "kind": "single", "scenario_id", "mode"}
                                      201 with the session; 409 if this session_id is running
     POST /api/v1/session/next        start run 1, or the next run after a complete one
+    POST /api/v1/session/end-run     "⏭ Szenario beenden": end the current run early; 409 if it is
+                                     not going on
     POST /api/v1/session/stop        "✕ Beenden": end the session
     POST /api/v1/recommendations     the applied choice: actions[0] of the recommendation
                                      ({"scenario_id", "decision_index", "option_index"[, "train",
@@ -79,6 +81,10 @@ def create_app(runner: SessionRunner = None) -> Flask:
     @app.post("/api/v1/session/next")
     def next_run():
         return jsonify(runner.next_run())
+
+    @app.post("/api/v1/session/end-run")
+    def end_run():
+        return jsonify(runner.end_run())
 
     @app.post("/api/v1/session/stop")
     def stop_session():

@@ -95,6 +95,24 @@ class SessionRunner:
             self._send_context()
             return copy.deepcopy(self.session)
 
+    def end_run(self) -> dict:
+        """"⏭ Szenario beenden" (Experiment): the current run ends where it is, as at its last step;
+        then the session waits for "next", or ends after its last run. An open decision stays
+        unanswered (its apply gets 409, as any other)."""
+        with self._lock:
+            if not self._active():
+                raise Conflict("no running session")
+            if self.ready:
+                raise Conflict("the current run has not started")
+            if self.player.state == COMPLETE:
+                raise Conflict("the current run is complete")
+            # the player's own end of the episode (ScenarioPlayer.step), without the steps
+            self.player.state = COMPLETE
+            self.player.active_decision = None
+            self._on_complete(self.player)
+            self._send_context()
+            return copy.deepcopy(self.session)
+
     def stop_session(self) -> dict:
         with self._lock:
             if not self._active():

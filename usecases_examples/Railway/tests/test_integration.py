@@ -214,6 +214,39 @@ def test_next_moves_on_only_after_a_complete_run():
     assert (scenario(pub.contexts[-1])["state"], scenario(pub.contexts[-1])["step"]) == (RUNNING, 0)
 
 
+def test_end_run_completes_the_run_where_it_is_and_waits_for_next():
+    runner, pub = make_runner(steps_per_second=4.0)
+    runner.start_session("S1", experiment_runs("S1", ["scenario3", "scenario2"]))
+    with pytest.raises(Conflict):           # run 1 not started yet
+        runner.end_run()
+    runner.next_run()
+    first = runner.session["scenario_order"][0]
+    tick_until(runner, PAUSED)
+    session = runner.end_run()
+    ended = pub.contexts[-1]["data"]
+    assert scenario(pub.contexts[-1])["state"] == COMPLETE and not ended["scenario"]["decision_open"]
+    assert session["ended_at"] is None and ended["decisions"] == []     # left unanswered
+    with pytest.raises(Conflict):           # the open decision is gone
+        runner.apply({"scenario_id": first["scenario_id"], "decision_index": 0, "option_index": 0})
+    with pytest.raises(Conflict):           # already complete
+        runner.end_run()
+    sent = len(pub.contexts)
+    runner.tick()
+    assert len(pub.contexts) == sent        # waits for "next"
+    assert runner.next_run()["scenario_position"] == 1
+
+
+def test_end_run_of_the_last_run_ends_the_session():
+    runner, pub = make_runner()
+    runner.start_session("S1", single_run("scenario3", "recommendation"))
+    runner.next_run()
+    runner.tick()
+    assert runner.end_run()["ended_at"] is not None
+    assert scenario(pub.contexts[-1])["state"] == COMPLETE and pub.contexts[-1]["data"]["session"]["ended_at"]
+    with pytest.raises(Conflict):
+        runner.end_run()
+
+
 def test_stop_ends_the_session_without_completing_the_run():
     runner, pub = make_runner()
     runner.start_session("S1", single_run("scenario3", "recommendation"))
@@ -265,6 +298,8 @@ def test_session_routes(client):
     assert client.post("/api/v1/session", json={"session_id": "S1"}).status_code == 409
     assert client.post("/api/v1/session/next").status_code == 200
     assert client.post("/api/v1/session/next").status_code == 409
+    assert client.post("/api/v1/session/end-run").status_code == 200
+    assert client.post("/api/v1/session/end-run").status_code == 409
     assert client.post("/api/v1/session/stop").status_code == 200
     assert client.post("/api/v1/session/stop").status_code == 409
 

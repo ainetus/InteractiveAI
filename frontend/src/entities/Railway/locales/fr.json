@@ -71,6 +71,7 @@
   "Railway.loader.intro": "📋 Introduction du scénario — exécution {run}/{runs}",
   "Railway.loader.next": "Continuer",
   "Railway.loader.stop": "✕ Terminer",
+  "Railway.loader.stop_experiment": "✕ Terminer l'expérience",
   "Railway.loader.loading": "Chargement …",
   "Railway.loader.error": "Le simulateur a refusé la requête : {error}",
   "Railway.loader.end_title": "✅ Expérience terminée",
@@ -82,5 +83,6 @@
   "Railway.progress.single": "Exécution unique · {name} — {mode} · {step}",
   "Railway.progress.complete": "terminé",
   "Railway.progress.standalone": "Mode autonome · carte géographique pour une simulation externe",
-  "Railway.progress.back_loader": "▶ Chargeur de scénarios"
+  "Railway.progress.back_loader": "▶ Chargeur de scénarios",
+  "Railway.progress.end_run": "Terminer le scénario"
 }

@@ -29,16 +29,29 @@
     <Button v-if="singleDone" @click="newSession">
       {{ $t('Railway.loader.new') }}
     </Button>
-    <Button v-else color="secondary" @click="stopSession">
-      {{ $t('Railway.loader.stop') }}
-    </Button>
+    <template v-else>
+      <!-- Experiment: end the run and move on, or end the whole Experiment (finding 6) -->
+      <Button
+        v-if="!single && runGoesOn"
+        color="secondary"
+        data-end-run
+        :disabled="endingRun"
+        @click="endCurrentRun">
+        <SkipForward :height="14" />
+        {{ $t('Railway.progress.end_run') }}
+      </Button>
+      <Button color="secondary" data-stop @click="stopSession">
+        {{ $t(single ? 'Railway.loader.stop' : 'Railway.loader.stop_experiment') }}
+      </Button>
+    </template>
   </div>
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { SkipForward } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
 
 import Button from '@/components/atoms/Button.vue'
-import { stopSession } from '@/entities/Railway/api'
+import { endRun, stopSession } from '@/entities/Railway/api'
 import { newSessionRequested, standalone } from '@/entities/Railway/loader'
 import { useServicesStore } from '@/stores/services'
 
@@ -46,7 +59,8 @@ import { useServicesStore } from '@/stores/services'
  * The session's progress above the shared Timeline (F23, Q19 c): "Experiment i/n · <name> — <mode>
  * · Schritt N" and "✕ Beenden", while a session of the simulator goes on. After a single run it
  * stays, with "Neue Sitzung" for the start dialog, so the run's result can still be looked at.
- * In standalone mode (Q31) it shows the mode and "▶ Szenario-Loader".
+ * In standalone mode (Q31) it shows the mode and "▶ Szenario-Loader". In the Experiment, "Szenario
+ * beenden" ends the current run early and "✕ Experiment beenden" the whole session (finding 6).
  */
 const servicesStore = useServicesStore()
 
@@ -61,6 +75,25 @@ const singleDone = computed(
 const done = computed(
   () => (session.value?.scenario_position ?? 0) + (scenario.value?.state === 'complete' ? 1 : 0)
 )
+// a run started and not over: "Szenario beenden" has something to end
+const runGoesOn = computed(() =>
+  ['running', 'paused_for_decision'].includes(scenario.value?.state ?? '')
+)
+// the context when "Szenario beenden" was clicked; disabled until the next one arrives
+const endingFor = ref<string>()
+const contextId = computed(() => servicesStore.context('Railway')?.id_context)
+const endingRun = computed(
+  () => endingFor.value !== undefined && endingFor.value === contextId.value
+)
+watch(contextId, () => (endingFor.value = undefined))
+async function endCurrentRun() {
+  endingFor.value = contextId.value
+  try {
+    await endRun()
+  } catch {
+    endingFor.value = undefined
+  }
+}
 </script>
 <style lang="scss">
 .railway-progress {
