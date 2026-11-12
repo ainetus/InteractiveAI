@@ -1,6 +1,8 @@
 <template>
   <!-- under no platform modal (e.g. the consent question at login) -->
-  <template v-if="scenarios.length && view.kind !== 'none' && !appStore._modals.length">
+  <!-- nor in standalone mode (Q31) -->
+  <template
+    v-if="scenarios.length && view.kind !== 'none' && !appStore._modals.length && !standalone">
     <!-- below the navbar, so "Abmelden" stays reachable (F26) -->
     <div class="railway-loader-backdrop"></div>
     <dialog open class="cab-panel railway-loader" :data-view="view.kind">
@@ -45,6 +47,16 @@
             </Button>
           </div>
         </section>
+        <section>
+          <h2>{{ $t('Railway.loader.standalone') }}</h2>
+          <p>{{ $t('Railway.loader.standalone_text') }}</p>
+          <div class="buttons">
+            <Button color="secondary" data-standalone @click="standalone = true">
+              <MapIcon :height="14" />
+              {{ $t('Railway.loader.standalone_button') }}
+            </Button>
+          </div>
+        </section>
       </template>
       <template v-else-if="view.kind === 'intro'">
         <h1>
@@ -80,6 +92,7 @@
   </template>
 </template>
 <script setup lang="ts">
+import { Map as MapIcon } from 'lucide-vue-next'
 import { computed, onBeforeMount, ref, watch } from 'vue'
 
 import Button from '@/components/atoms/Button.vue'
@@ -90,7 +103,12 @@ import {
   startSession,
   stopSession
 } from '@/entities/Railway/api'
-import { type LoaderView, loaderView, newSessionRequested } from '@/entities/Railway/loader'
+import {
+  type LoaderView,
+  loaderView,
+  newSessionRequested,
+  standalone
+} from '@/entities/Railway/loader'
 import type { RunMode } from '@/entities/Railway/types'
 import { useAppStore } from '@/stores/app'
 import { useServicesStore } from '@/stores/services'
@@ -98,7 +116,8 @@ import { currentTraceSessionId } from '@/utils/traceSessionExport'
 
 /**
  * The Szenario-Loader as a start dialog over the page (F21–F26, Q3 d): the Experiment or a single
- * run, the introduction before each run with "Weiter", and the end screen. Shown only when the
+ * run, the introduction before each run with "Weiter", and the end screen. "Karte ansehen" in the
+ * start dialog switches to standalone mode instead (Q31). Shown only when the
  * simulator answers GET /api/v1/scenarios, so a deployment without it keeps today's page. Which
  * view it shows comes from the latest context alone (loader.ts).
  */

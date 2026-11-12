@@ -148,6 +148,9 @@
   "Railway.loader.experiment_text": "Alle sechs Szenarien nacheinander, drei im Empfehlungsmodus und drei im Ko-Lernen, jedes mit einer Einführung.",
   "Railway.loader.single": "Einzelner Lauf",
   "Railway.loader.single_text": "Ein Szenario in einem Modus, ohne Einführung.",
+  "Railway.loader.standalone": "Standalone-Modus",
+  "Railway.loader.standalone_text": "Die geografische Karte ohne Szenario, für eine externe Simulation, die Ereignisse und Züge mit GPS-Positionen sendet.",
+  "Railway.loader.standalone_button": "Karte ansehen",
   "Railway.loader.scenario": "Szenario",
   "Railway.loader.mode": "Modus",
   "Railway.loader.start": "▶ Laden & Starten",
@@ -163,5 +166,7 @@
   "Railway.loader.new": "Neue Sitzung",
   "Railway.progress.experiment": "Experiment {run}/{runs} · {name} — {mode} · {step}",
   "Railway.progress.single": "Einzelner Lauf · {name} — {mode} · {step}",
-  "Railway.progress.complete": "abgeschlossen"
+  "Railway.progress.complete": "abgeschlossen",
+  "Railway.progress.standalone": "Standalone-Modus · geografische Karte für eine externe Simulation",
+  "Railway.progress.back_loader": "▶ Szenario-Loader"
 }

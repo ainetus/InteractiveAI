@@ -44,6 +44,9 @@ run and screenshotted without Docker.
   [`railway-use-case/shots/`](railway-use-case/shots/). Left: S23, the Kubernetes route to the
   simulator, blocked by Q30 (its address on the server); the draft introductions of scenarios 1, 2,
   4, 5 and 6 wait for `railway_sim`'s texts.
+- **2026-11-12:** Q31 decided as d), standalone mode from the start dialog; S24 implemented, shot
+  15 taken in the sandbox (Xvfb from conda-forge). Finding 6 (end the scenario or the Experiment)
+  planned as S25.
 - **Base:** `main` at `600a1ce` (release 1.5.2).
 - **Inputs:**
   - the cleaned simulator: `railway_sim`'s simulator, cleaned and headless (Flatland
@@ -180,7 +183,7 @@ Reused concepts:
 | `MetadataSchemaRailway` (Event and Context Service) | Says which Railway fields an event or context may carry. Not for the meaning of the fields. | 🟨 modified: the services accept the scenario, session and infrastructure fields. |
 | Railway `Context.vue` (centre panel) | Shows the latest context: map, ZWL, link map, status. Not for controls that change the simulation. | 🟨 modified: the participant sees the track network, the time-distance diagram and the link map instead of a geographic map. |
 | Railway `Assistant.vue` (right panel) | Shows the event, asks for recommendations, lets the operator choose and apply one. Not for computing options. | 🟨 modified: German KPI labels under the platform's cards; in Ko-Lernen the choice is "train, then action" as in the screenshot. |
-| Railway `ScenarioLoader.vue` (start dialog, mounted by `Assistant.vue`) | The "Szenario-Loader": session start, introductions, next scenario, end screen, as a modal over the page while no scenario runs (Q3 d). Not for play/pause/speed. | 🟩 added: the participant starts the Experiment and moves to the next scenario here (Q27). |
+| Railway `ScenarioLoader.vue` (start dialog, mounted by `Assistant.vue`) | The "Szenario-Loader": session start, introductions, next scenario, end screen, as a modal over the page while no scenario runs (Q3 d). Not for play/pause/speed. | 🟩 added: the participant starts the Experiment and moves to the next scenario here (Q27), or leaves for the geographic map (standalone mode, Q31). |
 | Railway `Timeline.vue` (bottom panel) | The progress across the session ("`Experiment i/n · <scenario name> — <mode> · Schritt N`", Q19 c) above the shared `Timeline`, and "✕ Beenden" while a session runs, as in `railway_sim`. No other controls. | 🟨 modified: the participant sees where they are in the session. |
 | Railway questionnaire (`public/surveys/railway/`) | The reflection questions, once after the Experiment as Railway's chain of the post-logout survey (Q5 d). Not PowerGrid's chain. | 🟩 added: participants answer the reflection questions in the platform. |
 | Railway locales (`de`, `en`, `fr`) | The texts of the Railway page in the browser's language, German for the participants. Not a translation of the other use cases, and not the scenario texts (Q7 d1). | 🟩 added: the Railway page is in German. |
@@ -288,6 +291,11 @@ single run (Q13 d, Q23 a).
   protokolliert. Vielen Dank für Ihre Teilnahme!" and the hint "Bitte melden Sie sich jetzt oben
   rechts ab. Danach folgen die Reflexionsfragen.", in the start dialog (Q22 b); the logout then opens
   the questionnaire (F24).
+- **F40** The start dialog's third section, "Standalone-Modus", with "Karte ansehen", leaves the
+  Szenario-Loader for the page as before it: the geographic (Leaflet, OpenStreetMap) map for an
+  external simulation that posts events and contexts in today's schema (GPS trains), whatever the
+  latest context is; the progress bar shows "Standalone-Modus · …" and "▶ Szenario-Loader", which
+  brings the start dialog back (Q31 d). The introductions and the end screen don't offer it.
 - **F27** A new session starts with a clean feed (no cards of the previous participant).
 
 #### 1.5.1 Scenarios
@@ -1434,6 +1442,9 @@ sequenceDiagram
 - **Between scenarios the simulator waits:** after `complete` it steps no more until "next"; the
   frontend sees `complete` in the context and shows the start dialog with the next introduction
   (Q3 d).
+- **Standalone mode** (Q31 d) is a browser-only flag (`loader.ts`'s `standalone`): no dialog, the
+  geographic map in `Context.vue` whatever the latest context is, and a reload shows the start
+  dialog again. The simulator knows nothing of it.
 
 ## 5. Change inventory
 
@@ -1722,6 +1733,8 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S13 | - | The spec plays one scenario per mode from login to the end screen; all shots and the video refreshed; side-by-side comparison with `railway_sim.png` (remaining differences listed) in the Railway README; shot [`14-compare`](railway-use-case/shots/14-compare.png); all shots refreshed. | test | - | `test(railway): check the full run in both modes against the reference screenshot` | 4190e38 | T4 | S8–S12, S17 | - |
 | S14 | - | CI job; Cypress job only if fast enough. | ci | - | `ci(railway): run the simulator and Railway schema tests` | 6a4ee06 | T5, T6 | S1–S5 | - |
 | S15 | - | `Dockerfile`, compose (`restart: unless-stopped`, so the simulator runs from the deployment on, Q27 a), `RAILWAY_SIMU_UPSTREAM` on the server, `railway_user`'s perimeter in the seed files (no `loadTestConf.sh` after a restart; no participant users, Q11), ConfigMap location; README checklist with `deleteAllCards.sh` before a session; `README.md`, `frontend/README.md`, `docs/AIAgent_integration.md`-style references checked against D17. Done without the ConfigMap location and the server's `RAILWAY_SIMU_UPSTREAM` (S23). | feature | - | `feat(deploy): deploy the Railway simulator next to the platform` | c663b77 | D1, D10, D12, D13, D17, F27 | S4, S5 | - |
+| S24 | - | "Standalone-Modus" section with "Karte ansehen" in `ScenarioLoader.vue`'s start dialog, `standalone` in `loader.ts`, the geographic map in `Context.vue` while it is set, "Standalone-Modus · …" and "▶ Szenario-Loader" in `ScenarioProgress.vue` (Q31 d); 5 texts × 3 locales; `CHANGELOG.md`; a test switches to standalone mode, posts today's event and context and goes back; shot [`15-standalone`](railway-use-case/shots/15-standalone.png). | feature | - | `feat(railway): open the geographic map for an external simulation from the Szenario-Loader` | | F40 | S12 | - |
+| S25 | 6 | Experiment only: the progress bar's "✕ Beenden" becomes "✕ Experiment beenden", next to it "⏭ Szenario beenden" ends the current run early, and the start dialog shows the next introduction (the end screen after the last run). Simulator: `SessionRunner.end_run()` behind `POST /api/v1/session/end-run` marks the run `complete` (as `_on_complete()`, so `session.ended_at` after the last run) and posts the context; an open decision stays unanswered, its `AWARD` refused with 409 as today; tests in `tests/`. Frontend: `endRun()` in `api.ts`, both buttons in `ScenarioProgress.vue`, texts × 3 locales; a single run keeps "✕ Beenden"; `CHANGELOG.md`; the Experiment test ends run 1 early; shot `17-end-run`. | feature | low | `feat(railway): end the current scenario or the whole Experiment from the progress bar` | | F23 | S12 | - |
 | S23 | - | The `/railway-simu/` location in the ConfigMap's nginx key (pushed with `apply-nginx-conf.sh` after the frontend pod with the new `start-webui.sh` runs) and `RAILWAY_SIMU_UPSTREAM` on the frontend pod in `values.ovh.yaml`. Left out of S15: without a resolvable upstream the frontend's nginx does not start. | feature | - | `feat(deploy): route /railway-simu/ to the Railway simulator on Kubernetes` | | D1, D12 | S15 | Q30 |
 
 ### Phase 6: decisions settled with others ✅
@@ -1878,6 +1891,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
 | ✅❌ | 3 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522513695) | decision | medium | `docs/plans/railway-use-case.md:2035` (Q6): double-check the decision with the `railway_sim` author. Fixed in 091b3cc (S20): Confirmed 2026-11-11: six runs as `railway_sim`'s Experiment (S20). | `docs(plans): record the confirmation of Q6` |
 | ✅❌ | 4 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522846116) | decision | medium | `docs/plans/railway-use-case.md:2171` (Q8): double-check the decision with the `railway_sim` author; the two levels (train, then action) are not clear yet. Fixed in 091b3cc (S21): Confirmed 2026-11-11 as a) (S21); §1.5.2 notes that only "Vorfahrt" leads to an option in all six scenarios, so the second level is in effect fixed. | `docs(plans): record the confirmation of Q8` |
 | ✅❌ | 5 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522858147) | decision | medium | `docs/plans/railway-use-case.md:2246` (Q10): to decide with SystemX (the platform maintainers). Fixed in 091b3cc (S22): Decided 2026-11-11 as proposed: the simulator in its own compose next to the platform, as PowerGrid's, plus the k8s values; Q24 follows (S22). | `docs(plans): record the deployment decision of Q10` |
+| | 6 | conversation 2026-11-12 | feature | low | `frontend/src/entities/Railway/CAB/ScenarioProgress.vue:32`: in the Experiment, "✕ Beenden" (bottom right) ends the whole session but does not say so; it should read "✕ Experiment beenden", and an "⏭ Szenario beenden" should end the current run and move on to the next scenario. The simulator's `next_run()` (`usecases_examples/Railway/integration/loop.py:87`) refuses while a run is not complete, so ending a run needs a route of its own (S25). | `feat(railway): end the current scenario or the whole Experiment from the progress bar` |
 
 - **Issue references:** the PR closes no issue (its description is empty), and the branch references
   none in the code.
@@ -2730,6 +2744,20 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
     `docker-build-push.yml` and a chart template.
   - *Proposal:* a), since it repeats PowerGrid's setup and needs no chart change; decided with
     SystemX (the platform maintainers).
+- ✅ ~~**(Q31) Can the participant go to the map from the Szenario-Loader?**~~ **Decided
+  2026-11-12: d)** (S24, F40). The start dialog (Q3 d) covers the page until a session is started,
+  and the Railway page's geographic map, where an external simulation shows its events and GPS
+  trains (D20), was no longer reachable while the simulator answers. The scenarios' own maps are
+  grid drawings (Kartenansicht) and unrelated to it.
+  - a) "Karte ansehen" in every view of the dialog puts it aside to look at the current context
+    (tried first: before a session that is the generic map or the previous run's grid; between
+    runs the finished run; not what was meant).
+  - b) A non-modal panel docked at the bottom, as `railway_sim`'s: reverses part of Q3 d) and takes
+    room from the drawing.
+  - c) As it is, listed under Limitations.
+  - d) A "Standalone-Modus" section in the start dialog: "Karte ansehen" leaves the
+    Szenario-Loader for the geographic map, whatever the latest context is; "▶ Szenario-Loader"
+    in the progress bar comes back. Browser-only, so the context stays the only status source.
 
 ### Handover
 

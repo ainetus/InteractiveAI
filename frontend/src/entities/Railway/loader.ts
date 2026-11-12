@@ -12,6 +12,13 @@ import type { Context } from '@/types/entities'
  */
 export const newSessionRequested = ref(false)
 
+/**
+ * Standalone mode ("Karte ansehen" in the start dialog, Q31): the page as before the Szenario-Loader,
+ * the geographic map for an external simulation's contexts (today's schema, GPS trains), no dialog.
+ * "▶ Szenario-Loader" in the progress bar leaves it. Browser-only: a reload shows the dialog again.
+ */
+export const standalone = ref(false)
+
 export type LoaderView =
   /** no running session for this login: choose the Experiment or a single run (F21) */
   | { kind: 'start' }

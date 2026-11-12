@@ -62,6 +62,9 @@
   "Railway.loader.experiment_text": "Les six scénarios à la suite, trois en mode recommandation et trois en co-apprentissage, chacun avec une introduction.",
   "Railway.loader.single": "Exécution unique",
   "Railway.loader.single_text": "Un scénario dans un mode, sans introduction.",
+  "Railway.loader.standalone": "Mode autonome",
+  "Railway.loader.standalone_text": "La carte géographique sans scénario, pour une simulation externe qui envoie des événements et des trains avec leur position GPS.",
+  "Railway.loader.standalone_button": "Voir la carte",
   "Railway.loader.scenario": "Scénario",
   "Railway.loader.mode": "Mode",
   "Railway.loader.start": "▶ Charger et démarrer",
@@ -77,5 +80,7 @@
   "Railway.loader.new": "Nouvelle session",
   "Railway.progress.experiment": "Expérience {run}/{runs} · {name} — {mode} · {step}",
   "Railway.progress.single": "Exécution unique · {name} — {mode} · {step}",
-  "Railway.progress.complete": "terminé"
+  "Railway.progress.complete": "terminé",
+  "Railway.progress.standalone": "Mode autonome · carte géographique pour une simulation externe",
+  "Railway.progress.back_loader": "▶ Chargeur de scénarios"
 }

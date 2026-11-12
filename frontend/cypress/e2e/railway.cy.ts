@@ -241,6 +241,25 @@ describe('Railway page', () => {
     waitForContext('the applied decision', (data) => data.decisions?.length === 1)
   })
 
+  it('leaves the start dialog for the geographic map of an external simulation', () => {
+    login('de-DE')
+    cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).should('be.visible')
+    cy.get('[data-standalone]').click()
+    cy.get('.railway-loader').should('not.exist')
+    cy.contains('.railway-progress', 'Standalone-Modus').should('be.visible')
+    // the geographic map, although the latest context may be a scenario run's grid (Q31)
+    cy.get('.leaflet-container').should('be.visible')
+    postTodayEventAndContext()
+    cy.get('.leaflet-marker-icon', { timeout: 20000 }).should('exist')
+    // the map tiles load after the marker; the shot waits for them, not for the app
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(2000)
+    cy.screenshot('15-standalone', { capture: 'viewport' })
+
+    cy.contains('.railway-progress button', 'Szenario-Loader').click()
+    cy.get('.railway-loader[data-view="start"]').should('be.visible')
+  })
+
   it('plays the Experiment from the start dialog to the end screen and the reflection', () => {
     login('de-DE')
     cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).should('be.visible')

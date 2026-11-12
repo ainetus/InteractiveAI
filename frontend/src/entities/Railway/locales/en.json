@@ -67,6 +67,9 @@
   "Railway.loader.experiment_text": "All six scenarios in turn, three in recommendation mode and three in co-learning, each with an introduction.",
   "Railway.loader.single": "Single run",
   "Railway.loader.single_text": "One scenario in one mode, without introduction.",
+  "Railway.loader.standalone": "Standalone mode",
+  "Railway.loader.standalone_text": "The geographic map without a scenario, for an external simulation that sends events and trains with GPS positions.",
+  "Railway.loader.standalone_button": "View the map",
   "Railway.loader.scenario": "Scenario",
   "Railway.loader.mode": "Mode",
   "Railway.loader.start": "▶ Load & start",
@@ -82,5 +85,7 @@
   "Railway.loader.new": "New session",
   "Railway.progress.experiment": "Experiment {run}/{runs} · {name} — {mode} · {step}",
   "Railway.progress.single": "Single run · {name} — {mode} · {step}",
-  "Railway.progress.complete": "complete"
+  "Railway.progress.complete": "complete",
+  "Railway.progress.standalone": "Standalone mode · geographic map for an external simulation",
+  "Railway.progress.back_loader": "▶ Scenario loader"
 }

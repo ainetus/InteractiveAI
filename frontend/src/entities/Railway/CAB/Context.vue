@@ -1,8 +1,9 @@
 <template>
   <!-- The simulator's contexts carry the track network (infra): Railway's own views. Contexts
-       without it, of other publishers, keep today's geographic map (D20). -->
+       without it, of other publishers, keep today's geographic map (D20), and so does standalone
+       mode (Q31), whatever the latest context is. -->
   <Context
-    v-if="context?.data.infra"
+    v-if="context?.data.infra && !standalone"
     :tabs="[
       $t('Railway.tab.map'),
       $t('Railway.tab.zwl'),
@@ -43,6 +44,7 @@ import NetworkMap from '@/entities/Railway/CAB/NetworkMap.vue'
 import StatusBar from '@/entities/Railway/CAB/StatusBar.vue'
 import ZwlDiagram from '@/entities/Railway/CAB/ZwlDiagram.vue'
 import { selectedTrain } from '@/entities/Railway/colearning'
+import { standalone } from '@/entities/Railway/loader'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'

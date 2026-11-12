@@ -1,5 +1,14 @@
 <template>
-  <div v-if="session && scenario && (!session.ended_at || singleDone)" class="railway-progress">
+  <!-- standalone mode (Q31): the way back to the Szenario-Loader -->
+  <div v-if="standalone" class="railway-progress">
+    <span class="text">{{ $t('Railway.progress.standalone') }}</span>
+    <Button data-standalone-back @click="standalone = false">
+      {{ $t('Railway.progress.back_loader') }}
+    </Button>
+  </div>
+  <div
+    v-else-if="session && scenario && (!session.ended_at || singleDone)"
+    class="railway-progress">
     <div class="bar">
       <div
         class="done"
@@ -30,13 +39,14 @@ import { computed } from 'vue'
 
 import Button from '@/components/atoms/Button.vue'
 import { stopSession } from '@/entities/Railway/api'
-import { newSessionRequested } from '@/entities/Railway/loader'
+import { newSessionRequested, standalone } from '@/entities/Railway/loader'
 import { useServicesStore } from '@/stores/services'
 
 /**
  * The session's progress above the shared Timeline (F23, Q19 c): "Experiment i/n · <name> — <mode>
  * · Schritt N" and "✕ Beenden", while a session of the simulator goes on. After a single run it
  * stays, with "Neue Sitzung" for the start dialog, so the run's result can still be looked at.
+ * In standalone mode (Q31) it shows the mode and "▶ Szenario-Loader".
  */
 const servicesStore = useServicesStore()
 
