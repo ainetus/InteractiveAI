@@ -20,6 +20,10 @@
 - Survey: after logging out of Railway, the post-logout survey asks the experiment's reflection questions, in German (`CHAINS.Railway`).
 - Railway simulator: a `Dockerfile` and its own `docker-compose.yml` run it next to the platform, always on and idle until a participant starts the Experiment; the frontend image is built with `VITE_RAILWAY_SIMU=/railway-simu`. The users service loads the `cabProcess` perimeter of the Dispatcher, Planner and Supervisor groups from its config, so `railway_user` gets its cards on a fresh database without `loadTestConf.sh`.
 
+### Fixed
+
+- Login: in a German browser on the Railway page, the consent question for cognitive data was in English under German buttons; the question now follows the page's language, as the buttons do.
+
 ## 1.5.2 (2026-11-05)
 
 ### Added

@@ -19,8 +19,12 @@ function login(language?: string) {
   cy.get('input[type="password"]').type(password, { log: false })
   cy.get('button[type="submit"]').click()
   cy.location('pathname').should('eq', '/cab/Railway')
-  // the consent question for cognitive data opens on every login
-  cy.contains('button', /^(No|Nein|Non)$/, { timeout: 10000 }).click()
+  // the consent question for cognitive data opens on every login; in a German browser it turns
+  // German once Railway's texts have loaded, and the page fades in over the login page: answer it
+  // in the browser's language, with one dialog left (Q32)
+  const no = { de: 'Nein', fr: 'Non' }[language?.slice(0, 2) ?? ''] ?? 'No'
+  cy.get('.cab-modal', { timeout: 10000 }).should('have.length', 1)
+  cy.contains('.cab-modal button', new RegExp(`^${no}$`), { timeout: 10000 }).click()
 }
 
 // No running session and no cards: DELETE /cardspub/cards is the dev gateway's stand-in for

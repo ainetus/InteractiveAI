@@ -47,7 +47,8 @@ run and screenshotted without Docker.
 - **2026-11-12:** Q31 decided as d), standalone mode from the start dialog; S24 implemented, shot
   15 taken in the sandbox (Xvfb from conda-forge). Finding 7 (Werkzeug pin) fixed in S26
   (`b490b9c`); finding 6 (end the scenario or the Experiment) implemented as S25, shot 17. Open:
-  finding 8 (S27, a flaky consent click in the Cypress login).
+  finding 8 (S27, the consent dialog in two languages and a flaky click in the Cypress login),
+  analysed and decided as Q32 c), with a declared exception for two shared files.
 - **Base:** `main` at `600a1ce` (release 1.5.2).
 - **Inputs:**
   - the cleaned simulator: `railway_sim`'s simulator, cleaned and headless (Flatland
@@ -96,7 +97,9 @@ run and screenshotted without Docker.
   the registration JSONs, users and config). Where a step needs more, it says so: the nginx
   route, `start-webui.sh`, the compose files, `.env.example` and `.secrets.example` (S11), `CHAINS` in
   `surveychainer.html` (S12, Q5), the ConfigMap and deployment files (S15), `cypress.config.ts`
-  (S16). (Q15.)
+  (S16), and the consent question of `views/Login.vue` with the `Modal` type in `stores/app.ts`
+  (S27, Q32: a platform dialog that kept the language of its opening while Railway's German texts
+  arrived; two lines, any use case with late texts benefits). (Q15.)
 - **As close as possible to PowerGrid's pattern** where Railway needs the same thing (apply path,
   simulator layout, start dialog); deviations are explicit questions (Q1, Q2, Q25).
 - **Follow the code where the docs disagree:** `/cabcontext/` instead of the documented
@@ -1572,7 +1575,10 @@ Modified:
   optional (D20).
 - `src/entities/Railway/api.ts`: `applyRecommendation()` → `VITE_RAILWAY_SIMU + '/api/v1/recommendations'`
   when `actions[0]` has `scenario_id`, today's `/transport_plan` otherwise (D20); `getScenarios()`,
-  `startSession()`, `nextScenario()`, `stopSession()`.
+  `startSession()`, `nextScenario()`, `endRun()` (S25), `stopSession()`.
+- `src/views/Login.vue` (shared, declared exception, Q32): the consent question as a live
+  translation (`computed(() => t('modal.consent.cognitive'))`); `src/stores/app.ts`: the `Modal`
+  type's `data` is `string | Ref<string>`, unwrapped by the reactive list (S27).
 - `frontend/default.conf`, `start-webui.sh`: `/railway-simu/` location with the
   `__RAILWAY_SIMU_UPSTREAM__` placeholder (`SUBST_VARS`, with a default as `POWERGRID_SIMU_UPSTREAM`
   has, since `start-webui.sh` exits on an unset placeholder), next to `/powergrid-simu/` in every nginx
@@ -1738,7 +1744,7 @@ Each step adds its shots (§6) and commits them, and adds its new texts to Railw
 | S24 | - | "Standalone-Modus" section with "Karte ansehen" in `ScenarioLoader.vue`'s start dialog, `standalone` in `loader.ts`, the geographic map in `Context.vue` while it is set, "Standalone-Modus · …" and "▶ Szenario-Loader" in `ScenarioProgress.vue` (Q31 d); 5 texts × 3 locales; `CHANGELOG.md`; a test switches to standalone mode, posts today's event and context and goes back; shot [`15-standalone`](railway-use-case/shots/15-standalone.png). | feature | - | `feat(railway): open the geographic map for an external simulation from the Szenario-Loader` | | F40 | S12 | - |
 | S25 | 6 | Experiment only: the progress bar's "✕ Beenden" becomes "✕ Experiment beenden" (so does the introductions' button), next to it "⏭ Szenario beenden" (while a run goes on, disabled until the next context) ends the current run early, and the start dialog shows the next introduction (the end screen after the last run). Simulator: `SessionRunner.end_run()` behind `POST /api/v1/session/end-run` marks the run `complete` (as `_on_complete()`, so `session.ended_at` after the last run) and posts the context; an open decision stays unanswered, its apply refused with 409 as any other; tests in `tests/test_integration.py`. Frontend: `endRun()` in `api.ts` + Vitest, both buttons in `ScenarioProgress.vue`, 2 texts × 3 locales; a single run keeps "✕ Beenden"; `CHANGELOG.md`; a test ends run 1 early; shot [`17-end-run`](railway-use-case/shots/17-end-run.png). | feature | low | `feat(railway): end the current scenario or the whole Experiment from the progress bar` | | F23 | S12 | - |
 | S26 | 7 | `Werkzeug<3` in `usecases_examples/Railway/requirements.txt`, next to `Flask==2.3.2`; the simulator's tests green on a fresh install. | fix | medium | `fix(railway): pin Werkzeug below 3 for the simulator's Flask 2.3` | b490b9c | T5 | S14 | - |
-| S27 | 8 | In `login()`, wait for the consent dialog's buttons in the browser's language before clicking them, so the click does not hit the dialog the German texts re-render. | test | low | `test(railway): wait for the consent dialog in the browser's language before answering it` | | T4 | S16 | - |
+| S27 | 8 | `Login.vue` passes the consent question as a live translation, `stores/app.ts`'s `Modal.data` accepts it (declared exception, Q32 c); `login()` in `railway.cy.ts` answers in the browser's language once one dialog is left; `CHANGELOG.md` "Fixed"; mockups [`iai_consent_q32_before.png`](railway-use-case/iai_consent_q32_before.png), [`iai_consent_q32_after.png`](railway-use-case/iai_consent_q32_after.png). | fix | low | `fix(railway): show the consent question in the language of its buttons` | | F1, T4 | S7, S16 | - |
 | S23 | - | The `/railway-simu/` location in the ConfigMap's nginx key (pushed with `apply-nginx-conf.sh` after the frontend pod with the new `start-webui.sh` runs) and `RAILWAY_SIMU_UPSTREAM` on the frontend pod in `values.ovh.yaml`. Left out of S15: without a resolvable upstream the frontend's nginx does not start. | feature | - | `feat(deploy): route /railway-simu/ to the Railway simulator on Kubernetes` | | D1, D12 | S15 | Q30 |
 
 ### Phase 6: decisions settled with others ✅
@@ -1834,6 +1840,7 @@ Compared with `main`; the reused concepts are listed under the design principles
 | The start dialog derives its view (start, between runs, end screen) from the latest context, comparing `session.session_id` with the trace session and reading `ended_at` | the context as the only status source, as the other panels | §4.2.6 |
 | The platform's trace session id as the experiment's id in a use case's events and contexts | `currentTraceSessionId()` of the trace export, as the post-logout survey uses it | D10, Q11 |
 | A use case registering an extra UI language itself, including the platform texts its page shows | vue-i18n's `mergeLocaleMessage()`, the `<locale>-<entity>` naming of `setupEntitiesLocales()` | Q7, S7 |
+| A platform dialog whose text is a live translation (a `Ref`), so it follows the locale as its buttons do | vue-i18n's global `t()`, the store's reactive dialog list | Q32, S27 |
 | Docker-free dev gateway with Keycloak/OperatorFabric stand-ins | `AUTH_DISABLED`, the nginx routes of `nginx-cors-permissive.conf` | §6, S6 |
 | Screenshots of every UI step committed with the plan, from a baseline on | Cypress screenshots and video (gitignored output), the plan's material folder | §6, S16 |
 
@@ -1897,7 +1904,7 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
 | ✅❌ | 5 | [PR comment](https://github.com/ainetus/InteractiveAI/pull/34#discussion_r4522858147) | decision | medium | `docs/plans/railway-use-case.md:2246` (Q10): to decide with SystemX (the platform maintainers). Fixed in 091b3cc (S22): Decided 2026-11-11 as proposed: the simulator in its own compose next to the platform, as PowerGrid's, plus the k8s values; Q24 follows (S22). | `docs(plans): record the deployment decision of Q10` |
 | | 6 | conversation 2026-11-12 | feature | low | `frontend/src/entities/Railway/CAB/ScenarioProgress.vue:32`: in the Experiment, "✕ Beenden" (bottom right) ends the whole session but does not say so; it should read "✕ Experiment beenden", and an "⏭ Szenario beenden" should end the current run and move on to the next scenario. The simulator's `next_run()` (`usecases_examples/Railway/integration/loop.py:87`) refuses while a run is not complete, so ending a run needs a route of its own (S25). | `feat(railway): end the current scenario or the whole Experiment from the progress bar` |
 | ✅ | 7 | sandbox run 2026-11-12 | fix | medium | `usecases_examples/Railway/requirements.txt:5`: `Flask==2.3.2` without a Werkzeug pin; a fresh install (CI's `pip install -r requirements.txt`, `.github/workflows/railway-ci.yml:44`) gets Werkzeug 3.x, and Flask 2.3's test client fails (`module 'werkzeug' has no attribute '__version__'`) in the 4 route tests of `tests/test_integration.py`. Not seen yet: the branch's CI runs wait for approval. Fixed in b490b9c (S26): `Werkzeug<3`; 82 tests green. | `fix(railway): pin Werkzeug below 3 for the simulator's Flask 2.3` |
-| | 8 | sandbox run 2026-11-12 | test | low | `frontend/cypress/e2e/railway.cy.ts:23`: `login()` clicks "No/Nein/Non" in the consent dialog while a German browser's texts may still be loading; the dialog re-renders ("Nein"/"Ja" under an English question) and the click fails. Seen only on the first test after a cold start (baseline once, Experiment once alone); the same tests pass on a rerun. | `test(railway): wait for the consent dialog in the browser's language before answering it` |
+| | 8 | sandbox run 2026-11-12 | bug | low | `frontend/src/views/Login.vue:45`, `frontend/cypress/e2e/railway.cy.ts:23`: in a German browser the consent dialog shows the English question under German buttons ("Nein"/"Ja"), and Cypress' `login()` sometimes clicks a button that has just been replaced (first test after a cold start). Caused by this branch: Railway's German texts (S7) arrive while the dialog is open; on `main` the dialog stays English (Q32). | `fix(railway): show the consent question in the language of its buttons` |
 
 - **Issue references:** the PR closes no issue (its description is empty), and the branch references
   none in the code.
@@ -2764,6 +2771,123 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
   - d) A "Standalone-Modus" section in the start dialog: "Karte ansehen" leaves the
     Szenario-Loader for the geographic map, whatever the latest context is; "▶ Szenario-Loader"
     in the progress bar comes back. Browser-only, so the context stays the only status source.
+
+- ✅ ~~**(Q32) The consent dialog in a German browser: English question under German buttons**~~
+  **Decided 2026-11-12: c), with a declared exception** (S27, finding 8, design principles). Found
+  as a flaky Cypress login (the first test after a cold start failed at "No", once the baseline,
+  once the Experiment; a rerun passed); the failure screenshot showed the cause, the question in
+  English, the buttons in German.
+  - Mechanism, all of it `main`'s code except Railway's texts:
+    - `plugins/i18n.ts` starts with the browser's locale (`de`), for which the platform has no
+      texts: everything falls back to `en`.
+    - `Login.vue:44–48` opens the consent dialog with the question translated once (`t()` at
+      login); `components/atoms/Modal.vue:11–14` translates its buttons live (`$t('button.no')`).
+    - `views/CAB.vue:198` switches the locale to `de-Railway` on the Railway page; its texts come
+      from `entities/Railway/i18n.ts` (S7), imported with the Railway panels, asynchronously, a
+      moment after the switch. The buttons re-render as "Nein"/"Ja", the question stays English.
+    - The page fades in over the login page, and for a moment there are two dialogs, the old one
+      with "No", the new one with "Nein" (a shot during the fade showed "No" while Cypress had
+      already found "Nein"): one more stale button to click.
+    - On `main` the same German browser gets no German texts at all: nothing re-renders, the dialog
+      stays English, and the click always hits the button rendered at the start. An English or
+      French browser behaves the same on both branches (`fr-Railway` falls back to `fr`, the same
+      texts).
+  - Both sequences, in a German browser; the messages are the same up to the `opt` frame, which
+    holds what this branch adds and where the bug happens. Notation: [UML sequence diagram in
+    Mermaid](https://mermaid.js.org/syntax/sequenceDiagram.html).
+
+    1. Default branch (`main`):
+
+    ```mermaid
+    sequenceDiagram
+        actor P as Participant (or Cypress)
+        participant I18n as vue-i18n (plugins/i18n.ts)
+        participant Login as Login.vue
+        participant Modal as Modal.vue (consent dialog)
+        participant CAB as CAB.vue
+        Note over I18n: app start, locale de from the browser, no de texts, en fallback
+        P->>Login: log in
+        Login->>I18n: translate the consent question once (de falls back to en)
+        Login->>Modal: open with the English question
+        Modal->>I18n: translate No and Yes (live)
+        Login->>CAB: route to /cab/Railway
+        CAB->>I18n: switch the locale to de-Railway (no such texts, still en)
+        CAB->>CAB: load the Railway panels (no German texts on main)
+        Note over I18n,Modal: no text changes, nothing re-renders, the dialog stays English
+        P->>Modal: click No, the button rendered at the start
+        Modal->>Login: no consent
+    ```
+
+    2. This branch:
+
+    ```mermaid
+    sequenceDiagram
+        actor P as Participant (or Cypress)
+        participant I18n as vue-i18n (plugins/i18n.ts)
+        participant Login as Login.vue
+        participant Modal as Modal.vue (consent dialog)
+        participant CAB as CAB.vue
+        participant RailI18n as Railway i18n.ts (added, S7)
+        Note over I18n: app start, locale de from the browser, no de texts, en fallback
+        P->>Login: log in
+        Login->>I18n: translate the consent question once (de falls back to en)
+        Login->>Modal: open with the English question
+        Modal->>I18n: translate No and Yes (live)
+        Login->>CAB: route to /cab/Railway
+        CAB->>I18n: switch the locale to de-Railway (not loaded yet, still en)
+        CAB->>CAB: load the Railway panels (async)
+        opt added by this branch (S7): German texts arrive while the dialog is open
+            CAB->>RailI18n: import with the Railway panels
+            RailI18n->>I18n: add the de-Railway texts
+            I18n->>Modal: re-render the buttons as Nein and Ja
+            Note over Modal: BUG 1, the question stays English under German buttons
+        end
+        P->>Modal: click No
+        Note over P,Modal: BUG 2, Cypress may click the button just replaced and fail
+    ```
+
+    | | `main` | this branch |
+    |---|---|---|
+    | `Railway i18n.ts` | does not exist | added (S7), loads `de-Railway` with the Railway panels |
+    | Locale switch to `de-Railway` (`CAB.vue:198`) | finds no texts, stays English | its texts arrive a moment later |
+    | Inside the `opt` frame | nothing | the buttons re-render, BUG 1 (two languages) |
+    | Click on "No" | the button rendered at the start | maybe a replaced button, BUG 2 (Cypress flake) |
+    | The participant sees | an English dialog | English question, German buttons |
+
+  - a) Load Railway's German texts at app start, still as `de-Railway`. Rejected: at login the
+    locale is plain `de`, so the question stays English, and the buttons still switch, only
+    earlier (when the CAB page opens).
+  - a') The dialog translates its question itself: `Login.vue` passes a live translation,
+    `Modal.data` accepts it. Question and buttons always share a language; in a German browser the
+    whole dialog switches once from English to German when the Railway page has loaded. Shared
+    code (`main`).
+  - b) Only the test: `login()` waits for the buttons in the browser's language and for one
+    dialog, then clicks. Stable test; the participant still sees two languages.
+  - c) a') and b).
+  - d) Railway's German platform texts as plain `de` at app start: German from the first frame,
+    nothing switches; but every other use case (PowerGrid) would then show German platform texts
+    next to its English ones in a German browser, against Q7 d).
+  - e) Railway re-translates the open consent question when its German texts arrive, finding it in
+    the platform's `appStore._modals` by its English text; with b). No shared file, but brittle:
+    it breaks when the platform rewords the question.
+  - Files of c):
+
+    | File | Shared (`main`) | Change |
+    |---|---|---|
+    | `frontend/src/views/Login.vue:44–48` | yes | the question as `computed(() => t('modal.consent.cognitive'))` |
+    | `frontend/src/stores/app.ts:9–11, 57–60` | yes | `Modal.data: string \| Ref<string>`, cast where it is pushed (the reactive list unwraps the ref) |
+    | `frontend/src/App.vue:8` | yes, unchanged | renders `{{ modal.data }}`, the unwrapped text |
+    | `frontend/src/components/atoms/Modal.vue` | yes, unchanged | translates its buttons live already |
+    | `frontend/cypress/e2e/railway.cy.ts` (`login()`) | no (S16) | answers in the browser's language once one dialog is left |
+
+  - Before and after c), German browser, the dialog after the fade:
+
+    ![Q32 before: English question, German buttons](railway-use-case/iai_consent_q32_before.png)
+
+    ![Q32 after c): German question and buttons](railway-use-case/iai_consent_q32_after.png)
+  - *Decision:* c), the cleaner fix, which the platform maintainers can take over; e) would keep
+    the design principle without exception but couples Railway to the dialog's English text. The
+    exception is declared under the design principles and the pattern listed under New patterns.
 
 ### Handover
 
