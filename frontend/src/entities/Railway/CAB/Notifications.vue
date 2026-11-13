@@ -1,5 +1,5 @@
 <template>
-  <Notifications entity="Railway">
+  <Notifications entity="Railway" :sections>
     <template #severity="{ card }">
       {{
         $t(`card.event_type.${card.data.metadata.event_type}`) !==
@@ -28,9 +28,12 @@
   </Notifications>
 </template>
 <script setup lang="ts">
+import '@/entities/Railway/i18n'
+
 import { Inbox, MoveRight, User } from 'lucide-vue-next'
 
 import Button from '@/components/atoms/Button.vue'
 import Tooltip from '@/components/atoms/Tooltip.vue'
 import Notifications from '@/components/organisms/CAB/Notifications.vue'
+import { sections } from '@/entities/Railway/feed/sections'
 </script>

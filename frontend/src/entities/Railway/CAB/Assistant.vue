@@ -2,10 +2,15 @@
   <section class="cab-panel">
     <Default>
       <template #title>
+        <template v-if="appStore.tab.assistant === 0 && applied">
+          ✓ {{ $t('Railway.decision.applied') }}
+        </template>
         <template v-if="appStore.tab.assistant === 2">
           {{ $t('cab.assistant.recommendations') }}
         </template>
-        <template v-if="appStore.tab.assistant === 3">{{ $t('cab.assistant.recommendations') }}</template>
+        <template v-if="appStore.tab.assistant === 3">
+          {{ $t('cab.assistant.recommendations') }}
+        </template>
       </template>
       <Event
         v-if="appStore.tab.assistant === 1 && appStore.card('Railway')"
@@ -41,13 +46,85 @@
           <template v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'">
             {{ $t('event.button.primary.passenger') }}
           </template>
+          <template v-else-if="scenarioEvent">{{ $t('Railway.event.ask') }}</template>
         </template>
-        <template v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'" #tooltip>
+        <template
+          v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'"
+          #tooltip>
           {{ $t('event.tooltip.primary.passenger') }}
         </template>
       </Event>
+      <!-- A decision of the scripted simulator (scenario_id on the card): its options in
+           Empfehlungsmodus, the two-step choice in Ko-Lernen (F16–F19) -->
+      <template
+        v-if="
+          (appStore.tab.assistant === 2 || appStore.tab.assistant === 3) &&
+          appStore.card('Railway') &&
+          scenarioEvent
+        ">
+        <div class="railway-decision">
+          <span v-if="recommendations.length" class="badge">
+            ⚠ {{ $t('Railway.decision.badge') }}
+          </span>
+          <h2 v-if="scenarioName">{{ scenarioName }}</h2>
+          <p>{{ appStore.card('Railway')!.summaryTranslated }}</p>
+          <p v-if="loaded && !recommendations.length" class="none">
+            {{ $t('Railway.decision.none') }}
+          </p>
+        </div>
+        <ColearningChoice
+          v-if="colearning && recommendations.length"
+          :recommendations
+          @selected="onSelection" />
+        <Recommendations
+          v-else-if="recommendations.length"
+          v-model:recommendations="recommendations"
+          :buttons="[]"
+          @selected="onSelection">
+          <template #default="{ recommendation, index }">
+            <h2>R{{ index }}: {{ recommendation.title }}</h2>
+          </template>
+          <template #modal="{ selected }">
+            <i18n-t scope="global" keypath="recommendations.modal">
+              <template #recommendation>
+                <strong style="color: var(--color-primary)">{{ selected?.title }}</strong>
+              </template>
+            </i18n-t>
+          </template>
+          <template #footer="{ selected }">
+            <table class="railway-kpis">
+              <thead>
+                <tr>
+                  <th>KPI</th>
+                  <th
+                    v-for="(recommendation, index) of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    R{{ index }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="key of SCENARIO_KPIS" :key="key">
+                  <td>{{ $t(`Railway.kpis.${key}`) }}</td>
+                  <td
+                    v-for="recommendation of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    {{ recommendation.kpis?.[key] }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+        </Recommendations>
+      </template>
       <Recommendations
-        v-if="(appStore.tab.assistant === 2 || appStore.tab.assistant === 3) && appStore.card('Railway')"
+        v-if="
+          (appStore.tab.assistant === 2 || appStore.tab.assistant === 3) &&
+          appStore.card('Railway') &&
+          !scenarioEvent
+        "
         v-model:recommendations="recommendations"
         :buttons="[
           $t('recommendations.button1'),
@@ -75,47 +152,52 @@
         <template #button>
           <Button color="secondary">{{ $t('recommendations.button.secondary') }}</Button>
         </template>
-          <template #footer="{ selected }">
-            <div style="flex: none; overflow: auto">
-              <table v-if="recommendations.length">
-                <thead>
-                  <tr>
-                    <th>KPI</th>
-                    <th
-                      v-for="(recommendation, index) of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      R{{ index }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="key of ['cost', 'nb_impacted_passengers', 'total_cost', 'delay']" :key="key">
-                    <td>{{ $t(`Railway.kpis.${key}`) }}</td>
-                    <td
-                      v-for="recommendation of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      {{
-                        isFinite(Number(recommendation.kpis?.[key]))
-                          ? Number(recommendation.kpis?.[key])
-                          : recommendation.kpis?.[key]
-                      }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </template>
+        <template #footer="{ selected }">
+          <div style="flex: none; overflow: auto">
+            <table v-if="recommendations.length">
+              <thead>
+                <tr>
+                  <th>KPI</th>
+                  <th
+                    v-for="(recommendation, index) of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    R{{ index }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="key of ['cost', 'nb_impacted_passengers', 'total_cost', 'delay']"
+                  :key="key">
+                  <td>{{ $t(`Railway.kpis.${key}`) }}</td>
+                  <td
+                    v-for="recommendation of recommendations"
+                    :key="recommendation.title"
+                    :class="{ active: selected?.title === recommendation.title }">
+                    {{
+                      isFinite(Number(recommendation.kpis?.[key]))
+                        ? Number(recommendation.kpis?.[key])
+                        : recommendation.kpis?.[key]
+                    }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </Recommendations>
       <Procedure
         v-if="appStore.tab.assistant === 3 && procedure && appStore.card('Railway')"
         :procedure />
     </Default>
+    <ScenarioLoader />
   </section>
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import '@/entities/Railway/i18n'
+
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { sendTrace } from '@/api/services'
@@ -126,6 +208,8 @@ import Event from '@/components/organisms/CAB/Assistant/Event.vue'
 import Procedure from '@/components/organisms/CAB/Assistant/Procedure.vue'
 import Recommendations from '@/components/organisms/CAB/Assistant/Recommendations.vue'
 import { applyRecommendation } from '@/entities/Railway/api'
+import ColearningChoice from '@/entities/Railway/CAB/ColearningChoice.vue'
+import ScenarioLoader from '@/entities/Railway/CAB/ScenarioLoader.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
@@ -140,27 +224,44 @@ const appStore = useAppStore()
 
 const procedure = ref()
 const recommendations = ref<Recommendation<'Railway'>[]>([])
+const loaded = ref(false) // the answer to the last request is in
+const applied = ref(false) // "✓ Lösung angewendet." after a decision (F20)
+
+// the KPIs of the scenarios' options, in the order of F18
+const SCENARIO_KPIS = ['local_delay', 'global_delay', 'energy', 'anschluss']
+
+// a card of the scripted simulator carries its scenario; others keep today's panel (D20)
+const scenarioEvent = computed(() => !!appStore.card('Railway')?.data.metadata.scenario_id)
+const colearning = computed(() => appStore.card('Railway')?.data.metadata.run_mode === 'colearning')
+const scenarioName = computed(() => servicesStore.context('Railway')?.data.scenario?.name)
 
 watch(
   () => appStore._card,
   () => {
     appStore.tab.assistant = 1
+    applied.value = false
   }
 )
 
 watch(
   () => appStore.tab.assistant,
   async (index) => {
+    if (index === 2 || index === 3) {
+      recommendations.value = []
+      loaded.value = false
+    }
     switch (index) {
       case 2:
         await servicesStore.getRecommendation(appStore.card('Railway')!)
         recommendations.value = servicesStore.recommendations('Railway')
+        loaded.value = true
         break
       case 3:
         // procedure.value = (await getProcedure('PASSENGER')).data.procedure
         // procedure.value[0].tasks[0].state = 'doing'
         await servicesStore.getRecommendation(appStore.card('Railway')!)
         recommendations.value = servicesStore.recommendations('Railway')
+        loaded.value = true
     }
   }
 )
@@ -184,6 +285,7 @@ async function onSelection(recommendation: any) {
   const activeCard = appStore.card('Railway')
   if (activeCard) cardsStore.resolveCriticality(activeCard)
   appStore.tab.assistant = 0
+  applied.value = !!recommendation.actions?.[0]?.scenario_id
 }
 
 function primaryAction() {
@@ -195,3 +297,41 @@ function primaryAction() {
   appStore.tab.assistant = 3
 }
 </script>
+<style lang="scss">
+.railway-decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  .badge {
+    align-self: flex-start;
+    padding: 2px var(--spacing-1);
+    border-radius: 4px;
+    background: #ffe3e3;
+    color: var(--color-red-500);
+    font-weight: 600;
+  }
+  h2,
+  p {
+    margin: 0;
+  }
+  .none {
+    font-weight: 600;
+  }
+}
+.railway-kpis {
+  width: 100%;
+  td,
+  th {
+    text-align: right;
+    padding: 2px var(--spacing-1);
+  }
+  td:first-child,
+  th:first-child {
+    text-align: left;
+  }
+  .active {
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+}
+</style>

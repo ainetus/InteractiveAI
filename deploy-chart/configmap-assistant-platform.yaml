@@ -563,14 +563,17 @@ data:
           name: Dispatcher
           description: Dispatcher Group
           realtime: true
+          perimeters: ["cabProcess"]
         - id: Planner
           name: Planner
           description: Planner Group
           realtime: true
+          perimeters: ["cabProcess"]
         - id: Supervisor
           name: Supervisor
           description: Supervisor Group
           realtime: true
+          perimeters: ["cabProcess"]
         - id: Manager
           name: Manager
           description: Manager Group
@@ -579,6 +582,15 @@ data:
           name: ReadOnly
           description: ReadOnly Group
           realtime: false
+      # The cabProcess perimeter (as resources/perimeters/cabProcess.json), so the groups above
+      # receive the platform's cards without loadTestConf.sh. Only into an empty users database:
+      # OperatorFabric does not update existing groups or perimeters from this file.
+      perimeters:
+        - id: cabProcess
+          process: cabProcess
+          stateRights:
+            - state: messageState
+              right: ReceiveAndWrite
       entities:
       - id: Railway
         name: National society of French railroads

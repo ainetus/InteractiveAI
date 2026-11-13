@@ -110,6 +110,18 @@ type EntitiesTypes = {
 } as const
 ```
 
+### An extra language for your entity
+
+The platform's languages are `SUPPORT_LOCALES` (`en`, `fr`, in `src/plugins/i18n.ts`): every entity has
+an `en.json` and an `fr.json`, and `views/CAB.vue` switches to `<language>-<entity>` (e.g. `fr-PowerGrid`)
+by the browser's language. An entity can add a language of its own without a file for every entity: put
+it in its `locales/` (e.g. `de.json`) and register it as `<language>-<entity>` with
+`i18n.global.mergeLocaleMessage()`, from a module its panels import. vue-i18n then looks up
+`de-ENTITY`, then `de`, then the fallback `en`, so the file also holds the platform texts the entity's
+page shows (header, feed, assistant). Railway does this for German (`src/entities/Railway/i18n.ts`);
+its test checks that `de.json` has every key of the platform's and Railway's `en.json`. Pages outside
+an entity (login, post-logout survey) stay in the platform's languages.
+
 ### Type Support for your custom entity
 
 In `src/entities/ENTITY/types.ts`, you can define your custom types as follow:
@@ -130,7 +142,7 @@ You can then import and add your types to `src/config.ts` (cf. [Adding your cust
 When an operator logs out, the platform hands them the HMI questionnaire chain
 served from `public/surveys/` (files taken from the
 [hmisurveys](https://github.com/AI4REALNET/hmisurveys) repository, `html/`). `surveychainer.html`
-plays the questionnaires one after another in an iframe and, on *Finish*,
+plays the questionnaires one after another in an iframe and, on _Finish_,
 downloads the aggregated answers as a JSON file - exactly as it does when opened
 standalone.
 
@@ -142,14 +154,14 @@ session id and use case **before** `logout()` clears them, queues them with
 /surveys/surveychainer.html?participant=<trace session id>&condition=<use case>
 ```
 
-so both fields are prefilled and hidden - only *Start* is left to press.
+so both fields are prefilled and hidden - only _Start_ is left to press.
 
 The session report (`exportTraceSession`) still writes its JSON and HTML files
 on logout, but it no longer opens itself in a new tab there: that tab takes the
 focus, and an operator who did not notice the survey behind it never took it.
 The report is held back (`openSummary: false`) and offered once the
-questionnaire is over — *Delete the remaining alerts?* → survey → *Open the
-session report?* — so the full order is
+questionnaire is over — _Delete the remaining alerts?_ → survey → _Open the
+session report?_ — so the full order is
 
 1. `Navbar.leave` exports the session, keeping the report in memory.
 2. The operator answers the questionnaire, or skips it.
@@ -167,6 +179,12 @@ The chain lives at the top of `public/surveys/surveychainer.html`:
 - `CHAINS` - per-use-case chains, keyed by the `condition` sent by the platform
   (`PowerGrid`, `ATM`, `Railway`). Add an entry to give one use case its own
   questionnaires; use cases without an entry keep `DEFAULT_CHAIN`.
+
+`CHAINS.Railway` holds one questionnaire in German, the reflection questions of
+the Railway dispatcher experiment (`railway/reflection.html`, free text, all
+optional), played once after the Experiment. Unlike the other questionnaires it
+is InteractiveAI's own page, not one from hmisurveys. The Railway page's start
+dialog tells the participant to log out at the end, which opens it.
 
 Adding a questionnaire means copying its file from the hmisurveys repository
 into `public/surveys/` (keeping the folder layout the URLs use) and listing it in
@@ -219,6 +237,13 @@ But it's still recommended to test the production build with `test:e2e` before d
 ```sh
 npm run build
 npm run test:e2e
+```
+
+The Railway page has its own spec with named screenshots and a video, run against the Railway dev
+stack (see [`usecases_examples/Railway/README.md`](../usecases_examples/Railway/README.md#23-screenshots-and-video)):
+
+```sh
+CYPRESS_BASE_URL=http://localhost:3200 npx cypress run --spec cypress/e2e/railway.cy.ts
 ```
 
 ### Lint with [ESLint](https://eslint.org/)
