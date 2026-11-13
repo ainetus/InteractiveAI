@@ -116,6 +116,8 @@
   "Railway.status.decision": "Entscheidung erforderlich – bitte Ereigniskarte öffnen",
   "Railway.status.trains": "Zugtabelle",
   "Railway.trains.name": "Zug",
+  "Railway.trains.from": "Von",
+  "Railway.trains.to": "Nach",
   "Railway.trains.planned_departure": "Abfahrt geplant",
   "Railway.trains.actual_departure": "Abfahrt",
   "Railway.trains.planned_arrival": "Ankunft geplant",

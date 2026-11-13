@@ -30,6 +30,8 @@
   "Railway.status.decision": "Décision requise – veuillez ouvrir la carte d'événement",
   "Railway.status.trains": "Tableau des trains",
   "Railway.trains.name": "Train",
+  "Railway.trains.from": "De",
+  "Railway.trains.to": "À",
   "Railway.trains.planned_departure": "Départ prévu",
   "Railway.trains.actual_departure": "Départ",
   "Railway.trains.planned_arrival": "Arrivée prévue",

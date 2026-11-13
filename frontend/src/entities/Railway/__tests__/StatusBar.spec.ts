@@ -50,4 +50,40 @@ describe('StatusBar', () => {
     expect(rows[1]).toContain('wartet')
     expect(rows[2]).toContain('angekommen')
   })
+
+  it("names each train's origin and destination by the stations of its route", async () => {
+    const data = context({ step: 20 })
+    data.trains[0].route = [
+      [7, 2],
+      [7, 3],
+      [7, 17]
+    ]
+    data.infra = {
+      stations: [
+        { id: 1, r: 7, c: 2, name: 'Station 1' },
+        { id: 2, r: 7, c: 17, name: 'Station 2' },
+        { id: 'start_0', r: 7, c: 2, name: 'G 3', type: 'start' }
+      ]
+    } as Railway['Context']['infra']
+    const wrapper = mountIn(data)
+    await wrapper.find('button.toggle').trigger('click')
+    expect(
+      wrapper
+        .findAll('thead th')
+        .map((th) => th.text())
+        .slice(0, 3)
+    ).toEqual(['Zug', 'Von', 'Nach'])
+    const cells = wrapper
+      .findAll('tbody tr')[0]
+      .findAll('td.station')
+      .map((td) => td.text())
+    expect(cells).toEqual(['Station 1', 'Station 2'])
+    // a train without a route
+    expect(
+      wrapper
+        .findAll('tbody tr')[1]
+        .findAll('td.station')
+        .map((td) => td.text())
+    ).toEqual(['–', '–'])
+  })
 })

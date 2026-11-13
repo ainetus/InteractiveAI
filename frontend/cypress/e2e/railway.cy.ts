@@ -188,6 +188,11 @@ describe('Railway page', () => {
     )
     cy.contains('button', 'Zugtabelle').click()
     cy.contains('.railway-trains', 'unterwegs').should('be.visible')
+    // origin and destination: scenario 3's trains all run from Station 1 to Station 2
+    cy.contains('.railway-trains th', 'Von').should('be.visible')
+    cy.contains('.railway-trains th', 'Nach').should('be.visible')
+    cy.contains('.railway-trains td.station', 'Station 1').should('be.visible')
+    cy.contains('.railway-trains td.station', 'Station 2').should('be.visible')
     cy.screenshot('06-status', { capture: 'viewport' })
   })
 

@@ -17,6 +17,8 @@
       <thead>
         <tr>
           <th>{{ $t('Railway.trains.name') }}</th>
+          <th>{{ $t('Railway.trains.from') }}</th>
+          <th>{{ $t('Railway.trains.to') }}</th>
           <th>{{ $t('Railway.trains.planned_departure') }}</th>
           <th>{{ $t('Railway.trains.actual_departure') }}</th>
           <th>{{ $t('Railway.trains.planned_arrival') }}</th>
@@ -31,6 +33,8 @@
             <span class="swatch" :style="{ background: trainColor(index) }"></span>
             {{ train.name ?? train.id_train }}
           </td>
+          <td class="station">{{ stationAt(train.route?.[0]) }}</td>
+          <td class="station">{{ stationAt(train.route?.[train.route.length - 1]) }}</td>
           <td>{{ train.planned_departure ?? '–' }}</td>
           <td>{{ train.actual_departure ?? '–' }}</td>
           <td>{{ train.planned_arrival ?? '–' }}</td>
@@ -46,16 +50,26 @@
 import { computed, ref } from 'vue'
 
 import { trainColor } from '../colors'
-import type { Railway, Train } from '../types'
+import type { Cell, Railway, Train } from '../types'
 
 /**
  * The status line above the drawing (F4: "Schritt N", the old time controls are dropped, Q4), the
- * prompt while a decision is open (F35) and the optional train table (F36).
+ * prompt while a decision is open (F35) and the optional train table (F36), with each train's origin
+ * and destination: the stations at the first and last cell of its route.
  */
 const props = defineProps<{ context: Railway['Context'] }>()
 
 const scenario = computed(() => props.context.scenario)
 const showTrains = ref(false)
+
+function stationAt(cell: Cell | undefined) {
+  const station = cell
+    ? props.context.infra?.stations.find(
+        (s) => s.type !== 'start' && s.r === cell[0] && s.c === cell[1]
+      )
+    : undefined
+  return station?.name ?? '–'
+}
 
 function trainState(train: Train) {
   if (train.done) return 'arrived'
@@ -107,8 +121,14 @@ function trainState(train: Train) {
       text-align: right;
       border-bottom: 1px solid var(--color-grey-200);
     }
+    td {
+      white-space: nowrap;
+    }
     th:first-child,
-    td:first-child {
+    td:first-child,
+    th:nth-child(2),
+    th:nth-child(3),
+    td.station {
       text-align: left;
     }
     .swatch {
