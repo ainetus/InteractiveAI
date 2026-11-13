@@ -80,5 +80,21 @@ export function trackBounds(grid: number[][]) {
   return { top, left, bottom, right }
 }
 
-/** Rotation in degrees of something pointing north, to point along heading `direction`. */
-export const headingAngle = (direction: number) => (((direction % 4) + 4) % 4) * 90
+/**
+ * A train's symbol on the Kartenansicht: a pill along the track with the name inside and a "▶" at
+ * its front. The front sits at the front edge of the train's cell, the pill reaches back along the
+ * heading as far as the name needs (about 2–3 cells). Returned in the pill's own frame: `x` is the
+ * centre's shift from the cell centre, `rotate` turns the frame (0 east-west, -90 north-south, so
+ * the name always reads left to right or bottom to top), `front` is +1 when the front is at the
+ * frame's +x end and -1 when at its -x end.
+ */
+export function trainSymbol(direction: number, label: string, size: number) {
+  const heading = (((direction % 4) + 4) % 4) as Edge
+  const length = size * (0.75 + 0.24 * label.length)
+  const front = heading === 0 || heading === 1 ? 1 : -1
+  const vertical = heading === 0 || heading === 2
+  // centre: from the cell's front edge half a pill back
+  const along = size / 2 - length / 2
+  const [dx, dy] = vertical ? [0, -front * along] : [front * along, 0]
+  return { length, height: size * 0.62, front, rotate: vertical ? -90 : 0, dx, dy }
+}

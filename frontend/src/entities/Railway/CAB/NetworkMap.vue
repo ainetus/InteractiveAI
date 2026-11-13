@@ -33,26 +33,21 @@
       :class="{ failure: train.failure, highlighted: highlighted?.includes(train.id_train) }"
       :data-train="train.id_train">
       <g
-        :transform="`translate(${train.x} ${train.y}) rotate(${headingAngle(train.direction ?? 0)})`">
+        :transform="`translate(${train.x + train.symbol.dx} ${train.y + train.symbol.dy}) rotate(${train.symbol.rotate})`"
+        class="symbol">
         <rect
-          :x="-S * 0.24"
-          :y="-S * 0.4"
-          :width="S * 0.48"
-          :height="S * 0.8"
-          :rx="S * 0.08"
+          :x="-train.symbol.length / 2"
+          :y="-train.symbol.height / 2"
+          :width="train.symbol.length"
+          :height="train.symbol.height"
+          :rx="train.symbol.height / 2"
           :fill="train.color" />
         <path
-          :d="`M${-S * 0.18} ${-S * 0.18}L0 ${-S * 0.36}L${S * 0.18} ${-S * 0.18}Z`"
+          :d="`M${train.symbol.front * (train.symbol.length / 2 - S * 0.12)} 0L${train.symbol.front * (train.symbol.length / 2 - S * 0.36)} ${-S * 0.17}L${train.symbol.front * (train.symbol.length / 2 - S * 0.36)} ${S * 0.17}Z`"
           class="heading" />
-      </g>
-      <g :transform="`translate(${train.x} ${train.y - S * 0.95})`" class="label">
-        <rect
-          :x="-train.labelWidth / 2"
-          :y="-S * 0.27"
-          :width="train.labelWidth"
-          :height="S * 0.54"
-          :rx="S * 0.1" />
-        <text :font-size="S * 0.36" dominant-baseline="central">{{ train.label }}</text>
+        <text :x="-train.symbol.front * S * 0.17" :font-size="S * 0.36" dominant-baseline="central">
+          {{ train.label }}
+        </text>
       </g>
     </g>
   </svg>
@@ -61,7 +56,7 @@
 import { computed } from 'vue'
 
 import { trainColor } from '../colors'
-import { edgePoint, headingAngle, piecePath, pieces, trackBounds } from '../grid'
+import { edgePoint, piecePath, pieces, trackBounds, trainSymbol } from '../grid'
 import type { Cell, Railway } from '../types'
 
 /** Kartenansicht: the scenario's track network and the trains, from the latest context (F7–F11). */
@@ -77,8 +72,9 @@ const infra = computed(() => props.context.infra!)
 
 const viewBox = computed(() => {
   const { top, left, bottom, right } = trackBounds(infra.value.grid)
-  // one cell of margin, two above for the train labels, one below for the station names
-  return [(left - 1) * S, (top - 2) * S, (right - left + 3) * S, (bottom - top + 5) * S].join(' ')
+  // two cells of margin, for a train symbol reaching back beyond the last track cell, and the
+  // station names below
+  return [(left - 2) * S, (top - 2) * S, (right - left + 5) * S, (bottom - top + 5) * S].join(' ')
 })
 
 const tracks = computed(() =>
@@ -117,15 +113,13 @@ const trains = computed(() =>
     .filter(({ train }) => train.position && !train.done)
     .map(({ train, color }) => {
       const [r, c] = train.position as Cell
-      const label =
-        train.failure && train.delay
-          ? `${train.name} +${train.delay}`
-          : train.name ?? train.id_train
+      const label = train.name ?? train.id_train
       return {
         ...train,
         color,
         label,
-        labelWidth: S * (0.3 + 0.22 * label.length),
+        // the name on the symbol, a "▶" at its front in the running direction
+        symbol: trainSymbol(train.direction ?? 0, label, S),
         x: c * S + S / 2,
         y: r * S + S / 2
       }
@@ -173,25 +167,15 @@ const trains = computed(() =>
     .heading {
       fill: #fff;
     }
-    .label {
-      rect {
-        fill: #333;
-      }
-      text {
-        fill: #fff;
-        text-anchor: middle;
-        font-weight: 600;
-      }
+    text {
+      fill: #fff;
+      text-anchor: middle;
+      font-weight: 600;
     }
-    &.failure {
-      rect:first-child {
-        fill: var(--color-red-500);
-      }
-      .label rect {
-        fill: var(--color-red-500);
-      }
+    &.failure .symbol rect {
+      fill: var(--color-red-500);
     }
-    &.highlighted > g:first-child rect {
+    &.highlighted .symbol rect {
       stroke: var(--color-orange-500);
       stroke-width: 1.5;
     }

@@ -163,6 +163,9 @@ describe('Railway page', () => {
     // S 17 departs at step 1, S 18 at step 22; the context of every N steps brings them on the map
     cy.get('.railway-network [data-train="Train_1"]', { timeout: 40000 }).should('exist')
     cy.contains('.railway-network text', 'Station 1').should('exist')
+    // each train's name on its symbol, a triangle at its front
+    cy.contains('.railway-network [data-train="Train_0"] text', 'S 17').should('exist')
+    cy.get('.railway-network [data-train="Train_0"] .heading').should('exist')
     cy.screenshot('04-map', { capture: 'viewport' })
   })
 

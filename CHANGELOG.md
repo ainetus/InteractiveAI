@@ -21,6 +21,7 @@
 - Railway simulator: a `Dockerfile` and its own `docker-compose.yml` run it next to the platform, always on and idle until a participant starts the Experiment; the frontend image is built with `VITE_RAILWAY_SIMU=/railway-simu`. The users service loads the `cabProcess` perimeter of the Dispatcher, Planner and Supervisor groups from its config, so `railway_user` gets its cards on a fresh database without `loadTestConf.sh`.
 - Railway: the feed shows only the running scenario's cards, so each scenario of the Experiment starts with an empty feed; cards of other publishers stay. The timeline still lists the earlier runs' cards.
 - Railway: the train table shows where each train comes from and goes to ("Von", "Nach").
+- Railway: in the Kartenansicht each train is drawn along its track with its name on it and a "▶" at its front in the direction it runs; the tag above the train is gone.
 
 ### Fixed
 

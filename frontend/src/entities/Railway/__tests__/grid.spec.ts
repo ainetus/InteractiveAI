@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { headingAngle, piecePath, pieces, trackBounds, transitions } from '../grid'
+import { piecePath, pieces, trackBounds, trainSymbol,transitions } from '../grid'
 
 // Flatland's own values (flatland.core.grid.rail_env_grid.RailEnvTransitions)
 const HORIZONTAL = 1025 // east-west straight
@@ -73,8 +73,29 @@ describe('trackBounds', () => {
   })
 })
 
-describe('headingAngle', () => {
-  it('turns north by quarter turns', () => {
-    expect([0, 1, 2, 3].map(headingAngle)).toEqual([0, 90, 180, 270])
+describe('trainSymbol', () => {
+  it('grows with the name and keeps its front at the front edge of the cell', () => {
+    const east = trainSymbol(1, 'S 17', 10)
+    expect(east.length).toBeCloseTo(17.1)
+    expect(east.length).toBeGreaterThan(trainSymbol(1, 'G 3', 10).length)
+    // centre + half the length = the cell's east edge (half a cell from its centre)
+    expect(east.dx + east.length / 2).toBeCloseTo(5)
+    expect([east.rotate, east.front, east.dy]).toEqual([0, 1, 0])
+  })
+
+  it('points the other way on the same axis without turning the name upside down', () => {
+    const west = trainSymbol(3, 'S 17', 10)
+    expect([west.rotate, west.front]).toEqual([0, -1])
+    expect(west.dx - west.length / 2).toBeCloseTo(-5)
+  })
+
+  it('stands upright for north and south, the name read bottom to top', () => {
+    const north = trainSymbol(0, 'IC 3', 10)
+    expect([north.rotate, north.front, north.dx]).toEqual([-90, 1, 0])
+    // the front at the cell's north edge: y grows downwards
+    expect(north.dy - north.length / 2).toBeCloseTo(-5)
+    const south = trainSymbol(2, 'IC 3', 10)
+    expect([south.rotate, south.front]).toEqual([-90, -1])
+    expect(south.dy + south.length / 2).toBeCloseTo(5)
   })
 })
