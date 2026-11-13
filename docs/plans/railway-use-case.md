@@ -1,6 +1,6 @@
 # Railway use case on the InteractiveAI pipeline
 
-> **Status:** plan of 2026-11-07, built by 2026-11-13 except S-23, S-28–S-30, S-32–S-39, S-41 and S-44 (§11.1, Phase 5). Based on `main`
+> **Status:** plan of 2026-11-07, built by 2026-11-13 except S-23, S-28–S-30, S-32–S-39, S-41, S-44 and S-45 (§11.1, Phase 5). Based on `main`
 > `600a1ce` (release 1.5.2). No issue: the PR closes none. Branch `railway-use-case`, PR
 > [#34](https://github.com/ainetus/InteractiveAI/pull/34) (draft). Open questions: §9.1 (Q-30, Q-33, Q-34).
 >
@@ -984,6 +984,17 @@ is not new on purpose.*
   payload. (§2 D-20, Breaking changes.)
 - **DP-15 Everything can run without Docker:** the real Flask services with SQLite and their existing
   `AUTH_DISABLED` switch, plus a small gateway that stands in for Keycloak and OperatorFabric. (§4.2, Q-9.)
+- **DP-16 Three layers in Railway's code; the existing files only import:** SystemX's Railway files
+  (`frontend/src/entities/Railway/`, `backend/*/resources/Railway/`) keep only what helps any Railway
+  publisher (the German page, types made optional, the GPS check of the geographic map), plus imports and
+  the lines that branch to a layer. **`grid/`** holds what needs a context with a track network (`infra`),
+  whoever sends it: the Kartenansicht and its train symbols, the ZWL diagram, the Linienansicht, the train
+  table, the grid types, the context fields `infra` and `history`. **`experiment/`** holds sessions, runs
+  and decisions: start dialog, progress bar, feed per scenario, decision panel, Ko-Lernen choice, session
+  calls, the event fields and the context fields `session`, `scenario`, `decisions`, the lookup in
+  `recommendations.json`. Imports: the existing files import the layers; `experiment/` imports `grid/` and
+  the platform; `grid/` imports neither. Each layer has its own `locales/`. Shared platform code, the
+  nginx and start scripts and the surveys stay as they are. (Decided 2026-11-13, S-45.)
 
 Reused concepts:
 
@@ -3053,6 +3064,7 @@ The decisions are recorded in full at their questions (§9.1); one row each here
 | 2026-11-11 | ✅ Q-28 a): Ko-Lernen shows all three actions, the ones a train does not offer greyed out. | The participant sees the same choice in every scenario. | S-11. |
 | 2026-11-12 | ✅ Q-31 d): "Karte ansehen" in the start dialog opens the geographic map for an external simulation (standalone mode). | The map was no longer reachable while the simulator answers. | REQ-40, S-24. |
 | 2026-11-12 | ✅ Q-32 c): the consent question as a live translation, a declared exception to "shared platform code stays untouched". | The dialog showed an English question under German buttons; two shared lines fix it for any use case. | S-27, §4.1, §8.1. |
+| 2026-11-13 | ✅ Railway's code in three layers (DP-16): general changes stay in SystemX's files, grid-specific code in `grid/`, experiment-specific code in `experiment/`, which the existing files only import. | The diff to SystemX's files shows only what changes for every Railway publisher; the grid views can serve another publisher of a track network without the experiment. Not taken: one folder for everything (`simulator/` or `experiment/`): mixes the grid views with the session flow; `grid/` alone: the session flow and decisions have nothing to do with the grid. | S-45; paths in §5 and §12 change with it. |
 
 ### 9.3 Code Review Findings
 
@@ -3181,6 +3193,8 @@ Progress:
 - **2026-11-13 (F-22, F-24, F-25):** S-31, S-42 and S-43 committed (`13d7d67`, `13df4fb`, `c67f8a1`), S-40 with
   S-43; F-16, F-22, F-24, F-25 fixed. Shots 04-map, 06-status and 14-compare refreshed. Left open: the timeline
   still lists earlier runs' cards (S-31); S-28 still blocked by Q-33.
+- **2026-11-13 (layers):** decided to split Railway's code into general, `grid/` and `experiment/` (DP-16),
+  planned as S-45, for later.
 
 ### 11.1 Steps
 
@@ -3253,6 +3267,7 @@ Each step adds its shots (§4.3) and commits them, and adds its new texts to Rai
 | 💡 S-41 | F-19 | The simulator's session and apply routes as a `Blueprint` next to the app factory, tested on their own. | refactor | low | `refactor(railway): split the simulator's routes from its app factory` |  | D-3 | S-4 | - |
 | ✅ S-42 | F-24 | "Von" and "Nach" columns in the train table, the station names of each train's start and target cell from the scenario's infrastructure; texts × 3 locales. | feature | low | `feat(railway): show each train's origin and destination in the train table` | 13df4fb | REQ-36 | S-10 | - |
 | ✅ S-43 | F-25 | Kartenansicht: each train a pill along the track over about 2–3 cells, its name inside and a "▶" at its front in the running direction, no tag above it (and with it S-40's "+delay" branch); `trainSymbol()` in `grid.ts` + Vitest; `CHANGELOG.md`; shots [`04-map`](railway-use-case/shots/04-map.png), [`06-status`](railway-use-case/shots/06-status.png) (with S-42's columns), [`14-compare`](railway-use-case/shots/14-compare.png) refreshed. | feature | low | `feat(railway): write each train's name on its symbol and point it in its direction` | c67f8a1 | REQ-7–REQ-9 | S-40 | - |
+| 💡 S-45 | - | Railway's code in three layers (DP-16): move the files the PR added into `frontend/src/entities/Railway/grid/` and `experiment/` (with their tests in each `__tests__/`; `feed/` into `experiment/`); pull the PR's changes out of SystemX's files into them (`Context.vue` → a centre view in `grid/` with the experiment's highlighting and decision line; `Assistant.vue` → a decision panel in `experiment/`; `api.ts`, `types.ts` → `experiment/api.ts`, `grid/types.ts`, `experiment/types.ts`; the en/fr texts → each layer's `locales/`, merged in `i18n.ts`; the backend's new schema fields → base classes in `resources/Railway/grid/` and `experiment/`; `RailwayManager`'s lookup and `recommendations.json` → `resources/Railway/experiment/`, with `export_recommendations.py` and its test); restore SystemX's formatting of the lines the PR did not change; §5 and §12 paths. All tests and Cypress again. | refactor | low | `refactor(railway): move the grid views and the experiment into their own folders` |  | DP-16 | S-31, S-42, S-43 | - |
 | 💡 S-44 | F-26 | Check the Excel file the user names for what is relevant to this PR, and plan what follows. | decision | low | `docs(plans): record what of the Excel file is relevant` |  | - | - | Q-34 |
 | 💡 S-23 | - | The `/railway-simu/` location in the ConfigMap's nginx key (pushed with `apply-nginx-conf.sh` after the frontend pod with the new `start-webui.sh` runs) and `RAILWAY_SIMU_UPSTREAM` on the frontend pod in `values.ovh.yaml`. Left out of S-15: without a resolvable upstream the frontend's nginx does not start. | feature | - | `feat(deploy): route /railway-simu/ to the Railway simulator on Kubernetes` |  | D-1, D-12 | S-15 | Q-30 |
 
