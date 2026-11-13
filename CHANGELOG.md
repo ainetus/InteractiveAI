@@ -19,6 +19,7 @@
 - Railway: in the Experiment, the bar above the timeline offers "Szenario beenden", which ends the current scenario early and shows the next introduction, and "✕ Experiment beenden" (formerly "✕ Beenden"); a single run keeps "✕ Beenden". The simulator's new `POST /api/v1/session/end-run` does the ending.
 - Survey: after logging out of Railway, the post-logout survey asks the experiment's reflection questions, in German (`CHAINS.Railway`).
 - Railway simulator: a `Dockerfile` and its own `docker-compose.yml` run it next to the platform, always on and idle until a participant starts the Experiment; the frontend image is built with `VITE_RAILWAY_SIMU=/railway-simu`. The users service loads the `cabProcess` perimeter of the Dispatcher, Planner and Supervisor groups from its config, so `railway_user` gets its cards on a fresh database without `loadTestConf.sh`.
+- Railway: the feed shows only the running scenario's cards, so each scenario of the Experiment starts with an empty feed; cards of other publishers stay. The timeline still lists the earlier runs' cards.
 
 ### Fixed
 

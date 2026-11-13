@@ -276,9 +276,17 @@ describe('Railway page', () => {
     waitForContext('run 1 moving', (data) => (data.scenario?.step ?? 0) >= 8)
     cy.screenshot('17-end-run', { capture: 'viewport' })
 
+    // every scenario has sent a card by step 16 or by its decision
+    waitForContext(
+      'a card of run 1',
+      (data) => (data.scenario?.step ?? 0) >= 16 || data.scenario?.state === 'paused_for_decision'
+    )
+    cy.get('.cab-notifications .cab-notification', { timeout: 20000 }).should('exist')
     cy.get('.railway-progress [data-end-run]').click()
     cy.contains('.railway-loader h1', 'Run 2/6', { timeout: 20000 }).should('be.visible')
     cy.contains('.railway-loader button', 'Experiment beenden').should('be.visible')
+    // the next scenario starts with an empty feed: run 1's cards are gone
+    cy.get('.cab-notifications .cab-notification').should('not.exist')
   })
 
   it('plays the Experiment from the start dialog to the end screen and the reflection', () => {
