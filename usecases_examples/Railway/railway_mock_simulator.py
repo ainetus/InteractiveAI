@@ -9,6 +9,11 @@ No Railway simulator ships with this repository, so this script plays its part:
   serve    Listens for the recommendation the operator applies
            (POST <VITE_RAILWAY_SIMU>/transport_plan) and prints it, and
            republishes the context every 10 s like a running simulator.
+           For human experiments, a UI built with VITE_RAILWAY_SESSION_EVENTS=true
+           posts <VITE_RAILWAY_SIMU>/experiment/start when it gets its first
+           context of a session: the 3 events are then published, once per
+           session. (A real simulator publishes its incidents on its own; the
+           UI only calls this endpoint in experiment builds.)
 
 The UI only takes a context published after the operator logged in (an older
 one is treated as stale), and asks for no recommendation without a context:
@@ -157,15 +162,18 @@ def post_context(url, token):
 
 def publish(args):
     token = login(args.url, args.user, args.password)
-    now = datetime.now(timezone.utc)
     post_context(args.url, token)
     print(f"context: {len(TRAINS)} trains")
-    if args.context_only:
-        return
+    if not args.context_only:
+        publish_events(args.url, token, args.only)
 
+
+def publish_events(url, token, only=None):
+    """Posts the events (all of them, or those whose id_event is in `only`)."""
+    now = datetime.now(timezone.utc)
     positions = {t[0]: t[1] for t in TRAINS}
     for event in EVENTS:
-        if args.only and event["id_event"] not in args.only:
+        if only and event["id_event"] not in only:
             continue
         lat, lng = positions[event["id_train"]]
         payload = {
@@ -189,12 +197,18 @@ def publish(args):
                 "simulation_name": "railway-mock",
             },
         }
-        request("POST", f"{args.url}/cab_event/api/v1/events", payload, token)
-        print(f"event {event['id_event']}: {event['criticality']:6s} {event['title']}")
+        request("POST", f"{url}/cab_event/api/v1/events", payload, token)
+        print(f"event {event['id_event']}: {event['criticality']:6s} {event['title']}", flush=True)
 
 
 class TransportPlanHandler(BaseHTTPRequestHandler):
-    """Receives the applied recommendation. Sends CORS headers: the browser posts here directly."""
+    """Receives what the UI sends: the applied recommendation, and the start of
+    an operator's session. Sends CORS headers: the browser posts here directly."""
+
+    # Set by serve(): the platform to publish to, and the sessions already given their events
+    args = None
+    sessions = set()
+    sessions_lock = threading.Lock()
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -207,15 +221,45 @@ class TransportPlanHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
-        if self.path.rstrip("/") != "/transport_plan":
+        path = self.path.rstrip("/")
+        if path not in ("/transport_plan", "/experiment/start"):
             self.send_response(404)
             self._cors()
             self.end_headers()
             return
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length) or b"{}")
-        print(time.strftime("%H:%M:%S"), "applied recommendation:", json.dumps(body, ensure_ascii=False), flush=True)
-        answer = json.dumps({"message": "Transport plan received by the mock simulator"}).encode()
+        if path == "/experiment/start":
+            answer = self._start_session(str(body.get("session_id") or ""))
+        else:
+            print(time.strftime("%H:%M:%S"), "applied recommendation:", json.dumps(body, ensure_ascii=False), flush=True)
+            answer = {"message": "Transport plan received by the mock simulator"}
+        self._reply(answer)
+
+    def _start_session(self, session_id):
+        """Publishes the events once per operator session, when its UI gets its first context."""
+        if not session_id:
+            return {"message": "session_id missing", "published": False}
+        with self.sessions_lock:
+            if session_id in self.sessions:
+                return {"message": "Events already published for this session", "published": False}
+            self.sessions.add(session_id)
+        print(time.strftime("%H:%M:%S"), f"session {session_id}: publishing the events", flush=True)
+        threading.Thread(target=self._publish_events, args=(session_id,), daemon=True).start()
+        return {"message": "Events published for this session", "published": True}
+
+    def _publish_events(self, session_id):
+        args = self.args
+        try:
+            publish_events(args.url, login(args.url, args.user, args.password))
+        except (Exception, SystemExit) as err:  # request() exits on HTTP errors
+            # Let the UI try again with its next context
+            with self.sessions_lock:
+                self.sessions.discard(session_id)
+            print(time.strftime("%H:%M:%S"), f"session {session_id}: cannot publish the events ({err})", flush=True)
+
+    def _reply(self, payload):
+        answer = json.dumps(payload).encode()
         self.send_response(200)
         self._cors()
         self.send_header("Content-Type", "application/json")
@@ -249,6 +293,7 @@ def republish_context(args):
 
 
 def serve(args):
+    TransportPlanHandler.args = args
     if args.context_every > 0:
         threading.Thread(target=republish_context, args=(args,), daemon=True).start()
         print(f"Publishing the context to {args.url} every {args.context_every} s", flush=True)

@@ -84,6 +84,10 @@ Key variables (see `.secrets.example` for all options and per-environment values
 - `VITE_POWERGRID_SIMU` — the frontend's simulator endpoint. Use the same-origin proxy
   value `/powergrid-simu` (avoids CORS); set it to `false` to disable the PowerGrid UI.
   `VITE_RAILWAY_SIMU` / `VITE_ATM_SIMU` are the equivalents for the other use cases.
+- `VITE_RAILWAY_SESSION_EVENTS` — human experiments only (default `false`): when `true`,
+  the UI posts `<VITE_RAILWAY_SIMU>/experiment/start` once per operator session so the
+  simulator starts that session's scenario (see `usecases_examples/Railway/railway_mock_simulator.py`).
+  Leave it `false` with a real simulator, which publishes its incidents on its own.
 - `POWERGRID_SIMU_UPSTREAM` — where nginx actually forwards `/powergrid-simu/`:
   - Local dev : `http://host.docker.internal:5122/` (simulator container on the host)
   - LAN       : `http://192.168.208.61:5100/`

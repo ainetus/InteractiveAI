@@ -138,6 +138,9 @@ services:
         VITE_POWERGRID_SIMU: ${VITE_POWERGRID_SIMU}
         VITE_ATM_SIMU: ${VITE_ATM_SIMU}
         VITE_RAILWAY_SIMU: ${VITE_RAILWAY_SIMU}
+        # Human experiments only: 'true' makes the UI ask the Railway simulator to
+        # start each operator session's scenario (POST /experiment/start). Off by default.
+        VITE_RAILWAY_SESSION_EVENTS: ${VITE_RAILWAY_SESSION_EVENTS:-false}
     restart: unless-stopped
     # Lets nginx proxy /powergrid-simu/ to a simulator running on the host (local dev).
     extra_hosts:

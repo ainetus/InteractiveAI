@@ -17,11 +17,13 @@ import { onBeforeMount, onUnmounted, watchEffect } from 'vue'
 
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
+import { startExperimentSession } from '@/entities/Railway/api'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'
 import { useServicesStore } from '@/stores/services'
 import type { Severity } from '@/types/cards'
+import { currentTraceSessionId } from '@/utils/traceSessionExport'
 import { criticalityToColor } from '@/utils/utils'
 
 const servicesStore = useServicesStore()
@@ -61,8 +63,34 @@ onBeforeMount(async () => {
           return acc
         }, undefined)
       })
+    startSessionEvents()
   })
 })
+
+/** The session whose scenario was requested; kept across reloads, replaced by a new login */
+const SESSION_EVENTS_KEY = 'railway-session-events'
+
+/**
+ * Human experiments only, off unless the build sets VITE_RAILWAY_SESSION_EVENTS=true:
+ * asks the simulator to start the session's scenario when its first context
+ * arrives. The incidents have to come after the login, as the session export
+ * leaves out the cards that were there before it. A real simulator publishes
+ * its incidents on its own, so production builds never call this.
+ *
+ * Asked once per session, even if it fails: a simulator without the endpoint
+ * must not be hit again on every context.
+ */
+function startSessionEvents() {
+  if (import.meta.env.VITE_RAILWAY_SESSION_EVENTS !== 'true') return
+  const sessionId = currentTraceSessionId()
+  const simulator = import.meta.env.VITE_RAILWAY_SIMU
+  if (!sessionId || !simulator || simulator === 'false') return
+  if (localStorage.getItem(SESSION_EVENTS_KEY) === sessionId) return
+  localStorage.setItem(SESSION_EVENTS_KEY, sessionId)
+  startExperimentSession(sessionId).catch(() => {
+    // Ignored: the operator can't act on it, and `railway_mock_simulator.py publish` can
+  })
+}
 
 onUnmounted(() => {
   servicesStore.stopContext()
