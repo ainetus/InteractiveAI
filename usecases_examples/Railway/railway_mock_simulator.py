@@ -7,21 +7,25 @@ No Railway simulator ships with this repository, so this script plays its part:
            ("1", "2", "3") are the keys of the Railway recommendation catalog
            (backend/recommendation-service/resources/Railway/mockRecommendations).
   serve    Listens for the recommendation the operator applies
-           (POST <VITE_RAILWAY_SIMU>/transport_plan) and prints it.
-
-Standard library only. Examples:
-
-  python3 railway_mock_simulator.py publish
-  python3 railway_mock_simulator.py publish --only 2
-  python3 railway_mock_simulator.py publish --context-only
+           (POST <VITE_RAILWAY_SIMU>/transport_plan) and prints it, and
+           republishes the context every 10 s like a running simulator.
 
 The UI only takes a context published after the operator logged in (an older
 one is treated as stale), and asks for no recommendation without a context:
-publish after logging in, or re-run with --context-only.
-  python3 railway_mock_simulator.py serve --port 5124
+`serve` keeps a fresh one coming, so an operator who logs in gets one within
+about 15 s.
+
+Standard library only. Examples:
+
+  python3 railway_mock_simulator.py serve
+  python3 railway_mock_simulator.py serve --context-every 0      # receiver only
+  python3 railway_mock_simulator.py publish                      # context + events
+  python3 railway_mock_simulator.py publish --only 2
+  python3 railway_mock_simulator.py publish --context-only
 """
 import argparse
 import json
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -125,13 +129,11 @@ def travel_plan(route, delay_min):
     return plan
 
 
-def publish(args):
-    token = login(args.url, args.user, args.password)
-    now = datetime.now(timezone.utc)
-
+def post_context(url, token):
+    """Posts the trains' context; each post is a new context for the UI."""
     context = {
         "use_case": "Railway",
-        "date": now.isoformat(),
+        "date": datetime.now(timezone.utc).isoformat(),
         "data": {
             "trains": [
                 {
@@ -150,7 +152,13 @@ def publish(args):
             "position_agents": {},
         },
     }
-    request("POST", f"{args.url}/cabcontext/api/v1/contexts", context, token)
+    request("POST", f"{url}/cabcontext/api/v1/contexts", context, token)
+
+
+def publish(args):
+    token = login(args.url, args.user, args.password)
+    now = datetime.now(timezone.utc)
+    post_context(args.url, token)
     print(f"context: {len(TRAINS)} trains")
     if args.context_only:
         return
@@ -219,7 +227,31 @@ class TransportPlanHandler(BaseHTTPRequestHandler):
         pass
 
 
+def republish_context(args):
+    """Posts the context every `context_every` seconds, as a running simulator would.
+
+    The UI ignores a context that already existed when the operator logged in,
+    so a fresh one has to keep coming. Logs in again each time: tokens expire,
+    and the platform may restart in between.
+    """
+    failing = False
+    while True:
+        try:
+            post_context(args.url, login(args.url, args.user, args.password))
+            if failing:
+                print(time.strftime("%H:%M:%S"), "context: publishing again", flush=True)
+            failing = False
+        except (Exception, SystemExit) as err:  # request() exits on HTTP errors
+            if not failing:
+                print(time.strftime("%H:%M:%S"), f"context: cannot publish ({err}), retrying", flush=True)
+            failing = True
+        time.sleep(args.context_every)
+
+
 def serve(args):
+    if args.context_every > 0:
+        threading.Thread(target=republish_context, args=(args,), daemon=True).start()
+        print(f"Publishing the context to {args.url} every {args.context_every} s", flush=True)
     print(f"Listening on http://0.0.0.0:{args.port}/transport_plan", flush=True)
     ThreadingHTTPServer(("0.0.0.0", args.port), TransportPlanHandler).serve_forever()
 
@@ -241,8 +273,17 @@ def main():
     )
     pub.set_defaults(func=publish)
 
-    srv = sub.add_parser("serve", help="receive applied recommendations")
+    srv = sub.add_parser("serve", help="receive applied recommendations and keep the context fresh")
     srv.add_argument("--port", type=int, default=5124)
+    srv.add_argument("--url", default="http://localhost:3200", help="InteractiveAI frontend URL")
+    srv.add_argument("--user", default="publisher_test")
+    srv.add_argument("--password", default="test")
+    srv.add_argument(
+        "--context-every",
+        type=float,
+        default=10,
+        help="seconds between two context posts (0: never); 10 by default",
+    )
     srv.set_defaults(func=serve)
 
     args = parser.parse_args()
