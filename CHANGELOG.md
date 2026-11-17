@@ -22,6 +22,7 @@
 - Railway: the feed shows only the running scenario's cards, so each scenario of the Experiment starts with an empty feed; cards of other publishers stay. The timeline still lists the earlier runs' cards.
 - Railway: the train table shows where each train comes from and goes to ("Von", "Nach").
 - Railway: in the Kartenansicht each train is drawn along its track with its name on it and a "▶" at its front in the direction it runs; the tag above the train is gone.
+- Railway: opening a decision card of the simulator shows its options (Empfehlungsmodus) or the train choice (Ko-Lernen) at once, without "Empfehlung anfordern"; other cards still open on the event view with the button.
 
 ### Fixed
 

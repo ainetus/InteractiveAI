@@ -235,36 +235,47 @@ const scenarioEvent = computed(() => !!appStore.card('Railway')?.data.metadata.s
 const colearning = computed(() => appStore.card('Railway')?.data.metadata.run_mode === 'colearning')
 const scenarioName = computed(() => servicesStore.context('Railway')?.data.scenario?.name)
 
+// a decision of the scripted simulator opens on its options (REQ-15): the recommendation tab at
+// once, as the event view's primary action would open it, without the click; other cards open on
+// the event view
+const decisionCard = computed(() => {
+  const metadata = appStore.card('Railway')?.data.metadata
+  return !!metadata?.scenario_id && metadata.decision_index != null
+})
+
 watch(
   () => appStore._card,
   () => {
-    appStore.tab.assistant = 1
     applied.value = false
+    if (!decisionCard.value) appStore.tab.assistant = 1
+    // already on the recommendation tab (another decision card was open): ask again
+    else if (appStore.tab.assistant === 2) loadRecommendations()
+    else appStore.tab.assistant = 2
   }
 )
 
 watch(
   () => appStore.tab.assistant,
   async (index) => {
-    if (index === 2 || index === 3) {
-      recommendations.value = []
-      loaded.value = false
-    }
     switch (index) {
       case 2:
-        await servicesStore.getRecommendation(appStore.card('Railway')!)
-        recommendations.value = servicesStore.recommendations('Railway')
-        loaded.value = true
+        await loadRecommendations()
         break
       case 3:
         // procedure.value = (await getProcedure('PASSENGER')).data.procedure
         // procedure.value[0].tasks[0].state = 'doing'
-        await servicesStore.getRecommendation(appStore.card('Railway')!)
-        recommendations.value = servicesStore.recommendations('Railway')
-        loaded.value = true
+        await loadRecommendations()
     }
   }
 )
+
+async function loadRecommendations() {
+  recommendations.value = []
+  loaded.value = false
+  await servicesStore.getRecommendation(appStore.card('Railway')!)
+  recommendations.value = servicesStore.recommendations('Railway')
+  loaded.value = true
+}
 
 async function onSelection(recommendation: any) {
   sendTrace({

@@ -129,6 +129,9 @@ describe('Railway page', () => {
       'be.visible'
     )
     cy.screenshot('01-feed', { capture: 'viewport' })
+    // a card without a decision opens on the event view, with its button
+    cy.contains('Türstörung — S 17').click()
+    cy.contains('button', 'Get recommendation').should('be.visible')
   })
 
   it("shows a decision's recommendations from the Recommendation Service", () => {
@@ -137,11 +140,12 @@ describe('Railway page', () => {
     // scenario 3 pauses at step 16 with the conflict card that carries the decision
     waitForRun('paused_for_decision')
     cy.get('.railway-network', { timeout: 20000 }).should('be.visible')
+    // a decision card opens on its options at once, without "Get recommendation"
     cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
-    cy.contains('button', 'Get recommendation').click()
     cy.contains('IC 3 + IR 35 folgen G 3 mit halber Geschwindigkeit', { timeout: 20000 }).should(
       'be.visible'
     )
+    cy.contains('button', 'Get recommendation').should('not.exist')
     cy.contains('G 3 weicht aus — IC 3 + IR 35 überholen').should('be.visible')
     cy.screenshot('02-recommendations', { capture: 'viewport' })
   })
@@ -204,7 +208,6 @@ describe('Railway page', () => {
     startRun('scenario3', 'recommendation')
     waitForRun('paused_for_decision')
     cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
-    cy.contains('button', 'Empfehlung anfordern').click()
     cy.contains('.railway-decision .badge', 'Entscheidung erforderlich', { timeout: 20000 }).should(
       'be.visible'
     )
@@ -236,7 +239,6 @@ describe('Railway page', () => {
     startRun('scenario2', 'colearning')
     waitForRun('paused_for_decision')
     cy.contains('Dispositionskonflikt — Entscheidung erforderlich', { timeout: 30000 }).click()
-    cy.contains('button', 'Empfehlung anfordern').click()
     cy.contains('.railway-colearning button', 'S 17-2', { timeout: 20000 }).click()
     // umleiten is not offered for S 17-2; warten is offered but not feasible and says why
     cy.contains('.railway-colearning button', 'Umleiten').should('be.disabled')
@@ -359,7 +361,6 @@ describe('Railway page', () => {
     startRun('scenario2', 'recommendation')
     waitForRun('paused_for_decision')
     cy.contains('Dispositionskonflikt — Entscheidung erforderlich', { timeout: 30000 }).click()
-    cy.contains('button', 'Empfehlung anfordern').click()
     cy.get('.cab-recommendation', { timeout: 20000 }).first().click()
     cy.contains('button', 'Anwenden').click()
     cy.contains('button', 'Ja').click()
@@ -378,7 +379,6 @@ describe('Railway page', () => {
     startRun('scenario3', 'colearning')
     waitForRun('paused_for_decision')
     cy.contains('Dispositionskonflikt — G 3 fährt langsam', { timeout: 30000 }).click()
-    cy.contains('button', 'Empfehlung anfordern').click()
     cy.contains('.railway-colearning button', 'IC 3 dann IR 35', { timeout: 20000 }).should(
       'be.visible'
     )
