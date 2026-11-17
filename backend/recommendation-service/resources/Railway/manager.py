@@ -31,10 +31,11 @@ class RailwayManager(BaseRecommendationManager):
 
         Supports four modes controlled by request_data["event"]["mode"]:
 
-        - "basic" (default): best-first ordering via SNCF_RECO3
-        - "deontic": filter by KPI threshold, then sort ascending via SNCF_deontic
+        - "basic": best-first ordering via SNCF_RECO3
+        - "deontic" (default): filter by KPI threshold, then sort ascending via SNCF_deontic
             requires: sort_type ("passengers"|"delay"|"cost"|"total_cost")
-                      threshold_value (int, or delay string e.g. "1h30" for delay)
+                      threshold_value (the highest acceptable value of the KPI: a number,
+                      or for delay minutes or a delay string e.g. "1h30")
         - "risk": sort all recommendations by KPI ascending via SNCF_risk
             requires: sort_type
         - "risk_tie_break": sort by primary KPI, break ties with secondary via SNCF_risk_tie_break
@@ -77,9 +78,11 @@ class RailwayManager(BaseRecommendationManager):
         else:  # "basic" or any unrecognised mode
             recommendations = SNCF_RECO3(event_json, context_json, RECOMMENDATION_CATALOG)
 
-        # Surface catalog errors as an empty list rather than crashing downstream
-        if recommendations and isinstance(recommendations[0], dict) and "error" in recommendations[0]:
-            logger.error(f"Recommendation error: {recommendations[0]['error']}")
+        # Surface catalog errors as an empty list rather than crashing downstream.
+        # The SNCF functions return JSON strings, errors included ({"error": ...}).
+        first = json.loads(recommendations[0]) if recommendations else None
+        if isinstance(first, dict) and "error" in first:
+            logger.error(f"Recommendation error: {first['error']}")
             return []
 
         return [self._transform_recommendation(reco) for reco in recommendations]

@@ -2,15 +2,14 @@
   <section class="cab-panel">
     <Default>
       <template #title>
-        <template v-if="appStore.tab.assistant === 2">
-          {{ $t('cab.assistant.recommendations') }}
+        <template v-if="appStore.tab.assistant === 2 && journey">
+          {{ $t('railway.journey.title') }}
         </template>
-        <template v-if="appStore.tab.assistant === 3">{{ $t('cab.assistant.recommendations') }}</template>
       </template>
       <Event
         v-if="appStore.tab.assistant === 1 && appStore.card('Railway')"
         :card="appStore.card('Railway')!"
-        :primary-action="primaryAction">
+        :primary-action="startJourney">
         <template #event>
           <i18n-t
             scope="global"
@@ -37,161 +36,701 @@
             </template>
           </i18n-t>
         </template>
-        <template #button-primary>
-          <template v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'">
-            {{ $t('event.button.primary.passenger') }}
-          </template>
-        </template>
-        <template v-if="appStore.card('Railway')!.data.metadata.event_type === 'PASSENGER'" #tooltip>
-          {{ $t('event.tooltip.primary.passenger') }}
-        </template>
       </Event>
-      <Recommendations
-        v-if="(appStore.tab.assistant === 2 || appStore.tab.assistant === 3) && appStore.card('Railway')"
-        v-model:recommendations="recommendations"
-        :buttons="[
-          $t('recommendations.button1'),
-          $t('recommendations.button2'),
-          $t('recommendations.button3'),
-          $t('recommendations.button4')
-        ]"
-        @selected="onSelection">
-        <template #default="{ recommendation, index }">
-          <div class="flex">
-            <main>
-              <h2>R{{ index }}: {{ recommendation.title }}</h2>
-            </main>
+
+      <div
+        v-if="appStore.tab.assistant === 2 && appStore.card('Railway') && journey && mode"
+        class="railway-journey">
+        <!-- Mode and progress -->
+        <header class="railway-journey-header">
+          <div class="flex flex-center-y">
+            <strong class="railway-journey-mode">{{ $t(`railway.journey.mode.${mode}`) }}</strong>
+            <span class="railway-journey-badge">
+              {{ $t('railway.journey.step', { current: journey.step + 1, total: journey.order.length }) }}
+            </span>
           </div>
-        </template>
-        <template #modal="{ selected }">
-          <i18n-t scope="global" keypath="recommendations.modal">
-            <template #recommendation>
-              <strong style="color: var(--color-primary)">
-                {{ selected?.title }}
-              </strong>
-            </template>
-          </i18n-t>
-        </template>
-        <template #button>
-          <Button color="secondary">{{ $t('recommendations.button.secondary') }}</Button>
-        </template>
-          <template #footer="{ selected }">
-            <div style="flex: none; overflow: auto">
-              <table v-if="recommendations.length">
-                <thead>
-                  <tr>
-                    <th>KPI</th>
-                    <th
-                      v-for="(recommendation, index) of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      R{{ index }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="key of ['cost', 'nb_impacted_passengers', 'total_cost', 'delay']" :key="key">
-                    <td>{{ $t(`Railway.kpis.${key}`) }}</td>
-                    <td
-                      v-for="recommendation of recommendations"
-                      :key="recommendation.title"
-                      :class="{ active: selected?.title === recommendation.title }">
-                      {{
-                        isFinite(Number(recommendation.kpis?.[key]))
-                          ? Number(recommendation.kpis?.[key])
-                          : recommendation.kpis?.[key]
-                      }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <div class="railway-journey-progress">
+            <div :style="{ width: `${((journey.step + 1) / journey.order.length) * 100}%` }"></div>
+          </div>
+        </header>
+
+        <!-- KPI (and threshold) choice -->
+        <div v-if="mode !== 'basic'" class="railway-journey-box">
+          <p class="railway-journey-label">{{ $t('railway.journey.select_kpi') }}</p>
+          <div class="railway-journey-kpis">
+            <button
+              v-for="option of KPIS"
+              :key="option.id"
+              type="button"
+              class="railway-journey-chip"
+              :class="{ selected: kpi === option.id }"
+              @click="selectKpi(option.id)">
+              {{ $t(`Railway.kpis.${option.id}`) }}
+            </button>
+          </div>
+          <template v-if="mode === 'kpi-threshold' && kpi && range">
+            <div class="railway-journey-threshold">
+              <div class="railway-journey-threshold-value">
+                <label :for="`railway-threshold-${journey.step}`">
+                  {{ $t('railway.journey.threshold') }}
+                </label>
+                <strong>≤ {{ formatThreshold(kpi, thresholdDraft) }}</strong>
+              </div>
+              <input
+                :id="`railway-threshold-${journey.step}`"
+                v-model.number="thresholdDraft"
+                type="range"
+                :min="range.min"
+                :max="range.max"
+                step="1"
+                @change="commitThreshold" />
             </div>
+            <p class="railway-journey-hint">
+              {{ $t('railway.journey.threshold_hint', { kpi: $t(`Railway.kpis.${kpi}`) }) }}
+            </p>
           </template>
-      </Recommendations>
-      <Procedure
-        v-if="appStore.tab.assistant === 3 && procedure && appStore.card('Railway')"
-        :procedure />
+        </div>
+
+        <div v-if="mode !== 'basic' && !kpi" class="railway-journey-empty">
+          <Target :size="28" />
+          <p>{{ $t('railway.journey.select_kpi_hint') }}</p>
+        </div>
+        <div v-else-if="loading" class="railway-journey-empty">
+          <p>{{ $t('railway.journey.loading') }}</p>
+        </div>
+        <template v-else>
+          <!-- Recommendations -->
+          <ol class="railway-journey-list">
+            <li
+              v-for="(recommendation, index) of visible"
+              :key="recommendation.title"
+              :class="{ selected: selected?.title === recommendation.title }"
+              @click="select(recommendation)">
+              <span class="railway-journey-rank" :style="{ '--rank': index }">{{ index + 1 }}</span>
+              <span class="railway-journey-reco">
+                <span>{{ recommendation.title }}</span>
+                <span v-if="mode === 'basic' && isBest(recommendation)" class="railway-journey-expert">
+                  <Star :size="10" /> {{ $t('railway.journey.expert_choice') }}
+                </span>
+              </span>
+              <button
+                type="button"
+                class="railway-journey-reject"
+                :title="$t('railway.journey.reject')"
+                :aria-label="$t('railway.journey.reject')"
+                @click.stop="reject(recommendation)">
+                <ThumbsDown :size="14" />
+              </button>
+            </li>
+          </ol>
+          <p v-if="!recommendations.length && mode !== 'kpi-threshold'" class="railway-journey-hint">
+            {{ $t('railway.journey.empty') }}
+          </p>
+          <p v-else-if="recommendations.length && !visible.length" class="railway-journey-hint">
+            {{ $t('railway.journey.all_rejected') }}
+          </p>
+          <button
+            v-if="rejected.length"
+            type="button"
+            class="railway-journey-restore"
+            @click="restoreRejected">
+            <RotateCcw :size="14" />
+            {{ $t('railway.journey.restore', { count: rejected.length }, rejected.length) }}
+          </button>
+
+          <!-- Details of the selected recommendation -->
+          <template v-if="selected">
+            <div class="railway-journey-box">
+              <p class="railway-journey-label"><FileText :size="14" /> {{ $t('railway.journey.description') }}</p>
+              <p>{{ selected.description }}</p>
+            </div>
+            <template v-if="mode !== 'basic' && kpi">
+              <div class="railway-journey-box">
+                <p class="railway-journey-label"><Gauge :size="14" /> {{ $t('railway.journey.kpis') }}</p>
+                <div
+                  v-for="option of KPIS"
+                  :key="option.id"
+                  class="railway-journey-metric"
+                  :class="{ chosen: option.id === kpi }">
+                  <span>{{ $t(`Railway.kpis.${option.id}`) }}</span>
+                  <span>{{ formatKpi(option.id, kpiValue(selected, option.id)) }}</span>
+                </div>
+              </div>
+              <div class="railway-journey-box">
+                <p class="railway-journey-label">
+                  <Lightbulb :size="14" /> {{ $t('railway.journey.explainability') }}
+                </p>
+                <p>{{ explanation }}</p>
+              </div>
+            </template>
+            <Button class="railway-journey-apply" @click="confirming = true">
+              <Check :size="16" />
+              {{ isLastStep ? $t('railway.journey.apply') : $t('railway.journey.apply_next') }}
+            </Button>
+          </template>
+        </template>
+      </div>
     </Default>
+
+    <Modal v-if="confirming" type="choice" @close="onConfirm">
+      <i18n-t
+        scope="global"
+        :keypath="isLastStep ? 'railway.journey.confirm' : 'railway.journey.confirm_next'">
+        <template #recommendation>
+          <strong style="color: var(--color-primary)">{{ selected?.title }}</strong>
+        </template>
+      </i18n-t>
+    </Modal>
+    <Modal v-if="noRecommendation" type="info" @close="resetThreshold">
+      {{ $t('railway.journey.no_reco') }}
+    </Modal>
   </section>
 </template>
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import {
+  Check,
+  FileText,
+  Gauge,
+  Lightbulb,
+  RotateCcw,
+  Star,
+  Target,
+  ThumbsDown
+} from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { sendTrace } from '@/api/services'
-import { getProcedure } from '@/api/services'
 import Button from '@/components/atoms/Button.vue'
+import Modal from '@/components/atoms/Modal.vue'
 import Default from '@/components/organisms/CAB/Assistant.vue'
 import Event from '@/components/organisms/CAB/Assistant/Event.vue'
-import Procedure from '@/components/organisms/CAB/Assistant/Procedure.vue'
-import Recommendations from '@/components/organisms/CAB/Assistant/Recommendations.vue'
 import { applyRecommendation } from '@/entities/Railway/api'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
-import type { Entity } from '@/types/entities'
 import type { Recommendation } from '@/types/services'
+import { recordTraceForSession } from '@/utils/traceSessionExport'
 import { criticalityToColor, getRootCard } from '@/utils/utils'
 
-const route = useRoute()
+/**
+ * Guided experiment: the operator answers the same event three times, once per
+ * way of presenting the recommendations, in a random order. Each choice is
+ * applied and traced, so the choices can be compared afterwards.
+ */
+type Mode = 'basic' | 'kpi' | 'kpi-threshold'
+type Kpi = 'cost' | 'delay' | 'nb_impacted_passengers' | 'total_cost'
+
+const MODES: Mode[] = ['basic', 'kpi', 'kpi-threshold']
+/** The recommendation service's ordering for each step (see resources/Railway/manager.py) */
+const SERVICE_MODE: Record<Mode, string> = {
+  basic: 'basic', // the experts' choice first
+  kpi: 'risk', // sorted by the KPI, lowest first
+  'kpi-threshold': 'deontic' // above the threshold left out, then sorted by the KPI
+}
+/** The service's name for each KPI of the recommendations */
+const KPIS: { id: Kpi; sortType: string }[] = [
+  { id: 'cost', sortType: 'cost' },
+  { id: 'delay', sortType: 'delay' },
+  { id: 'nb_impacted_passengers', sortType: 'passengers' },
+  { id: 'total_cost', sortType: 'total_cost' }
+]
+
+const { t, locale } = useI18n()
 const cardsStore = useCardsStore()
 const servicesStore = useServicesStore()
 const appStore = useAppStore()
 
-const procedure = ref()
+const journey = ref<{ order: Mode[]; step: number }>()
+const mode = computed(() => journey.value?.order[journey.value.step])
+const isLastStep = computed(() => !!journey.value && journey.value.step === journey.value.order.length - 1)
+
+/** Every recommendation of the event, to bound the threshold to the values it can take */
+const all = ref<Recommendation<'Railway'>[]>([])
 const recommendations = ref<Recommendation<'Railway'>[]>([])
+const rejected = ref<string[]>([])
+const visible = computed(() =>
+  recommendations.value.filter((recommendation) => !rejected.value.includes(recommendation.title))
+)
+const selected = ref<Recommendation<'Railway'>>()
+const kpi = ref<Kpi>()
+/** The threshold sent to the service, and the slider's value while it moves */
+const threshold = ref<number>()
+const thresholdDraft = ref(0)
+const loading = ref(false)
+const confirming = ref(false)
+const noRecommendation = ref(false)
+const stepStartedAt = ref<string>()
+const shownAt = ref<string>()
+/** Answers to an older request (a KPI changed in between) are dropped */
+let request = 0
+
+const range = computed(() => {
+  if (!kpi.value || !all.value.length) return
+  const values = all.value.map((recommendation) => kpiValue(recommendation, kpi.value!))
+  return { min: Math.min(...values), max: Math.max(...values) }
+})
 
 watch(
   () => appStore._card,
   () => {
+    journey.value = undefined
     appStore.tab.assistant = 1
   }
 )
 
-watch(
-  () => appStore.tab.assistant,
-  async (index) => {
-    switch (index) {
-      case 2:
-        await servicesStore.getRecommendation(appStore.card('Railway')!)
-        recommendations.value = servicesStore.recommendations('Railway')
-        break
-      case 3:
-        // procedure.value = (await getProcedure('PASSENGER')).data.procedure
-        // procedure.value[0].tasks[0].state = 'doing'
-        await servicesStore.getRecommendation(appStore.card('Railway')!)
-        recommendations.value = servicesStore.recommendations('Railway')
-    }
-  }
-)
+/** A KPI as a number: minutes for a delay ("1h30", "00h53", "45min"), the value otherwise */
+function kpiValue(recommendation: Recommendation<'Railway'>, key: Kpi) {
+  const raw = recommendation.kpis?.[key]
+  if (key !== 'delay') return Number(raw) || 0
+  const text = String(raw ?? '').toLowerCase()
+  const hours = /(\d+)\s*h/.exec(text)
+  const minutes = /h\s*(\d+)/.exec(text) ?? /(\d+)\s*min/.exec(text)
+  if (!hours && !minutes) return Number(text) || 0
+  return Number(hours?.[1] ?? 0) * 60 + Number(minutes?.[1] ?? 0)
+}
 
-async function onSelection(recommendation: any) {
+function formatKpi(key: Kpi, value: number) {
+  if (key === 'delay') return `${Math.floor(value / 60)}h${String(value % 60).padStart(2, '0')}`
+  return value.toLocaleString(locale.value)
+}
+
+/** A threshold with its unit: euros for the costs, passengers for the impacted passengers */
+function formatThreshold(key: Kpi, value: number) {
+  if (key === 'cost' || key === 'total_cost')
+    return value.toLocaleString(locale.value, {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0
+    })
+  if (key === 'nb_impacted_passengers')
+    return t('railway.journey.unit.passengers', { count: value.toLocaleString(locale.value) }, value)
+  return formatKpi(key, value)
+}
+
+function isBest(recommendation: Recommendation<'Railway'>) {
+  return String(recommendation.kpis?.best).toLowerCase() === 'true'
+}
+
+const explanation = computed(() => {
+  if (!selected.value || !kpi.value) return ''
+  const values = visible.value.map((recommendation) => kpiValue(recommendation, kpi.value!))
+  const value = kpiValue(selected.value, kpi.value)
+  let text = t('railway.journey.explain.rank', {
+    rank: visible.value.findIndex((recommendation) => recommendation.title === selected.value!.title) + 1,
+    count: visible.value.length,
+    kpi: t(`Railway.kpis.${kpi.value}`),
+    value: formatKpi(kpi.value, value),
+    best: formatKpi(kpi.value, Math.min(...values))
+  })
+  if (mode.value === 'kpi-threshold' && threshold.value !== undefined)
+    text +=
+      ' ' +
+      t('railway.journey.explain.threshold', {
+        value: formatKpi(kpi.value, value),
+        threshold: formatKpi(kpi.value, threshold.value)
+      })
+  return text
+})
+
+/** What the analysis needs to know about the step a trace belongs to */
+function stepRecord() {
+  return {
+    step: journey.value!.step + 1,
+    steps: journey.value!.order.length,
+    mode: mode.value!,
+    mode_order: journey.value!.order,
+    kpi: kpi.value ?? null,
+    threshold: threshold.value ?? null
+  }
+}
+
+function shuffle<T>(items: T[]) {
+  const shuffled = [...items]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+async function startJourney() {
+  const card = appStore.card('Railway')!
+  journey.value = { order: shuffle(MODES), step: 0 }
+  appStore.tab.assistant = 2
+  loading.value = true
+  const answer = await servicesStore.getRecommendation(card, undefined, undefined, { mode: 'basic' })
+  // No context yet: the store has told the operator and closed the assistant
+  if (!answer) {
+    journey.value = undefined
+    return
+  }
+  all.value = answer
+  startStep()
+}
+
+function startStep() {
+  kpi.value = undefined
+  threshold.value = undefined
+  rejected.value = []
+  selected.value = undefined
+  recommendations.value = []
+  stepStartedAt.value = new Date().toISOString()
+  // One ask -> shown -> applied cycle per step, so each step gets its own decision time
   sendTrace({
-    data: recommendation,
-    use_case: route.params.entity as Entity,
+    data: { id: appStore.card('Railway')!.id, railway_experiment: stepRecord() },
+    use_case: 'Railway',
+    step: 'ASKFORHELP'
+  })
+  if (mode.value === 'basic') fetchRecommendations()
+}
+
+async function fetchRecommendations() {
+  if (!mode.value || (mode.value !== 'basic' && !kpi.value)) return
+  const id = ++request
+  loading.value = true
+  const overrides: Record<string, unknown> = { mode: SERVICE_MODE[mode.value] }
+  if (kpi.value) overrides.sort_type = KPIS.find((option) => option.id === kpi.value)!.sortType
+  if (mode.value === 'kpi-threshold') overrides.threshold_value = threshold.value
+  try {
+    const answer = await servicesStore.getRecommendation(
+      appStore.card('Railway')!,
+      undefined,
+      undefined,
+      overrides
+    )
+    if (id !== request) return
+    recommendations.value = answer ?? []
+  } finally {
+    if (id === request) loading.value = false
+  }
+  if (selected.value && !visible.value.some((recommendation) => recommendation.title === selected.value!.title))
+    selected.value = undefined
+  if (!recommendations.value.length) {
+    if (mode.value === 'kpi-threshold') noRecommendation.value = true
+    return
+  }
+  shownAt.value = new Date().toISOString()
+  recordTraceForSession({
+    use_case: 'Railway',
+    step: 'RECOMMENDATIONS',
+    date: shownAt.value,
+    data: {
+      recommendations: recommendations.value.map((recommendation) => recommendation.title),
+      railway_experiment: stepRecord()
+    }
+  })
+}
+
+function selectKpi(id: Kpi) {
+  if (kpi.value === id) return
+  kpi.value = id
+  if (mode.value === 'kpi-threshold') {
+    // Starts with every recommendation allowed; lowering it is the operator's choice
+    threshold.value = range.value?.max
+    thresholdDraft.value = range.value?.max ?? 0
+  }
+  fetchRecommendations()
+}
+
+function commitThreshold() {
+  threshold.value = thresholdDraft.value
+  fetchRecommendations()
+}
+
+function resetThreshold() {
+  noRecommendation.value = false
+  thresholdDraft.value = range.value?.max ?? 0
+  commitThreshold()
+}
+
+function select(recommendation: Recommendation<'Railway'>) {
+  selected.value = selected.value?.title === recommendation.title ? undefined : recommendation
+}
+
+function reject(recommendation: Recommendation<'Railway'>) {
+  rejected.value.push(recommendation.title)
+  if (selected.value?.title === recommendation.title) selected.value = undefined
+  recordTraceForSession({
+    use_case: 'Railway',
+    step: 'FEEDBACK',
+    date: new Date().toISOString(),
+    data: {
+      action: 'reject_recommendation',
+      recommendation: recommendation.title,
+      railway_experiment: stepRecord()
+    }
+  })
+}
+
+/** Brings back every recommendation rejected in this step */
+function restoreRejected() {
+  recordTraceForSession({
+    use_case: 'Railway',
+    step: 'FEEDBACK',
+    date: new Date().toISOString(),
+    data: {
+      action: 'restore_rejected_recommendations',
+      recommendations: [...rejected.value],
+      railway_experiment: stepRecord()
+    }
+  })
+  rejected.value = []
+}
+
+async function onConfirm(success: boolean) {
+  confirming.value = false
+  if (!success || !selected.value || !journey.value) return
+  const card = appStore.card('Railway')!
+  const recommendation = selected.value
+  const record = {
+    ...stepRecord(),
+    shown: visible.value.map((item) => item.title),
+    rejected: [...rejected.value],
+    chosen_rank: visible.value.findIndex((item) => item.title === recommendation.title) + 1,
+    step_started_at: stepStartedAt.value,
+    shown_at: shownAt.value
+  }
+  sendTrace({
+    data: { ...recommendation, railway_experiment: record },
+    use_case: 'Railway',
     step: 'AWARD'
   })
   try {
     await applyRecommendation({
       ...recommendation.actions[0],
-      event_id: getRootCard(appStore.card('Railway')!).processInstanceId
+      event_id: getRootCard(card).processInstanceId,
+      recommendation: recommendation.title,
+      experiment: {
+        step: record.step,
+        steps: record.steps,
+        mode: record.mode,
+        kpi: record.kpi,
+        threshold: record.threshold
+      }
     })
   } catch {
-    // http plugin already shows an error modal — leave the card open so the user can retry
-    console.error('[Railway][apply] failed — leaving card open for retry')
+    // http plugin already shows an error modal — stay on this step so the operator can retry
     return
   }
-  const activeCard = appStore.card('Railway')
-  if (activeCard) cardsStore.resolveCriticality(activeCard)
-  appStore.tab.assistant = 0
-}
-
-function primaryAction() {
-  sendTrace({
-    data: { id: appStore.card('Railway')!.id },
-    use_case: route.params.entity as Entity,
-    step: 'ASKFORHELP'
-  })
-  appStore.tab.assistant = 3
+  if (isLastStep.value) {
+    cardsStore.resolveCriticality(card)
+    journey.value = undefined
+    appStore.tab.assistant = 0
+    return
+  }
+  journey.value.step++
+  startStep()
 }
 </script>
+<style lang="scss">
+.railway-journey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  overflow-y: auto;
+  font-size: 0.9em;
+
+  &-header > .flex {
+    justify-content: space-between;
+    margin-bottom: calc(var(--unit) * 0.5);
+  }
+  &-mode {
+    color: var(--color-primary);
+  }
+  &-badge {
+    font-size: 0.8em;
+    padding: 0 var(--spacing-1);
+    border-radius: var(--radius-circular);
+    background: color-mix(in srgb, var(--color-primary), transparent 85%);
+    color: var(--color-primary);
+  }
+  &-progress {
+    height: calc(var(--unit) * 0.5);
+    border-radius: var(--radius-circular);
+    background: var(--color-grey-300);
+    overflow: hidden;
+    div {
+      height: 100%;
+      background: var(--color-primary);
+      transition: width 0.4s ease;
+    }
+  }
+
+  &-box {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--unit) * 0.5);
+    padding: var(--spacing-1);
+    border: 1px solid var(--color-grey-300);
+    border-radius: var(--radius-medium);
+  }
+  &-label {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--unit) * 0.5);
+    font-weight: bold;
+  }
+  &-hint {
+    color: var(--color-grey-600);
+    font-size: 0.9em;
+  }
+
+  &-kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--unit) * 0.5);
+  }
+  &-chip {
+    cursor: pointer;
+    padding: calc(var(--unit) * 0.5) var(--spacing-1);
+    border: 1px solid var(--color-grey-400);
+    border-radius: var(--radius-circular);
+    background: var(--color-background);
+    color: var(--color-text);
+    &:hover {
+      border-color: var(--color-primary);
+    }
+    &.selected {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: var(--color-text-inverted);
+    }
+  }
+  // Value above the slider, so a long one ("12 345 voyageurs") never squeezes it
+  &-threshold {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--unit) * 0.5);
+    input {
+      width: 100%;
+      margin: 0;
+      accent-color: var(--color-primary);
+    }
+    &-value {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: calc(var(--unit) * 0.5);
+      strong {
+        color: var(--color-primary);
+        text-align: right;
+      }
+    }
+  }
+
+  &-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: var(--spacing-2);
+    color: var(--color-grey-600);
+    text-align: center;
+  }
+
+  &-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--unit) * 0.5);
+    li {
+      display: flex;
+      align-items: stretch;
+      cursor: pointer;
+      min-height: calc(var(--unit) * 5);
+      border: 1px solid var(--color-grey-300);
+      border-radius: var(--radius-medium);
+      overflow: hidden;
+      &:hover {
+        border-color: var(--color-primary);
+      }
+      &.selected {
+        border: 2px solid var(--color-primary);
+        background: color-mix(in srgb, var(--color-primary), transparent 92%);
+      }
+    }
+  }
+  &-rank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: calc(var(--unit) * 3.5);
+    font-weight: bold;
+    color: var(--color-text-inverted);
+    background: color-mix(in srgb, var(--color-primary), transparent calc(var(--rank) * 22%));
+  }
+  &-reco {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: calc(var(--unit) * 0.25);
+    padding: calc(var(--unit) * 0.5) var(--spacing-1);
+    font-weight: bold;
+  }
+  &-expert {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--unit) * 0.25);
+    padding: 0 var(--spacing-1);
+    font-size: 0.8em;
+    border-radius: var(--radius-circular);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+  }
+  &-reject {
+    cursor: pointer;
+    flex: none;
+    width: calc(var(--unit) * 4);
+    border: none;
+    background: var(--color-primary);
+    color: var(--color-text-inverted);
+    &:hover {
+      background: var(--color-error);
+    }
+  }
+  &-restore {
+    cursor: pointer;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--unit) * 0.5);
+    padding: calc(var(--unit) * 0.5) var(--spacing-1);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-circular);
+    background: var(--color-background);
+    color: var(--color-primary);
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary), transparent 90%);
+    }
+  }
+
+  &-metric {
+    display: flex;
+    justify-content: space-between;
+    padding: calc(var(--unit) * 0.25) 0;
+    border-bottom: 1px solid var(--color-grey-200);
+    &:last-child {
+      border-bottom: none;
+    }
+    &.chosen {
+      font-weight: bold;
+      color: var(--color-primary);
+    }
+  }
+
+  &-apply {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(var(--unit) * 0.5);
+    width: 100%;
+  }
+}
+</style>

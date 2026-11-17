@@ -40,7 +40,8 @@ export type FullContext<E extends Entity = Entity> = {
 export type TraceType = 'EVENT' | 'ASKFORHELP' | 'SOLUTION' | 'AWARD'
 
 export type Trace = {
-  data: Action | { id: Card['id'] }
+  /** An applied action, the card asked about, or a use case's own record (e.g. a Railway step) */
+  data: Action | { id: Card['id'] } | Record<string, unknown>
   date?: DateMillisecondsFormat
   id_trace?: UUID
   step: TraceType

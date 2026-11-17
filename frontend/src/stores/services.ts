@@ -123,7 +123,8 @@ export const useServicesStore = defineStore('services', () => {
   async function recommendationAsk<E extends Entity>(
     event: Card<E>,
     context: FullContext | undefined,
-    agents?: string[]
+    agents?: string[],
+    eventOverrides?: Record<string, unknown>
   ): Promise<servicesApi.RecommendationAsk<E> | undefined> {
     if (!context) {
       const appStore = useAppStore()
@@ -151,7 +152,7 @@ export const useServicesStore = defineStore('services', () => {
     // sent to the agent. Sent as-is even on failure (snapshot may contain nulls
     // or an `error` field) so a cognitive-API outage never blocks the request.
     const payload: servicesApi.RecommendationAsk<E> = {
-      event: getRootCard(event).data.metadata,
+      event: { ...getRootCard(event).data.metadata, ...eventOverrides },
       context: contextForAgent as Context<E>,
       ...(agents?.length && { agents })
     }
@@ -161,16 +162,23 @@ export const useServicesStore = defineStore('services', () => {
     return payload
   }
 
-  /** @param agents ids of the agents to ask, all of them when absent */
+  /**
+   * @param agents ids of the agents to ask, all of them when absent
+   * @param eventOverrides fields added to the event sent, e.g. Railway's
+   *   `mode` / `sort_type` / `threshold_value`
+   * @returns the recommendations, `undefined` when there is no context
+   */
   async function getRecommendation<E extends Entity>(
     event: Card<E>,
     context = _context.value,
-    agents?: string[]
+    agents?: string[],
+    eventOverrides?: Record<string, unknown>
   ) {
-    const payload = await recommendationAsk(event, context, agents)
+    const payload = await recommendationAsk(event, context, agents, eventOverrides)
     if (!payload) return
     const { data } = await servicesApi.getRecommendation<E>(payload)
     _recommendations.value = data
+    return data
   }
 
   /**

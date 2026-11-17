@@ -3,9 +3,14 @@ import re
 
 
 def parse_delay_to_minutes(delay_str):
+    """Minutes in a delay: "1h30", "00h53", "45min", or already a number of minutes (90, "90")."""
     if delay_str is None:
         return 0
+    if isinstance(delay_str, (int, float)):
+        return int(delay_str)
     delay_str = delay_str.lower().strip()
+    if delay_str.isdigit():
+        return int(delay_str)
     hours = 0
     minutes = 0
     h_match = re.search(r'(\d+)h', delay_str)
@@ -16,8 +21,8 @@ def parse_delay_to_minutes(delay_str):
         minutes = int(m_match.group(1))
     if "h" in delay_str and "min" not in delay_str:
         parts = delay_str.split("h")
-        if len(parts) > 1 and parts[1].isdigit():
-            minutes = int(parts[1])
+        if len(parts) > 1 and parts[1].strip().isdigit():
+            minutes = int(parts[1].strip())
     return hours * 60 + minutes
 
 
@@ -60,10 +65,21 @@ def SNCF_deontic(event_json, context_json, recommendation_catalog, type="passeng
 
     recos = recommendation_catalog[id_event]
 
+    if type not in ("passengers", "delay", "cost", "total_cost"):
+        return [json.dumps({"error": "type must be 'passengers', 'delay', 'cost', or 'total_cost'"})]
+
     # When no threshold is provided, skip filtering and return all recommendations sorted
     if threshold_value is None:
         filtered = list(recos)
     else:
+        # The threshold arrives as JSON: a number or a string, whatever the KPI
+        if type == "delay":
+            limit = parse_delay_to_minutes(threshold_value)
+        else:
+            try:
+                limit = float(threshold_value)
+            except (TypeError, ValueError):
+                return [json.dumps({"error": f"threshold_value must be a number, got {threshold_value!r}"})]
         filtered = []
         for reco_json in recos:
             reco = json.loads(reco_json)
@@ -73,14 +89,13 @@ def SNCF_deontic(event_json, context_json, recommendation_catalog, type="passeng
             total_cost = int(kpis.get("total_cost", 0))
             delay_minutes = parse_delay_to_minutes(kpis.get("delay", "0min"))
 
-            if type == "passengers" and passengers <= threshold_value:
+            if type == "passengers" and passengers <= limit:
                 filtered.append(reco_json)
-            elif type == "delay":
-                if delay_minutes <= parse_delay_to_minutes(threshold_value):
-                    filtered.append(reco_json)
-            elif type == "cost" and cost <= threshold_value:
+            elif type == "delay" and delay_minutes <= limit:
                 filtered.append(reco_json)
-            elif type == "total_cost" and total_cost <= threshold_value:
+            elif type == "cost" and cost <= limit:
+                filtered.append(reco_json)
+            elif type == "total_cost" and total_cost <= limit:
                 filtered.append(reco_json)
 
     def _key(reco_json):
@@ -95,9 +110,6 @@ def SNCF_deontic(event_json, context_json, recommendation_catalog, type="passeng
         if type == "total_cost":
             return int(kpis.get("total_cost", 0))
         return 0
-
-    if type not in ("passengers", "delay", "cost", "total_cost"):
-        return [json.dumps({"error": "type must be 'passengers', 'delay', 'cost', or 'total_cost'"})]
 
     return sorted(filtered, key=_key)
 
