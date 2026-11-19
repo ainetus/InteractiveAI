@@ -19,6 +19,7 @@
           <th>{{ $t('Railway.trains.name') }}</th>
           <th>{{ $t('Railway.trains.from') }}</th>
           <th>{{ $t('Railway.trains.to') }}</th>
+          <th>{{ $t('Railway.trains.position') }}</th>
           <th>{{ $t('Railway.trains.planned_departure') }}</th>
           <th>{{ $t('Railway.trains.actual_departure') }}</th>
           <th>{{ $t('Railway.trains.planned_arrival') }}</th>
@@ -35,6 +36,8 @@
           </td>
           <td class="station">{{ stationAt(train.route?.[0]) }}</td>
           <td class="station">{{ stationAt(train.route?.[train.route.length - 1]) }}</td>
+          <!-- where it is now: the cell (row, column, as numbered on the drawings) and heading -->
+          <td class="position">{{ positionText(train) }}</td>
           <td>{{ train.planned_departure ?? '–' }}</td>
           <td>{{ train.actual_departure ?? '–' }}</td>
           <td>{{ train.planned_arrival ?? '–' }}</td>
@@ -48,6 +51,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { trainColor } from '../colors'
 import type { Cell, Railway, Train } from '../types'
@@ -58,6 +62,19 @@ import type { Cell, Railway, Train } from '../types'
  * and destination: the stations at the first and last cell of its route.
  */
 const props = defineProps<{ context: Railway['Context'] }>()
+const { t } = useI18n()
+
+// Flatland's headings: 0 north, 1 east, 2 south, 3 west (north is up on the drawings)
+const ARROWS = ['↑', '→', '↓', '←']
+
+/** "7, 9 → Ost": the train's cell (row, column, as numbered on the drawings) and its heading. */
+function positionText(train: Train) {
+  if (!train.position) return '–'
+  const cell = train.position.join(', ')
+  if (train.direction === undefined) return cell
+  const heading = train.direction % 4
+  return `${cell} ${ARROWS[heading]} ${t(`Railway.trains.heading.${heading}`)}`
+}
 
 const scenario = computed(() => props.context.scenario)
 const showTrains = ref(false)
@@ -117,7 +134,7 @@ function trainState(train: Train) {
     font-size: 0.85em;
     th,
     td {
-      padding: 2px var(--spacing-2);
+      padding: 2px var(--spacing-1);
       text-align: right;
       border-bottom: 1px solid var(--color-grey-200);
     }

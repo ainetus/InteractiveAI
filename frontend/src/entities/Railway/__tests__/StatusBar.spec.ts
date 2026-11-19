@@ -51,6 +51,17 @@ describe('StatusBar', () => {
     expect(rows[2]).toContain('angekommen')
   })
 
+  it("shows each running train's cell and heading", async () => {
+    const data = context({ step: 20 })
+    data.trains[0].direction = 1
+    const wrapper = mountIn(data)
+    await wrapper.find('button.toggle').trigger('click')
+    const row = (i: number) => wrapper.findAll('tbody tr')[i]
+    expect(row(0).find('td.position').text()).toBe('7, 9 → Ost')
+    // not departed yet: no cell, no heading
+    expect(row(1).find('td.position').text()).toBe('–')
+  })
+
   it("names each train's origin and destination by the stations of its route", async () => {
     const data = context({ step: 20 })
     data.trains[0].route = [
