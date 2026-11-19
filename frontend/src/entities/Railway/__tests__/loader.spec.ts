@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { Context } from '@/types/entities'
 
-import { loaderView } from '../loader'
+import { loaderView, ownSession } from '../loader'
 import type { ScenarioRunState } from '../types'
 
 function context(
@@ -65,5 +65,14 @@ describe('loaderView', () => {
     expect(loaderView(context('running', { position: 2, ended: true }), 'me')).toEqual({
       kind: 'start'
     })
+  })
+})
+
+describe('ownSession', () => {
+  it("gives the latest context's session only to its own login (F-14)", () => {
+    expect(ownSession(context('running'), 'me')?.session_id).toBe('me')
+    expect(ownSession(context('running', { sessionId: 'previous' }), 'me')).toBeUndefined()
+    expect(ownSession(context('running'), undefined)).toBeUndefined()
+    expect(ownSession(undefined, 'me')).toBeUndefined()
   })
 })

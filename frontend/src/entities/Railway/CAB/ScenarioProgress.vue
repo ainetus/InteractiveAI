@@ -52,8 +52,9 @@ import { computed, ref, watch } from 'vue'
 
 import Button from '@/components/atoms/Button.vue'
 import { endRun, stopSession } from '@/entities/Railway/api'
-import { newSessionRequested, standalone } from '@/entities/Railway/loader'
+import { newSessionRequested, ownSession, standalone } from '@/entities/Railway/loader'
 import { useServicesStore } from '@/stores/services'
+import { currentTraceSessionId } from '@/utils/traceSessionExport'
 
 /**
  * The session's progress above the shared Timeline (F23, Q19 c): "Experiment i/n · <name> — <mode>
@@ -64,7 +65,10 @@ import { useServicesStore } from '@/stores/services'
  */
 const servicesStore = useServicesStore()
 
-const session = computed(() => servicesStore.context('Railway')?.data.session)
+// only this login's session: the latest context may still be a session nobody ended (Q29, F-14)
+const session = computed(() =>
+  ownSession(servicesStore.context('Railway')?.data, currentTraceSessionId())
+)
 const scenario = computed(() => servicesStore.context('Railway')?.data.scenario)
 const single = computed(() => session.value?.scenario_order.length === 1)
 const newSession = () => (newSessionRequested.value = true)

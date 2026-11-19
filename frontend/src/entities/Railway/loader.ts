@@ -29,16 +29,24 @@ export type LoaderView =
   /** a run is going on, or a single run is over (the progress bar offers "Neue Sitzung"): no dialog */
   | { kind: 'none' }
 
+/**
+ * The latest context's session if it is this login's (its trace session id): the latest context
+ * may still be the previous login's session, which nobody ended (Q29).
+ */
+export function ownSession(data: Context<'Railway'> | undefined, sessionId: string | undefined) {
+  const session = data?.session
+  if (!session || !data?.scenario || !sessionId || session.session_id !== sessionId)
+    return undefined
+  return session
+}
+
 export function loaderView(
   data: Context<'Railway'> | undefined,
   sessionId: string | undefined
 ): LoaderView {
-  const session = data?.session
+  const session = ownSession(data, sessionId)
   const scenario = data?.scenario
-  // the latest context may be the previous login's session
-  if (!session || !scenario || !sessionId || session.session_id !== sessionId) {
-    return { kind: 'start' }
-  }
+  if (!session || !scenario) return { kind: 'start' }
   const runs = session.scenario_order.length
   const position = session.scenario_position
   if (session.ended_at) {
