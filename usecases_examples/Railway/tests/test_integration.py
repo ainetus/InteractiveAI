@@ -273,6 +273,25 @@ def test_a_new_login_ends_the_running_session_and_the_same_login_is_refused():
     assert ended["ended_at"] is not None and started["ended_at"] is None
 
 
+def test_the_same_login_playing_a_scenario_again_gets_new_event_ids(monkeypatch):
+    """F-9: the Event Service merges events with the same id_event, id_train and event_type."""
+    import integration.session
+    starts = iter(["2026-11-17T10:00:00.000001+00:00", "2026-11-17T10:30:00.000002+00:00"])
+    monkeypatch.setattr(integration.session, "now_iso", lambda: next(starts))
+    runner, pub = make_runner()
+    ids = []
+    for _ in range(2):
+        runner.start_session("S1", single_run("scenario3", "recommendation"))
+        runner.next_run()
+        tick_until(runner, PAUSED)
+        ids.append([e["data"]["id_event"] for e in pub.events])
+        pub.events.clear()
+        runner.stop_session()
+    assert ids[0] and len(ids[0]) == len(ids[1])
+    assert not set(ids[0]) & set(ids[1])
+    assert all(i.startswith("S1_20261117100000000001") for i in ids[0])
+
+
 # ── HTTP app ──────────────────────────────────────────────────────────────
 
 @pytest.fixture

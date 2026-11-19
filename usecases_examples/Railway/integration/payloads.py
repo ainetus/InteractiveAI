@@ -111,6 +111,17 @@ def context_payload(player, session: dict, infra: dict, state: Optional[str] = N
     }
 
 
+def _event_id(session: dict, scenario_id: str, timestep: int) -> str:
+    """
+    The event's id_event: the session's start tells apart two plays of one scenario by the same
+    login (a single run again after "Neue Sitzung", or the Experiment stopped and started again:
+    same session id). The Event Service merges events with the same id_event, id_train and
+    event_type, so without it the second play's cards would fall into the first's (F-9).
+    """
+    started = "".join(c for c in session.get("started_at") or "" if c.isdigit())
+    return f"{session.get('session_id', '')}_{started}_{scenario_id}_{timestep}"
+
+
 def event_payload(player, event: dict, session: dict) -> Optional[dict]:
     """Scenario event -> InteractiveAI event. None if the scenario says push_card=False."""
     if not event.get("push_card", True):
@@ -125,7 +136,7 @@ def event_payload(player, event: dict, session: dict) -> Optional[dict]:
         "criticality": CRITICALITY,
         "start_date": now_iso(),
         "data": {
-            "id_event": f"{session.get('session_id', '')}_{sc.get('id')}_{event['timestep']}",
+            "id_event": _event_id(session, sc.get("id"), event["timestep"]),
             "event_type": EVENT_TYPE,
             "id_train": train,
             "agent_id": train.replace("Train_", ""),
@@ -159,7 +170,7 @@ def decision_event(player, dp_index: int, session: dict) -> Optional[dict]:
         "criticality": CRITICALITY,
         "start_date": now_iso(),
         "data": {
-            "id_event": f"{session.get('session_id', '')}_{sc.get('id')}_{dp['timestep']}_decision",
+            "id_event": f"{_event_id(session, sc.get('id'), dp['timestep'])}_decision",
             "event_type": EVENT_TYPE,
             "id_train": "",
             "agent_id": "",
