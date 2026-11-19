@@ -131,6 +131,8 @@
   "Railway.kpis.energy": "Energie (Zugschritte im Netz)",
   "Railway.decision.badge": "Entscheidung erforderlich",
   "Railway.decision.none": "Keine Entscheidung erforderlich",
+  "Railway.decision.decided": "Entschieden",
+  "Railway.decision.mark": "Entscheidung",
   "Railway.decision.applied": "Lösung angewendet.",
   "Railway.colearning.train": "Zug auswählen:",
   "Railway.colearning.action": "Aktion auswählen:",

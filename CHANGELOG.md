@@ -23,6 +23,7 @@
 - Railway: the train table shows where each train comes from and goes to ("Von", "Nach").
 - Railway: in the Kartenansicht each train fills its cell, with the bounds of a station's box, with its name on it and a "▶" pointing the way it runs; the tag above the train is gone. A light grid shows the cells' boundaries.
 - Railway: opening a decision card of the simulator shows its options (Empfehlungsmodus) or the train choice (Ko-Lernen) at once, without "Empfehlung anfordern"; other cards still open on the event view with the button.
+- Railway: the feed marks the cards that open a decision, "⚠ Entscheidung" while it is open and "✓ Entschieden" once it is taken.
 - Railway simulator: the options' KPIs are computed from the simulation (`compute_kpis.py`): the delay summed and per train and the energy (train steps on the grid); they replace the hand-written "Lokale Verspätung", "Gesamtverspätung", "Energie" and "Anschlüsse".
 
 ### Fixed

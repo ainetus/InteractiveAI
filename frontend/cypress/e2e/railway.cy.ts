@@ -128,6 +128,9 @@ describe('Railway page', () => {
     cy.contains('Dispositionskonflikt — Entscheidung erforderlich', { timeout: 30000 }).should(
       'be.visible'
     )
+    // only the decision card is marked, the door fault is not (F-27)
+    cy.get('[data-decision]').should('have.length', 1)
+    cy.contains('[data-decision="open"]', 'Decision').should('be.visible')
     cy.screenshot('01-feed', { capture: 'viewport' })
     // a card without a decision opens on the event view, with its button
     cy.contains('Türstörung — S 17').click()
@@ -227,7 +230,12 @@ describe('Railway page', () => {
     cy.contains('button', 'Ja').click()
     cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
     waitForContext('the applied decision', (data) => data.decisions?.length === 1)
-    waitForRun('running')
+    // resumed; with this option scenario 3 may also have run to its end by the next context
+    waitForContext('the run resumed', (data) =>
+      ['running', 'complete'].includes(data.scenario?.state)
+    )
+    // the card's mark turns from open to decided with the next context (F-27)
+    cy.contains('[data-decision="decided"]', 'Entschieden', { timeout: 20000 }).should('be.visible')
     cy.contains('.railway-status', 'Entscheidung erforderlich', { timeout: 20000 }).should(
       'not.exist'
     )

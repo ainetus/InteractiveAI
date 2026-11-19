@@ -46,6 +46,8 @@
   "Railway.kpis.energy": "Énergie (pas de train sur le réseau)",
   "Railway.decision.badge": "Décision requise",
   "Railway.decision.none": "Aucune décision requise",
+  "Railway.decision.decided": "Décidé",
+  "Railway.decision.mark": "Décision",
   "Railway.decision.applied": "Solution appliquée.",
   "Railway.colearning.train": "Choisir un train :",
   "Railway.colearning.action": "Choisir une action :",

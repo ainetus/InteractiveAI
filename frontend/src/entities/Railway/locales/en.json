@@ -50,6 +50,8 @@
   "Railway.kpis.energy": "Energy (train steps on the grid)",
   "Railway.decision.badge": "Decision required",
   "Railway.decision.none": "No decision required",
+  "Railway.decision.decided": "Decided",
+  "Railway.decision.mark": "Decision",
   "Railway.decision.applied": "Solution applied.",
   "Railway.colearning.train": "Choose a train:",
   "Railway.colearning.action": "Choose an action:",
