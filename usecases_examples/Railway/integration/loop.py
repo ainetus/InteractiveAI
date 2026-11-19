@@ -16,14 +16,20 @@ RAILWAY_STEPS_PER_SECOND and sends what the hooks report through the Publisher.
 - One session at a time: a start with another session_id ends the running session first, a start
   with the same session_id is refused (Q29 a).
 
+Events and contexts are built under the runner's lock, in the order they happen, and sent after
+it is released (_flush): a slow or unreachable platform holds up only the call that sends, not the
+browser's "Weiter", apply or stop, which queue theirs behind it (F-12).
+
 Limitations: one session per simulator process, so one participant at a time (Assumptions); a
 context that fails to send is logged and not repeated, the next one replaces it.
 """
 
 import copy
+import functools
 import logging
 import threading
 import time
+from collections import deque
 from typing import Callable, Dict, List, Optional
 
 from experiment_scenarios import ALL_SCENARIOS
@@ -39,6 +45,17 @@ FRONTEND_POLL_S = 5.0           # the frontend reads the latest context every 5 
 
 class Conflict(Exception):
     """A session control or choice that does not fit the current state (HTTP 409)."""
+
+
+def _then_flush(method):
+    """Send what the method queued once it has released the runner's lock."""
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            self._flush()
+    return wrapper
 
 
 class SessionRunner:
@@ -58,6 +75,8 @@ class SessionRunner:
         self.ready = False              # the run waits for "next"
 
         self._lock = threading.RLock()
+        self._outbox: deque = deque()   # (send, payload, what) built under _lock, sent by _flush
+        self._send_lock = threading.Lock()  # one sender at a time, so the order is kept
         self._dirty = False             # a hook asked for a context
         self._steps_since_context = 0
         self._stopped = threading.Event()
@@ -65,6 +84,7 @@ class SessionRunner:
 
     # ── session controls (HTTP app) ───────────────────────────────────────
 
+    @_then_flush
     def start_session(self, session_id: str, runs: List[dict]) -> dict:
         for run in runs:
             if run.get("scenario_id") not in self.scenarios:
@@ -79,6 +99,7 @@ class SessionRunner:
             self._send_context()
             return copy.deepcopy(self.session)
 
+    @_then_flush
     def next_run(self) -> dict:
         with self._lock:
             if not self._active():
@@ -95,6 +116,7 @@ class SessionRunner:
             self._send_context()
             return copy.deepcopy(self.session)
 
+    @_then_flush
     def end_run(self) -> dict:
         """"⏭ Szenario beenden" (Experiment): the current run ends where it is, as at its last step;
         then the session waits for "next", or ends after its last run. An open decision stays
@@ -113,6 +135,7 @@ class SessionRunner:
             self._send_context()
             return copy.deepcopy(self.session)
 
+    @_then_flush
     def stop_session(self) -> dict:
         with self._lock:
             if not self._active():
@@ -120,6 +143,7 @@ class SessionRunner:
             self._end_session()
             return copy.deepcopy(self.session)
 
+    @_then_flush
     def apply(self, action: dict, event_id: Optional[str] = None) -> dict:
         """Apply the operator's choice (actions[0] of a recommendation) to the open decision."""
         with self._lock:
@@ -145,6 +169,7 @@ class SessionRunner:
 
     # ── stepping ──────────────────────────────────────────────────────────
 
+    @_then_flush
     def tick(self):
         """One step of the running scenario, and the contexts it calls for."""
         with self._lock:
@@ -207,20 +232,41 @@ class SessionRunner:
     def _send_event(self, payload: Optional[dict]):
         if payload is None:
             return
-        try:
-            self.publisher.send_event(payload)
-        except Exception:
-            log.exception("event %s not sent", payload["data"].get("id_event"))
+        self._queue(self.publisher.send_event, payload, f"event {payload['data'].get('id_event')}")
 
     def _send_context(self):
         self._dirty = False
         self._steps_since_context = 0
         payload = payloads.context_payload(self.player, self.session, self.infra,
                                            state=READY if self.ready else None)
-        try:
-            self.publisher.send_context(payload)
-        except Exception:
-            log.exception("context at step %s not sent", self.player.step_index)
+        self._queue(self.publisher.send_context, payload, f"context at step {self.player.step_index}")
+
+    def _queue(self, send, payload: dict, what: str):
+        # a copy: the payload shares the session dict and the player's state, which change before it is sent
+        self._outbox.append((send, copy.deepcopy(payload), what))
+
+    def _flush(self):
+        """
+        Send the queued events and contexts in their order, outside _lock. If another thread is
+        sending, it sends these too and this call returns at once; after releasing _send_lock the
+        sender looks again, so nothing queued in between is left behind.
+        """
+        while self._send_lock.acquire(blocking=False):
+            try:
+                while True:
+                    with self._lock:
+                        if not self._outbox:
+                            break
+                        send, payload, what = self._outbox.popleft()
+                    try:
+                        send(payload)
+                    except Exception:
+                        log.exception("%s not sent", what)
+            finally:
+                self._send_lock.release()
+            with self._lock:
+                if not self._outbox:
+                    return
 
     def describe(self) -> dict:
         """For logs and tests: where the session stands."""

@@ -6,6 +6,7 @@ No platform needed: requests_mock stands in for it, a recording publisher for th
 
 import os
 import sys
+import threading
 
 import pytest
 
@@ -290,6 +291,39 @@ def test_the_same_login_playing_a_scenario_again_gets_new_event_ids(monkeypatch)
     assert ids[0] and len(ids[0]) == len(ids[1])
     assert not set(ids[0]) & set(ids[1])
     assert all(i.startswith("S1_20261117100000000001") for i in ids[0])
+
+
+def test_a_slow_publisher_does_not_hold_up_the_session_controls():
+    """F-12: a send that hangs blocks only its own call; the others queue behind it, in order."""
+    runner, pub = make_runner()
+    runner.start_session("S1", single_run("scenario3", "recommendation"))
+    gate, sending = threading.Event(), threading.Event()
+    fast = pub.send_context
+
+    def slow(payload):
+        sending.set()
+        assert gate.wait(10)
+        fast(payload)
+    pub.send_context = slow
+    nxt = threading.Thread(target=runner.next_run)
+    nxt.start()
+    assert sending.wait(5)                          # next_run's context hangs in the publisher
+
+    def controls():                                 # the steps and the choice go on meanwhile
+        tick_until(runner, PAUSED)
+        runner.apply({"scenario_id": "scenario3", "decision_index": 0, "option_index": 2})
+    others = threading.Thread(target=controls)
+    others.start()
+    others.join(5)
+    held_up = others.is_alive()
+    gate.set()
+    others.join(5)
+    nxt.join(5)
+    assert not held_up
+    states = [scenario(c)["state"] for c in pub.contexts]
+    assert states[:2] == [READY, RUNNING] and PAUSED in states and states[-1] == RUNNING
+    steps = [scenario(c)["step"] for c in pub.contexts]
+    assert steps == sorted(steps)
 
 
 # ── HTTP app ──────────────────────────────────────────────────────────────
