@@ -131,6 +131,8 @@ const scenarios = ref<ScenarioInfo[]>([])
 const scenarioId = ref<string>()
 const mode = ref<RunMode>('recommendation')
 const error = ref<string>()
+// the single run was started, but its `next` failed: keep the start dialog (F-13)
+const startFailed = ref(false)
 // the context the page had when a request was sent; the dialog waits for the next one
 const waitingFor = ref<string>()
 
@@ -142,7 +144,9 @@ const busy = computed(
     waitingFor.value === (servicesStore.context('Railway')?.id_context ?? '')
 )
 const view = computed<LoaderView>(() =>
-  newSessionRequested.value ? { kind: 'start' } : loaderView(data.value, currentTraceSessionId())
+  newSessionRequested.value
+    ? { kind: 'start' }
+    : loaderView(data.value, currentTraceSessionId(), startFailed.value)
 )
 const introScenario = computed(() => {
   if (view.value.kind !== 'intro' || !session.value) return undefined
@@ -189,6 +193,10 @@ function start(
   }
   newSessionRequested.value = false
   return act(async () => {
+    // a single run that failed to start may still wait for `next` in the simulator, which refuses
+    // a second start of the same session: end it first
+    if (startFailed.value) await stopSession().catch(() => undefined)
+    startFailed.value = false
     if (choice.kind === 'experiment') {
       await startSession({ session_id, kind: 'experiment' })
     } else {
@@ -199,7 +207,12 @@ function start(
         mode: choice.mode
       })
       // a single run has no introduction (Q13 d)
-      await nextScenario()
+      try {
+        await nextScenario()
+      } catch (e) {
+        startFailed.value = true
+        throw e
+      }
     }
   })
 }

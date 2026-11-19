@@ -54,6 +54,13 @@ describe('loaderView', () => {
     expect(loaderView(context('ready', { runs: 1 }), 'me')).toEqual({ kind: 'none' })
   })
 
+  it('keeps the start dialog when a single run was started but failed to run (F-13)', () => {
+    expect(loaderView(context('ready', { runs: 1 }), 'me', true)).toEqual({ kind: 'start' })
+    // the Experiment's introduction is not a failed start
+    expect(loaderView(context('ready'), 'me', true)).toEqual({ kind: 'intro', position: 0 })
+    expect(loaderView(context('running', { runs: 1 }), 'me', true)).toEqual({ kind: 'none' })
+  })
+
   it('shows the end screen after the last run, the start after "Beenden"', () => {
     expect(loaderView(context('complete', { position: 5, ended: true }), 'me')).toEqual({
       kind: 'end'

@@ -40,9 +40,14 @@ export function ownSession(data: Context<'Railway'> | undefined, sessionId: stri
   return session
 }
 
+/**
+ * `startFailed`: the start dialog's single run was started, but the request that runs it (`next`)
+ * failed; its `ready` state then keeps the start dialog with the error instead of no dialog (F-13).
+ */
 export function loaderView(
   data: Context<'Railway'> | undefined,
-  sessionId: string | undefined
+  sessionId: string | undefined,
+  startFailed = false
 ): LoaderView {
   const session = ownSession(data, sessionId)
   const scenario = data?.scenario
@@ -56,7 +61,10 @@ export function loaderView(
     return runs === 1 ? { kind: 'none' } : { kind: 'end' }
   }
   // a single run starts at once, without its introduction (Q13 d)
-  if (scenario.state === 'ready') return runs === 1 ? { kind: 'none' } : { kind: 'intro', position }
+  if (scenario.state === 'ready') {
+    if (runs > 1) return { kind: 'intro', position }
+    return startFailed ? { kind: 'start' } : { kind: 'none' }
+  }
   if (scenario.state === 'complete') return { kind: 'intro', position: position + 1 }
   return { kind: 'none' }
 }
