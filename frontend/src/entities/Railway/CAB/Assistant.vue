@@ -269,10 +269,16 @@ watch(
   }
 )
 
+// the latest request; an answer to an earlier one (another card, opened before) is dropped, so it
+// cannot fill this card's panel and be applied with this card's event id (F-15)
+let request = 0
+
 async function loadRecommendations() {
+  const mine = ++request
   recommendations.value = []
   loaded.value = false
   await servicesStore.getRecommendation(appStore.card('Railway')!)
+  if (mine !== request) return
   recommendations.value = servicesStore.recommendations('Railway')
   loaded.value = true
 }
