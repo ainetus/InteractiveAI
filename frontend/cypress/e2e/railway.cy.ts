@@ -405,5 +405,12 @@ describe('Railway page', () => {
     cy.contains('.cab-tab', 'Line view').click()
     cy.get('.railway-linkmap [data-train="Train_0"]', { timeout: 20000 }).should('exist')
     cy.screenshot('13-link-map', { capture: 'viewport' })
+
+    // from the line view (the third tab) to standalone mode: its geographic map, on its one tab
+    cy.get('.railway-progress [data-stop]').click()
+    cy.get('.railway-loader[data-view="start"]', { timeout: 20000 }).should('be.visible')
+    cy.get('[data-standalone]').click()
+    cy.contains('.cab-tab.active', /^\s*Map\s*$/).should('be.visible')
+    cy.get('.leaflet-container').should('be.visible')
   })
 })

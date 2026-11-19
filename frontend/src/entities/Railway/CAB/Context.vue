@@ -2,13 +2,7 @@
   <!-- The simulator's contexts carry the track network (infra): Railway's own views. Contexts
        without it, of other publishers, keep today's geographic map (D20), and so does standalone
        mode (Q31), whatever the latest context is. -->
-  <Context
-    v-if="context?.data.infra && !standalone"
-    :tabs="[
-      $t('Railway.tab.map'),
-      $t('Railway.tab.zwl'),
-      ...(context.data.infra.link_map ? [$t('Railway.tab.linkmap')] : [])
-    ]">
+  <Context v-if="context?.data.infra && !standalone" :tabs="tabs">
     <div class="railway-centre">
       <StatusBar :context="context.data" />
       <div class="railway-view">
@@ -23,7 +17,7 @@
       </div>
     </div>
   </Context>
-  <Context v-else :tabs="[$t('cab.tab.map')]">
+  <Context v-else :tabs="tabs">
     <Map
       v-if="appStore.tab.context === 0"
       :tile-layers="[
@@ -35,7 +29,8 @@
 <script setup lang="ts">
 import '@/entities/Railway/i18n'
 
-import { computed, onBeforeMount, onUnmounted, watchEffect } from 'vue'
+import { computed, onBeforeMount, onUnmounted, watch, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
@@ -57,7 +52,29 @@ const mapStore = useMapStore()
 const cardsStore = useCardsStore()
 const appStore = useAppStore()
 
+const { t } = useI18n()
+
 const context = computed(() => servicesStore.context('Railway'))
+
+const tabs = computed(() => {
+  const infra = context.value?.data.infra
+  if (!infra || standalone.value) return [t('cab.tab.map')]
+  return [
+    t('Railway.tab.map'),
+    t('Railway.tab.zwl'),
+    ...(infra.link_map ? [t('Railway.tab.linkmap')] : [])
+  ]
+})
+
+// the tab open before has gone when the view switches to fewer tabs (the geographic map in
+// standalone mode or for a context without infra, F-11): open the first tab instead of none
+watch(
+  () => tabs.value.length,
+  (count) => {
+    if (appStore.tab.context >= count) appStore.tab.context = 0
+  },
+  { immediate: true }
+)
 
 // while a decision is open, the trains it is about: those held right now (F35), or the train
 // chosen in Ko-Lernen (F19)
