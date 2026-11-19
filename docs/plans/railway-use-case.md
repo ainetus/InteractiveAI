@@ -1,6 +1,6 @@
 # Railway use case on the InteractiveAI pipeline
 
-> **Status:** plan of 2026-11-07, built by 2026-11-19 except S-23, S-38, S-39, S-41, S-44, S-45, S-49–S-51 and S-54 (§11.1, Phase 5). Based on `main`
+> **Status:** plan of 2026-11-07, built by 2026-11-19 except S-23, S-38, S-39, S-41, S-44, S-45, S-49, S-50 and S-54 (§11.1, Phase 5). Based on `main`
 > `600a1ce` (release 1.5.2). No issue: the PR closes none. Branch `railway-use-case`, PR
 > [#34](https://github.com/ainetus/InteractiveAI/pull/34) (draft). Open questions: §9.1 (Q-30, Q-34).
 >
@@ -114,6 +114,10 @@ labels are used in the step tables. All texts are German as quoted.
   `railway_sim`'s `/session/selected_train`).
 - **REQ-20** After applying: the panel closes, the card loses its criticality, the trains move again
   ("✓ Lösung angewendet.").
+- **REQ-41** An event card that holds a train (`train_delay`) starts unended, without an end. When
+  the simulator steps to the end of the disruption (the event's step plus its `duration`), the card
+  ends: it turns grey in the feed and the Timeline shows its end at that moment (F-36). The conflict
+  cards (`info`) are not ended by the simulator; a decision card ends with the decision (REQ-20).
 
 #### 1.1.5 Szenario-Loader and experiment flow
 
@@ -235,7 +239,8 @@ Mode", decisions not logged there).
 Every event is written into the scenario file (`events[]`) with its step, type, train, hold and card
 text. No rule detects a conflict: `ScenarioPlayer.step()` fires an event when the step counter reaches
 its `timestep`, once. Two types:
-- `train_delay`: holds the train for `duration` steps, and sends a card;
+- `train_delay`: holds the train for `duration` steps, and sends a card; when the step counter reaches
+  `timestep + duration`, the simulator sends the same event again, ended (REQ-41, F-36);
 - `info`: only sends a card (the conflict cards).
 
 A card goes out as an InteractiveAI event unless the event says `push_card: false` (none does). The
@@ -440,7 +445,8 @@ architecture. Labels `D-1`… are stable (referenced by the steps); the groups o
 - **D-7 Request budget:** no continuous requests; contexts are sent on change, not on a timer.
   - Simulator → platform: one token per session, reused until it expires. Contexts at start, at
     each event, at the decision, after the decision, at the end, and every N steps while trains
-    move: ≈ 10–20 contexts and 2–4 events per scenario. More than one context per frontend poll
+    move: ≈ 10–20 contexts and 2–4 events per scenario, plus one end per `train_delay` event that the
+    run reaches (F-36), at most 5 events in all (scenario 1). More than one context per frontend poll
     interval is wasted, since the frontend sees only the latest. Fact checked on `main`: the
     frontend polls the context every **5 s** (`stores/services.ts`, `delay = 5000`), not every
     30 s as documented, so N is chosen for ≈ 5 s.
@@ -501,6 +507,8 @@ with a `TODO` per limitation that has a fix; the simulator has no `TODO`s today.
 - With a 5 s context poll, trains move in jumps of up to 5 steps at 1 step/s between events. At an
   event or decision the page reads the context as soon as its card arrives (F-35), so the decision
   prompt follows the card within about a second.
+- An event whose end step the run does not reach (the run ended with "⏭ Szenario beenden", stopped,
+  or complete before it) stays unended in the feed and the Timeline (F-36).
 - No decision timeout: a participant who never decides keeps the run paused (§6.2).
 - A refused choice (409) still leaves an `AWARD` trace, as today's apply order does (§6.2).
 - `resolveCriticality()` acts in this browser only: after a reload the decision card shows its
@@ -1483,6 +1491,12 @@ sequenceDiagram
         Player->>Pub: hook after the step
         Pub->>Ctx: POST context
     end
+    opt at the end step of a train_delay event
+        Player->>Pub: hook at the end of the disruption
+        Pub->>Ev: POST the same event with end_date now and criticality ND
+        Ev->>OF: card updated
+        OF-->>FE: card grey in the feed, its end on the Timeline
+    end
     Player->>Pub: hook at scenario end
     Pub->>Ctx: POST context complete
 ```
@@ -1490,6 +1504,10 @@ sequenceDiagram
 - **Who calls whom matches the building blocks:** the simulator only sends (events, contexts), the
   frontend only reads the context and calls the simulator once per decision (Q-1).
 - **Event Service:** the card and the `EVENT` trace are today's behaviour (`base_event_manager.py`).
+- **Event end** (REQ-41, F-36): the second POST has the first one's `id_event`, `id_train`,
+  `event_type` and `start_date`, so the Event Service merges it into the same card (Railway's
+  `get_unique_fields`) and OperatorFabric updates it in place; the first POST has no `end_date`.
+  Drawn once; it can fall before or after the decision.
 - **Contexts at the other events** (D-7) are not drawn; on the decision step the decision's context
   covers the event's.
 - **Between scenarios** the player waits for "next scenario" from the Szenario-Loader, through the same
@@ -3124,10 +3142,11 @@ GitHub yet; "resolved" in Source marks threads resolved on GitHub.
 | ✅ | F-29 | user 2026-11-17 | text | low | `frontend/src/entities/Railway/locales/*.json` (`Railway.status.decision`): the decision line above the drawing (only in the simulator's views, not in standalone mode) does not say that the simulation is paused. Wanted: "Simulation pausiert – Entscheidung erforderlich, bitte Ereigniskarte öffnen" × 3 locales. Fixed in b6b6d96 (S-48). | `feat(railway): say that the simulation is paused in the decision line` |
 |  | F-30 | user 2026-11-17 | bug | medium | `frontend/src/entities/Railway/feed/currentRun.ts:18`: the feed keeps a card when its `session_id` and `scenario_id` match the latest context. The same login starting again ("Neue Sitzung" after a single run, or the Experiment stopped and started again: same trace session id, same seeded order) plays a scenario it already played, and the earlier play's cards show next to the new ones. With F-9 they are separate cards, no longer merged. Fix: keep only cards sent since the session's `started_at` (the event's `start_date` and `started_at` come from the simulator's clock), or carry `started_at` in the event's data. Open: planned in S-49. | `fix(railway): clear the earlier play's cards when the same login starts again` |
 |  | F-31 | user 2026-11-17 | bug | medium | `usecases_examples/Railway/sim/marey.py:122–127` (`link_map`, from the handover): the Linienansicht of scenario 1 is wrong: Station 2 (cell 15,10, near Station 3 at the start) is drawn at x 23 of 30 on level +1, and Station 1 and Station 4 both at x 29, their names on top of each other. Side cells get the x of the main-line cell whose index is nearest to their flood-fill distance from the start (ignoring the transitions), and their level from being above or below the middle row of the main line. Fix: place each side track at the x of the main-line cells where it leaves and rejoins the main line; test with scenario 1's stations. Open: planned in S-50. | `fix(railway): place the side tracks of the line view where they leave the main line` |
-|  | F-32 | user 2026-11-17 | decision | low | `frontend/src/components/organisms/CAB/Notifications.vue:184` (SystemX, 2024, f20da30): applying a decision sets the card's criticality to `ND` (`stores/cards.ts:219`), which asks "Event ended, would you like to close the corresponding notifications?". No environment variable switches it off; the shared feed's `autoclose` prop (default true, not set by any use case) does. Proposal: Railway's feed passes `autoclose` false while the simulator's views are shown (a context with `infra`, not standalone), so the geographic map and the other use cases keep the question. To decide by the user. Open: planned in S-51. | `feat(railway): do not ask to close the cards after a decision in the simulator's runs` |
+| ✅ | F-32 | user 2026-11-17 | decision | low | `frontend/src/components/organisms/CAB/Notifications.vue:184` (SystemX, 2024, f20da30): applying a decision sets the card's criticality to `ND` (`stores/cards.ts:219`), which asks "Event ended, would you like to close the corresponding notifications?". No environment variable switches it off; the shared feed's `autoclose` prop (default true, not set by any use case) does. Proposal: Railway's feed passes `autoclose` false while the simulator's views are shown (a context with `infra`, not standalone), so the geographic map and the other use cases keep the question. Decided by the user 2026-11-19: the proposal. Also while the page has not read the run's first context yet, if the feed holds a card of the simulator (with `scenario_id`): an event's end can come before the first 5 s poll (F-36, found by Cypress: scenario 2's door fault ends 1.5 s into the run at 4 steps/s). Fixed in ea25cc3 (S-51). | `feat(railway): do not ask to close the cards after a decision in the simulator's runs` |
 | ✅ | F-33 | user 2026-11-17 | feature | low | `frontend/src/entities/Railway/CAB/StatusBar.vue:17`: the train table does not show where a train is now. Wanted: its current cell (row, column, as numbered on the drawings, F-28) and its heading (arrow and name, e.g. "→ Ost"), "–" before departure. Fixed in 3f1e638 (S-52). | `feat(railway): show each train's cell and heading in the train table` |
 | ✅ | F-34 | user 2026-11-17 | feature | low | `frontend/src/entities/Railway/CAB/StatusBar.vue`, `usecases_examples/Railway/sim/scenario_player.py`: the train table does not show how long a train has stood still. Wanted: "Breakdown delay", the steps the train has stood still on the grid so far (its cell unchanged from one step to the next, for any reason: an event, a decision, its slow speed, a train ahead). Counted by the simulator (`stopped_steps`), sent with each train in the context. Fixed in 7af1888 (S-53). | `feat(railway): show each train's standstill so far in the train table` |
 |  | F-35 | user 2026-11-17 (handover §7) | feature | medium | `frontend/src/stores/services.ts:50–53`: the page reads the context only on its 5 s poll, while event cards arrive at once through the card stream. When a card appears ("S 17 verspätet", "Entscheidung erforderlich"), the Kartenansicht, Linienansicht, train table and pause prompt can show the state from before it for up to 5 s (Limitations; REQ-11). The simulator already sends a context with each event and decision (D-7), so only the read is late. Proposal: `getContext()` also returns a `refresh()` that runs its poll handler once, without changing the interval or the other use cases. Railway's `Context.vue` calls it when a new Railway card for the current run arrives. The simulator queues the event before its context, so the refresh retries once after about 300 ms if the context id has not changed. Cost: one extra GET per event or decision (about 3–5 per scenario), no extra simulator requests; within D-7 and NFR-2. Replaces the follow-up "Fetch the context once more right after an event" (§1). Open: planned in S-54. | `feat(railway): read the context right after an event card arrives` |
+| ✅ | F-36 | user 2026-11-19 | feature | medium | `usecases_examples/Railway/integration/payloads.py:126` (`event_payload`), `sim/scenario_player.py:204` (`_fire_event`): the simulator sends each event once, without `end_date`, and never ends it, although a `train_delay` event holds its train for `duration` steps (scenario 1: "Betriebsstörung — S 17" 30 steps, "Signalstörung — S 18" 18 steps). Its card stays red in the feed and the Timeline shows it open for good. PowerGrid ends its events by posting them again with criticality `ND` (`usecases_examples/PowerGrid/app/models/Communicate.py:514–526`). Decided by the user 2026-11-19: the first event stays unended (no `end_date`); when the simulator steps to the end of the disruption (`timestep + duration`), it sends the same event again with `end_date` now and criticality `ND`, so the Timeline goes from unended to ended at that moment and the card turns grey (`ND` → `secondary`, `utils.ts:28`). Same `id_event`, `id_train`, `event_type` and `start_date` as the first send, so the Event Service merges it into the same card. `info` events are not ended. Cost: one event per `train_delay` event reached, at most 5 events per scenario (D-7). With S-51 the shared feed does not ask "Event ended…" at that moment. Fixed in 303d211 (S-55). | `feat(railway): end an event's card when its disruption ends` |
 | — | F-20 | code review | performance | low | `usecases_examples/Railway/integration/payloads.py:108`: every context resends the full `history` and the static `infra`, so the stored contexts grow with steps × contexts. Dropped: bounded by design (D-7, §5.2): at most about 85 steps, 3 trains and 25 contexts per run, a few KB each; the ZWL diagram needs the whole history in the latest context, as the context is the only status source. | — |
 
 - **Issue references:** the PR closes no issue (its description is empty), and the branch references
@@ -3297,10 +3316,11 @@ Each step adds its shots (§4.3) and commits them, and adds its new texts to Rai
 | ✅ S-48 | F-29 | `Railway.status.decision` × 3 locales, `StatusBar.spec.ts`, Cypress, `CHANGELOG.md`, REQ-35's text. | feature | low | `feat(railway): say that the simulation is paused in the decision line` | b6b6d96 | REQ-35 | S-10 | - |
 | 💡 S-49 | F-30 | `isCardOfCurrentRun()` also drops cards sent before the session's `started_at`; Vitest; Cypress: a second single run of the same scenario by the same login starts with an empty feed. | fix | medium | `fix(railway): clear the earlier play's cards when the same login starts again` |  | REQ-1, REQ-27 | S-31, S-29 | - |
 | 💡 S-50 | F-31 | `link_map()` places side cells by where their track leaves and rejoins the main line (the change named in `sim/marey.py`'s docstring, which comes from the handover); tests for every scenario's stations on the line view; shot 13 refreshed. | fix | medium | `fix(railway): place the side tracks of the line view where they leave the main line` |  | REQ-31 | S-2 | - |
-| 💡 S-51 | F-32 | Railway's `Notifications.vue` passes `autoclose` false while the simulator's views are shown; Cypress: no question after an apply. | feature | low | `feat(railway): do not ask to close the cards after a decision in the simulator's runs` |  | REQ-15 | S-11 | F-32 |
+| ✅ S-51 | F-32 | Railway's `Notifications.vue` passes `autoclose` false while the simulator's views are shown or a card of the simulator is in the feed (not in standalone mode); Cypress: no question after an apply. | feature | low | `feat(railway): do not ask to close the cards after a decision in the simulator's runs` | ea25cc3 | REQ-15 | S-11 | F-32 |
 | ✅ S-52 | F-33 | "Position" and "Richtung" columns in the train table, the headings × 3 locales; `StatusBar.spec.ts`. | feature | low | `feat(railway): show each train's cell and heading in the train table` | 3f1e638 | REQ-36 | S-42, S-47 | - |
 | ✅ S-53 | F-34 | `ScenarioPlayer.stopped_steps` (the change named in its docstring), `stopped_steps` per train in the context, the "Breakdown delay" column × 3 locales; tests. | feature | low | `feat(railway): show each train's standstill so far in the train table` | 7af1888 | REQ-36 | S-52 | - |
 | 💡 S-54 | F-35 | `getContext()` returns `refresh()` (shared store, additive); Railway's `Context.vue` calls it on a new card of the current run, retrying once after about 300 ms; Vitest for the store and the watcher; Cypress: the map shows the held train when the event card appears; D-7, REQ-11 and Limitations as changed with F-35. | feature | medium | `feat(railway): read the context right after an event card arrives` |  | REQ-11 | S-31 | - |
+| ✅ S-55 | F-36 | `ScenarioPlayer` fires `on_event_end` when the step counter reaches a `train_delay` event's `timestep + duration` (the change named in its docstring); `payloads.event_end_payload()` repeats the event's first payload (same `id_event`, `start_date`) with `end_date` now and criticality `ND`; `SessionRunner` keeps the run's sent payloads and queues the end through the outbox; tests: the end at the right step with the first payload's ids, none for `info` events or an end step the run does not reach, the request budget (≤ 5 events); Cypress: scenario 2's "Türstörung — S 17" (step 3, 6 steps) turns grey before the decision at step 15; `CHANGELOG.md`; REQ-41. | feature | medium | `feat(railway): end an event's card when its disruption ends` | 303d211 | REQ-41 | S-29, S-36, S-51 | - |
 | 💡 S-23 | - | The `/railway-simu/` location in the ConfigMap's nginx key (pushed with `apply-nginx-conf.sh` after the frontend pod with the new `start-webui.sh` runs) and `RAILWAY_SIMU_UPSTREAM` on the frontend pod in `values.ovh.yaml`. Left out of S-15: without a resolvable upstream the frontend's nginx does not start. | feature | - | `feat(deploy): route /railway-simu/ to the Railway simulator on Kubernetes` |  | D-1, D-12 | S-15 | Q-30 |
 
 #### Phase 6: decisions settled with others ✅
@@ -3391,7 +3411,12 @@ steps that name the question in Blocked by.
 - `integration/payloads.py`: `infra_payload()` with `marey_mapping`, `planned_paths` (S-2); events
   carry `scenario_id`, `timestep`, `decision_index`, `session_id`, contexts `session` (with
   `ended_at`), `scenario` (with `mode`) and `decisions` (S-4); `event_payload()` adds the run's mode as
-  `run_mode`, the key of `recommendations.json` (S-5).
+  `run_mode`, the key of `recommendations.json` (S-5); `event_end_payload()` repeats an event's
+  first payload with `end_date` now and criticality `ND` (S-55).
+- `sim/scenario_player.py`: the hook `on_event_end` at a `train_delay` event's `timestep + duration`,
+  the change named in its docstring (S-55).
+- `integration/loop.py`: `SessionRunner` keeps the run's sent event payloads and queues their end
+  through the outbox (F-12) when the player reports it (S-55).
 - `integration/session.py`: `make_session()` builds the run list `[(scenario_id, mode)]` as
   `railway_sim`'s Experiment did, or takes one run (Q-6), seeded by `session_id` instead of the
   participant (D-10, REQ-29) (S-4).
