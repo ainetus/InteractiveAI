@@ -26,6 +26,7 @@
 - Railway: the feed marks the cards that open a decision, "⚠ Entscheidung" while it is open and "✓ Entschieden" once it is taken.
 - Railway: in the simulator's runs the feed no longer asks "Event ended, would you like to close the corresponding notifications?" after a decision; the geographic map keeps the question.
 - Railway: the train table shows each train's cell and heading ("7, 9 → Ost") and its standstill so far ("Stillstand", steps stood still on the grid).
+- Railway simulator: an event that holds a train is sent again when its hold runs out, with its end and criticality `ND`: its card turns grey and the Timeline shows its end.
 - Railway simulator: the options' KPIs are computed from the simulation (`compute_kpis.py`): the delay summed and per train and the energy (train steps on the grid); they replace the hand-written "Lokale Verspätung", "Gesamtverspätung", "Energie" and "Anschlüsse".
 
 ### Fixed

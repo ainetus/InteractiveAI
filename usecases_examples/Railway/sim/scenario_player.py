@@ -29,6 +29,10 @@ event or decision holds; a slow train was named there every other step (F-10). T
 unchanged: an event or decision hold still replaces a running speed hold, and no speed hold
 starts while one of them runs.
 
+Added: on_event_end, called when the step counter reaches a train_delay event's timestep +
+duration, the step its train is no longer held by it, so the integration can end the event's card
+(F-36). Called once per event, also when the run pauses at that step; not for info events.
+
 Added: stopped_steps counts, per train, the steps it has stood still on the grid so far (its cell
 the same as one step before, for whatever reason: an event, a decision, its slow speed, a train
 ahead), shown as "Breakdown delay" in the train table (F-34).
@@ -56,7 +60,15 @@ class Hooks:
     on_decision: Optional[Callable[["ScenarioPlayer", dict], None]] = None   # paused at a decision point
     on_resume: Optional[Callable[["ScenarioPlayer", dict], None]] = None     # decision applied (record)
     on_step: Optional[Callable[["ScenarioPlayer"], None]] = None             # after every env.step
+    on_event_end: Optional[Callable[["ScenarioPlayer", dict], None]] = None  # a train_delay's hold ran out (F-36)
     on_complete: Optional[Callable[["ScenarioPlayer"], None]] = None         # all trains done / episode end
+
+
+def _ends_at(event: dict) -> Optional[int]:
+    """The step a train_delay event's hold runs out (its train may move again), None for others."""
+    if event.get("type") == "train_delay" and event.get("train") and event.get("duration", 0) > 0:
+        return event["timestep"] + event["duration"]
+    return None
 
 
 def episode_limit(scenario: dict) -> int:
@@ -119,6 +131,10 @@ class ScenarioPlayer:
         step = self.step_index
 
         for event in self.scenario.get("events", []):
+            if _ends_at(event) == step and event.get("_triggered") and not event.get("_ended"):
+                event["_ended"] = True
+                if self.hooks.on_event_end:
+                    self.hooks.on_event_end(self, event)
             if event["timestep"] == step and not event.get("_triggered"):
                 event["_triggered"] = True
                 self._fire_event(event)
@@ -202,7 +218,7 @@ class ScenarioPlayer:
     # ── internals ─────────────────────────────────────────────────────────
 
     def _fire_event(self, event: dict):
-        if event.get("type") == "train_delay" and event.get("train") and event.get("duration", 0) > 0:
+        if _ends_at(event) is not None:
             self._hold(event["train"], event["duration"])
         if self.hooks.on_event:
             self.hooks.on_event(self, event)

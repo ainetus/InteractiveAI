@@ -185,7 +185,7 @@ def test_request_budget_per_scenario(sid):
     tick_until(runner, PAUSED)
     runner.apply({"scenario_id": sid, "decision_index": 0, "option_index": 0})
     tick_until(runner, COMPLETE)
-    assert 1 <= len(pub.events) <= 4                            # scenario 3 has only its conflict card
+    assert 1 <= len(pub.events) <= 5      # scenario 3: its conflict card only; scenario 1: 3 cards, 2 ends (F-36)
     assert len(pub.contexts) <= 25                              # ≈ 10–20 per scenario (D7)
     states = [scenario(c)["state"] for c in pub.contexts]
     assert states[0] == READY and states[-1] == COMPLETE and states.count(PAUSED) == 1
@@ -324,6 +324,33 @@ def test_a_slow_publisher_does_not_hold_up_the_session_controls():
     assert states[:2] == [READY, RUNNING] and PAUSED in states and states[-1] == RUNNING
     steps = [scenario(c)["step"] for c in pub.contexts]
     assert steps == sorted(steps)
+
+
+def test_an_event_ends_when_its_hold_runs_out():
+    """F-36: the door fault of scenario 2 (step 3, 6 steps) is sent again at step 9, ended."""
+    runner, pub = make_runner()
+    runner.start_session("S1", single_run("scenario2", "recommendation"))
+    runner.next_run()
+    sent_at, send = [], pub.send_event
+    pub.send_event = lambda payload: (sent_at.append(runner.player.step_index), send(payload))
+    tick_until(runner, PAUSED)                      # the decision at step 15
+    assert sent_at == [4, 10, 15]                   # after the steps 3 and 9, at the pause at 15
+    first, ended, conflict = pub.events
+    assert "end_date" not in first and first["criticality"] == "HIGH"
+    assert (ended["criticality"], ended["start_date"]) == ("ND", first["start_date"])
+    assert ended["end_date"] >= first["start_date"]
+    assert ended["data"] == first["data"]           # same id_event, id_train, event_type: one card
+    assert ended["title"] == first["title"] and "end_date" not in conflict
+
+
+def test_an_event_whose_end_the_run_does_not_reach_stays_unended():
+    runner, pub = make_runner()
+    runner.start_session("S1", single_run("scenario2", "recommendation"))
+    runner.next_run()
+    for _ in range(5):                              # the door fault at step 3, its end at 9
+        runner.tick()
+    runner.end_run()
+    assert [e["criticality"] for e in pub.events] == ["HIGH"]
 
 
 # ── HTTP app ──────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ Session info passed in by the caller (integration/session.py):
 The running scenario's mode is the mode of scenario_order[scenario_position].
 """
 
+import copy
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -151,6 +152,19 @@ def event_payload(player, event: dict, session: dict) -> Optional[dict]:
             "run_mode": current_run(session)["mode"],
         },
     }
+
+
+def event_end_payload(first: dict) -> dict:
+    """
+    The end of an event (F-36): its first payload again, with end_date now and criticality ND. The
+    same id_event, id_train and event_type make the Event Service merge it into the event's card,
+    and the same start_date keeps the card's start on the Timeline; the first payload has no
+    end_date, so the card is unended until this one.
+    """
+    ended = copy.deepcopy(first)
+    ended["criticality"] = "ND"
+    ended["end_date"] = now_iso()
+    return ended
 
 
 def decision_event(player, dp_index: int, session: dict) -> Optional[dict]:

@@ -131,6 +131,15 @@ describe('Railway page', () => {
     // only the decision card is marked, the door fault is not (F-27)
     cy.get('[data-decision]').should('have.length', 1)
     cy.contains('[data-decision="open"]', 'Decision').should('be.visible')
+    // the door fault's hold ran out at step 9, before the decision: its card ended, grey (F-36)
+    cy.contains('.cab-card', 'Türstörung — S 17', { timeout: 20000 }).should(
+      'have.class',
+      'secondary'
+    )
+    cy.contains('.cab-card', 'Dispositionskonflikt — Entscheidung erforderlich').should(
+      'not.have.class',
+      'secondary'
+    )
     cy.screenshot('01-feed', { capture: 'viewport' })
     // a card without a decision opens on the event view, with its button
     cy.contains('Türstörung — S 17').click()

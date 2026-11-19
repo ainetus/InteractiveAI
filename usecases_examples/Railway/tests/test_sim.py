@@ -88,6 +88,19 @@ def test_a_slow_train_is_not_affected_without_an_event(opt):
     assert waits > 10                               # the speed holds still stop it
 
 
+def test_on_event_end_at_the_end_of_a_train_delay_hold():
+    """F-36: scenario 1's S 17 (step 14, 30 steps) ends at 44, after the decision at 40; S 18
+    (step 25, 18 steps) at 43; the info card at 40 never ends."""
+    ended = []
+    p = ScenarioPlayer(ALL_SCENARIOS["scenario1"],
+                       Hooks(on_event_end=lambda player, e: ended.append((player.step_index, e["timestep"]))))
+    while p.state != COMPLETE:
+        if p.state == PAUSED:
+            p.apply_decision(0)
+        p.step()
+    assert ended == [(43, 25), (44, 14)]
+
+
 def test_normalize_holds_formats():
     assert normalize_holds({"holds": {"Train_0": 5}}) == {"Train_0": 5}
     assert normalize_holds({"hold_trains": ["Train_1", "Train_2"], "hold_steps": 10}) == {"Train_1": 10, "Train_2": 10}

@@ -20,8 +20,14 @@ Events and contexts are built under the runner's lock, in the order they happen,
 it is released (_flush): a slow or unreachable platform holds up only the call that sends, not the
 browser's "Weiter", apply or stop, which queue theirs behind it (F-12).
 
+An event that holds a train (train_delay) is sent without end_date; when the player reaches the
+end of its hold, the same event is sent again with end_date and criticality ND, which ends its card
+in the feed and on the Timeline (F-36).
+
 Limitations: one session per simulator process, so one participant at a time (Assumptions); a
-context that fails to send is logged and not repeated, the next one replaces it.
+context that fails to send is logged and not repeated, the next one replaces it; an event whose
+end step the run does not reach (ended with "Szenario beenden", stopped, or complete before it)
+stays unended (F-36).
 """
 
 import copy
@@ -73,6 +79,7 @@ class SessionRunner:
         self.player: Optional[ScenarioPlayer] = None
         self.infra: Optional[dict] = None
         self.ready = False              # the run waits for "next"
+        self._sent_events: Dict[tuple, dict] = {}   # (timestep, train) -> the run's events as first sent
 
         self._lock = threading.RLock()
         self._outbox: deque = deque()   # (send, payload, what) built under _lock, sent by _flush
@@ -204,8 +211,10 @@ class SessionRunner:
     def _load_run(self, position: int):
         scenario = self.scenarios[self.session["scenario_order"][position]["scenario_id"]]
         hooks = Hooks(on_event=self._on_event, on_decision=self._on_decision,
-                      on_resume=self._on_resume, on_complete=self._on_complete)
+                      on_resume=self._on_resume, on_complete=self._on_complete,
+                      on_event_end=self._on_event_end)
         self.player = ScenarioPlayer(scenario, hooks)
+        self._sent_events = {}
         self.infra = payloads.infra_payload(scenario, self.player.timetable)
         self.ready = True
 
@@ -214,8 +223,18 @@ class SessionRunner:
         self._send_context()
 
     def _on_event(self, player, event):
-        self._send_event(payloads.event_payload(player, event, self.session))
+        payload = payloads.event_payload(player, event, self.session)
+        if payload is not None:
+            self._sent_events[(event["timestep"], event.get("train"))] = payload
+        self._send_event(payload)
         self._dirty = True
+
+    def _on_event_end(self, player, event):
+        """The event's hold ran out: end its card (F-36). No context of its own: the train moving
+        again shows with the next one."""
+        first = self._sent_events.pop((event["timestep"], event.get("train")), None)
+        if first is not None:
+            self._send_event(payloads.event_end_payload(first))
 
     def _on_decision(self, player, decision_point):
         self._send_event(payloads.decision_event(player, player.decision_index - 1, self.session))
