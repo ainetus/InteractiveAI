@@ -212,7 +212,12 @@ describe('Railway page', () => {
       'be.visible'
     )
     cy.contains('.cab-recommendation', 'G 3 weicht aus — IC 3 + IR 35 überholen').click()
-    cy.contains('.railway-kpis td', 'Lokale Verspätung').should('be.visible')
+    // the KPIs computed by the simulator (F-21): the delay, per train, and the energy
+    cy.contains('.railway-kpis td', 'Verspätung').should('be.visible')
+    cy.contains('.railway-kpis td', '– G 3').should('be.visible')
+    cy.contains('.railway-kpis td', 'Energie').should('be.visible')
+    // the page polls the context every 5 s: the drawing at the decision, not before it
+    cy.contains('.railway-status .step', 'Schritt 16', { timeout: 20000 }).should('be.visible')
     cy.screenshot('07-decision-recommendation', { capture: 'viewport' })
 
     // "Anwenden", confirmed: the choice goes to the simulator through /railway-simu/, which

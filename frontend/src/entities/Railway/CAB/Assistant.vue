@@ -105,13 +105,16 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="key of SCENARIO_KPIS" :key="key">
-                  <td>{{ $t(`Railway.kpis.${key}`) }}</td>
+                <tr
+                  v-for="row of kpiRows(recommendations.map((r) => r.kpis))"
+                  :key="row.key"
+                  :class="{ train: row.train }">
+                  <td>{{ row.train ? `– ${row.train}` : $t(`Railway.kpis.${row.key}`) }}</td>
                   <td
                     v-for="recommendation of recommendations"
                     :key="recommendation.title"
                     :class="{ active: selected?.title === recommendation.title }">
-                    {{ recommendation.kpis?.[key] }}
+                    {{ recommendation.kpis?.[row.key] }}
                   </td>
                 </tr>
               </tbody>
@@ -210,6 +213,7 @@ import Recommendations from '@/components/organisms/CAB/Assistant/Recommendation
 import { applyRecommendation } from '@/entities/Railway/api'
 import ColearningChoice from '@/entities/Railway/CAB/ColearningChoice.vue'
 import ScenarioLoader from '@/entities/Railway/CAB/ScenarioLoader.vue'
+import { kpiRows } from '@/entities/Railway/kpis'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
@@ -226,9 +230,6 @@ const procedure = ref()
 const recommendations = ref<Recommendation<'Railway'>[]>([])
 const loaded = ref(false) // the answer to the last request is in
 const applied = ref(false) // "✓ Lösung angewendet." after a decision (F20)
-
-// the KPIs of the scenarios' options, in the order of F18
-const SCENARIO_KPIS = ['local_delay', 'global_delay', 'energy', 'anschluss']
 
 // a card of the scripted simulator carries its scenario; others keep today's panel (D20)
 const scenarioEvent = computed(() => !!appStore.card('Railway')?.data.metadata.scenario_id)

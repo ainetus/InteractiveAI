@@ -37,9 +37,12 @@
       <h3>{{ $t('Railway.colearning.preview') }}</h3>
       <table class="preview">
         <tbody>
-          <tr v-for="key of KPI_KEYS" :key="key">
-            <td>{{ $t(`Railway.kpis.${key}`) }}</td>
-            <td>{{ choice.recommendation.kpis?.[key] }}</td>
+          <tr
+            v-for="row of kpiRows([choice.recommendation.kpis])"
+            :key="row.key"
+            :class="{ train: row.train }">
+            <td>{{ row.train ? `– ${row.train}` : $t(`Railway.kpis.${row.key}`) }}</td>
+            <td>{{ choice.recommendation.kpis?.[row.key] }}</td>
           </tr>
         </tbody>
       </table>
@@ -59,6 +62,7 @@ import type { Recommendation } from '@/types/services'
 import { recordTraceForSession } from '@/utils/traceSessionExport'
 
 import { ACTIONS, type ColearningAction, groupByTrain, selectedTrain } from '../colearning'
+import { kpiRows } from '../kpis'
 
 /**
  * Ko-Lernen's two-step choice (F19, Q8 a): train, then action, the KPI preview of the matched
@@ -68,8 +72,6 @@ import { ACTIONS, type ColearningAction, groupByTrain, selectedTrain } from '../
  */
 const props = defineProps<{ recommendations: Recommendation<'Railway'>[] }>()
 const emit = defineEmits<{ selected: [recommendation: Recommendation<'Railway'>] }>()
-
-const KPI_KEYS = ['local_delay', 'global_delay', 'energy', 'anschluss']
 
 const view = computed(() => groupByTrain(props.recommendations))
 const chosenAction = ref<ColearningAction>()

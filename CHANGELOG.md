@@ -23,6 +23,7 @@
 - Railway: the train table shows where each train comes from and goes to ("Von", "Nach").
 - Railway: in the Kartenansicht each train is drawn along its track with its name on it and a "▶" at its front in the direction it runs; the tag above the train is gone.
 - Railway: opening a decision card of the simulator shows its options (Empfehlungsmodus) or the train choice (Ko-Lernen) at once, without "Empfehlung anfordern"; other cards still open on the event view with the button.
+- Railway simulator: the options' KPIs are computed from the simulation (`compute_kpis.py`): the delay summed and per train and the energy (train steps on the grid); they replace the hand-written "Lokale Verspätung", "Gesamtverspätung", "Energie" and "Anschlüsse".
 
 ### Fixed
 

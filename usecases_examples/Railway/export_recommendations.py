@@ -3,14 +3,16 @@ Write recommendations.json: every decision's recommendations, as RailwayManager 
 
 The Recommendation Service answers Railway's recommendation requests from its copy of this file
 (backend/recommendation-service/resources/Railway/recommendations.json), looked up by the event's
-scenario_id, decision_index and run_mode (Q2 a). Nothing is computed live: the options, their KPIs
-and the Ko-Lernen choices are written into the scenario files, and payloads.recommendations()
-reshapes them into the platform's response format.
+scenario_id, decision_index and run_mode (Q2 a). Nothing is computed live: the options and the
+Ko-Lernen choices are written into the scenario files, their KPIs computed ahead by
+compute_kpis.py (experiment_scenarios/kpis.json, F-21), and payloads.recommendations() reshapes
+them into the platform's response format.
 
     {"<scenario_id>/<decision_index>/<mode>": [recommendation, ...], ...}
 
-Run after changing a scenario, from this folder; it writes both files:
+Run after changing a scenario, from this folder, after compute_kpis.py; it writes both files:
 
+    python compute_kpis.py
     python export_recommendations.py
 
 tests/test_recommendations.py checks that both files equal this script's output.

@@ -29,8 +29,9 @@ def test_both_modes_have_their_own_entry():
         "IC 3 Vorfahrt — S 17 folgt nach 5, S 18 wartet",
         "S 17 Vorfahrt — S 18 wartet, IC 3 wartet",
     ]
-    assert recommendation[1]["kpis"] == {"local_delay": "28", "global_delay": "20", "energy": "80",
-                                         "anschluss": "2"}
+    # computed by the simulator (usecases_examples/Railway/compute_kpis.py, F-21)
+    assert recommendation[1]["kpis"] == {"delay": "10", "delay:S 17": "1", "delay:S 18": "9",
+                                         "delay:IC 3": "0", "energy": "144"}
     assert colearning != recommendation and any("train" in r["actions"][0] for r in colearning if r["actions"])
 
 

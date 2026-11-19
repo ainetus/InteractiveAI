@@ -6,10 +6,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "33",
-    "global_delay": "25",
-    "energy": "76",
-    "anschluss": "3"
+    "delay": "22",
+    "delay:S 17": "14",
+    "delay:S 18": "0",
+    "delay:IC 3": "8",
+    "energy": "166"
    },
    "actions": [
     {
@@ -25,10 +26,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "28",
-    "global_delay": "20",
-    "energy": "80",
-    "anschluss": "2"
+    "delay": "10",
+    "delay:S 17": "1",
+    "delay:S 18": "9",
+    "delay:IC 3": "0",
+    "energy": "144"
    },
    "actions": [
     {
@@ -44,10 +46,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "35",
-    "global_delay": "28",
-    "energy": "72",
-    "anschluss": "3"
+    "delay": "20",
+    "delay:S 17": "0",
+    "delay:S 18": "6",
+    "delay:IC 3": "14",
+    "energy": "169"
    },
    "actions": [
     {
@@ -65,10 +68,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "35",
-    "global_delay": "28",
-    "energy": "72",
-    "anschluss": "3",
+    "delay": "20",
+    "delay:S 17": "0",
+    "delay:S 18": "6",
+    "delay:IC 3": "14",
+    "energy": "169",
     "feasible": "True"
    },
    "actions": [
@@ -106,10 +110,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "33",
-    "global_delay": "25",
-    "energy": "76",
-    "anschluss": "3",
+    "delay": "22",
+    "delay:S 17": "14",
+    "delay:S 18": "0",
+    "delay:IC 3": "8",
+    "energy": "166",
     "feasible": "True"
    },
    "actions": [
@@ -147,10 +152,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "28",
-    "global_delay": "20",
-    "energy": "80",
-    "anschluss": "2",
+    "delay": "10",
+    "delay:S 17": "1",
+    "delay:S 18": "9",
+    "delay:IC 3": "0",
+    "energy": "144",
     "feasible": "True"
    },
    "actions": [
@@ -190,10 +196,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "14",
-    "global_delay": "8",
-    "energy": "78",
-    "anschluss": "1"
+    "delay": "0",
+    "delay:S 17": "0",
+    "delay:IR 35": "0",
+    "delay:S 17-2": "0",
+    "energy": "63"
    },
    "actions": [
     {
@@ -209,10 +216,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "24",
-    "global_delay": "14",
-    "energy": "72",
-    "anschluss": "2"
+    "delay": "2",
+    "delay:S 17": "0",
+    "delay:IR 35": "0",
+    "delay:S 17-2": "2",
+    "energy": "68"
    },
    "actions": [
     {
@@ -230,10 +238,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "24",
-    "global_delay": "14",
-    "energy": "72",
-    "anschluss": "2",
+    "delay": "2",
+    "delay:S 17": "0",
+    "delay:IR 35": "0",
+    "delay:S 17-2": "2",
+    "energy": "68",
     "feasible": "True"
    },
    "actions": [
@@ -271,10 +280,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "14",
-    "global_delay": "8",
-    "energy": "78",
-    "anschluss": "1",
+    "delay": "0",
+    "delay:S 17": "0",
+    "delay:IR 35": "0",
+    "delay:S 17-2": "0",
+    "energy": "63",
     "feasible": "True"
    },
    "actions": [
@@ -314,10 +324,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "20",
-    "global_delay": "18",
-    "energy": "85",
-    "anschluss": "2"
+    "delay": "12",
+    "delay:G 3": "0",
+    "delay:IC 3": "5",
+    "delay:IR 35": "7",
+    "energy": "86"
    },
    "actions": [
     {
@@ -333,10 +344,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "12",
-    "global_delay": "7",
-    "energy": "74",
-    "anschluss": "1"
+    "delay": "0",
+    "delay:G 3": "0",
+    "delay:IC 3": "0",
+    "delay:IR 35": "0",
+    "energy": "67"
    },
    "actions": [
     {
@@ -352,10 +364,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "8",
-    "global_delay": "4",
-    "energy": "72",
-    "anschluss": "0"
+    "delay": "0",
+    "delay:G 3": "0",
+    "delay:IC 3": "0",
+    "delay:IR 35": "0",
+    "energy": "61"
    },
    "actions": [
     {
@@ -373,10 +386,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "20",
-    "global_delay": "18",
-    "energy": "85",
-    "anschluss": "2",
+    "delay": "12",
+    "delay:G 3": "0",
+    "delay:IC 3": "5",
+    "delay:IR 35": "7",
+    "energy": "86",
     "feasible": "True"
    },
    "actions": [
@@ -396,10 +410,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "12",
-    "global_delay": "7",
-    "energy": "74",
-    "anschluss": "1",
+    "delay": "0",
+    "delay:G 3": "0",
+    "delay:IC 3": "0",
+    "delay:IR 35": "0",
+    "energy": "67",
     "feasible": "True"
    },
    "actions": [
@@ -419,10 +434,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "8",
-    "global_delay": "4",
-    "energy": "72",
-    "anschluss": "0",
+    "delay": "0",
+    "delay:G 3": "0",
+    "delay:IC 3": "0",
+    "delay:IR 35": "0",
+    "energy": "61",
     "feasible": "True"
    },
    "actions": [
@@ -444,10 +460,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "16",
-    "global_delay": "8",
-    "energy": "78",
-    "anschluss": "1"
+    "delay": "29",
+    "delay:IR 35": "29",
+    "delay:G 4": "0",
+    "delay:IC 3": "0",
+    "energy": "86"
    },
    "actions": [
     {
@@ -463,10 +480,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "24",
-    "global_delay": "14",
-    "energy": "72",
-    "anschluss": "2"
+    "delay": "34",
+    "delay:IR 35": "14",
+    "delay:G 4": "10",
+    "delay:IC 3": "10",
+    "energy": "95"
    },
    "actions": [
     {
@@ -482,10 +500,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "18",
-    "global_delay": "10",
-    "energy": "75",
-    "anschluss": "1"
+    "delay": "44",
+    "delay:IR 35": "26",
+    "delay:G 4": "0",
+    "delay:IC 3": "18",
+    "energy": "103"
    },
    "actions": [
     {
@@ -503,10 +522,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "24",
-    "global_delay": "14",
-    "energy": "72",
-    "anschluss": "2",
+    "delay": "34",
+    "delay:IR 35": "14",
+    "delay:G 4": "10",
+    "delay:IC 3": "10",
+    "energy": "95",
     "feasible": "True"
    },
    "actions": [
@@ -526,10 +546,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "16",
-    "global_delay": "8",
-    "energy": "78",
-    "anschluss": "1",
+    "delay": "29",
+    "delay:IR 35": "29",
+    "delay:G 4": "0",
+    "delay:IC 3": "0",
+    "energy": "86",
     "feasible": "True"
    },
    "actions": [
@@ -549,10 +570,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "18",
-    "global_delay": "10",
-    "energy": "75",
-    "anschluss": "1",
+    "delay": "44",
+    "delay:IR 35": "26",
+    "delay:G 4": "0",
+    "delay:IC 3": "18",
+    "energy": "103",
     "feasible": "True"
    },
    "actions": [
@@ -574,10 +596,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "20",
-    "global_delay": "14",
-    "energy": "78",
-    "anschluss": "2"
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "109"
    },
    "actions": [
     {
@@ -593,10 +616,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "29",
-    "global_delay": "20",
-    "energy": "72",
-    "anschluss": "3"
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "118"
    },
    "actions": [
     {
@@ -612,10 +636,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "28",
-    "global_delay": "23",
-    "energy": "70",
-    "anschluss": "3"
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "117"
    },
    "actions": [
     {
@@ -633,10 +658,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "20",
-    "global_delay": "14",
-    "energy": "78",
-    "anschluss": "2",
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "109",
     "feasible": "True"
    },
    "actions": [
@@ -674,10 +700,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "29",
-    "global_delay": "20",
-    "energy": "72",
-    "anschluss": "3",
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "118",
     "feasible": "True"
    },
    "actions": [
@@ -715,10 +742,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "28",
-    "global_delay": "23",
-    "energy": "70",
-    "anschluss": "3",
+    "delay": "0",
+    "delay:P 205": "0",
+    "delay:G 501": "0",
+    "delay:P 312": "0",
+    "energy": "117",
     "feasible": "True"
    },
    "actions": [
@@ -758,10 +786,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "0",
-    "global_delay": "8",
-    "energy": "90",
-    "anschluss": "0"
+    "delay": "5",
+    "delay:IC 3": "5",
+    "delay:S 12": "0",
+    "delay:IR 35": "0",
+    "energy": "46"
    },
    "actions": [
     {
@@ -777,10 +806,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "7",
-    "global_delay": "4",
-    "energy": "82",
-    "anschluss": "2"
+    "delay": "9",
+    "delay:IC 3": "5",
+    "delay:S 12": "4",
+    "delay:IR 35": "0",
+    "energy": "53"
    },
    "actions": [
     {
@@ -798,10 +828,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "7",
-    "global_delay": "4",
-    "energy": "82",
-    "anschluss": "2",
+    "delay": "9",
+    "delay:IC 3": "5",
+    "delay:S 12": "4",
+    "delay:IR 35": "0",
+    "energy": "53",
     "feasible": "True"
    },
    "actions": [
@@ -821,10 +852,11 @@
    "use_case": "Railway",
    "agent_type": "AI",
    "kpis": {
-    "local_delay": "0",
-    "global_delay": "8",
-    "energy": "90",
-    "anschluss": "0",
+    "delay": "5",
+    "delay:IC 3": "5",
+    "delay:S 12": "0",
+    "delay:IR 35": "0",
+    "energy": "46",
     "feasible": "True"
    },
    "actions": [
