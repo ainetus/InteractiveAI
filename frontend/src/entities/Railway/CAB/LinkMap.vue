@@ -5,11 +5,22 @@
     preserveAspectRatio="xMidYMid meet"
     role="img"
     :aria-label="$t('Railway.tab.linkmap')">
+    <!-- the cells' boundaries of the line's three rows -->
+    <path class="grid" :d="gridLines" />
+    <!-- the line view's own rows (0–2) and positions along the line -->
+    <g class="cell-numbers" :font-size="S * 0.28">
+      <text v-for="n of numbers.columns" :key="n.key" :x="n.x" :y="n.y" class="column">
+        {{ n.text }}
+      </text>
+      <text v-for="n of numbers.rows" :key="n.key" :x="n.x" :y="n.y" class="row">
+        {{ n.text }}
+      </text>
+    </g>
     <g class="levels">
       <text
         v-for="row of levelRows"
         :key="row"
-        :x="-S * 0.4"
+        :x="-S * 0.75"
         :y="row * S + S / 2"
         dominant-baseline="central">
         {{ $t('Railway.linkmap.level', { level: row === 0 ? '−1' : '+1' }) }}
@@ -35,30 +46,30 @@
         {{ station.name }}
       </text>
     </g>
+    <!-- as on the Kartenansicht: the train's cell with its name and a "▶" the way it runs along
+         the line (F-25) -->
     <g
-      v-for="{ train, index, place } of trains"
+      v-for="{ train, index, place, symbol } of trains"
       :key="train.id_train"
       class="train"
       :class="{ failure: train.failure }"
-      :data-train="train.id_train">
+      :data-train="train.id_train"
+      :transform="`translate(${place[1] * S + S / 2} ${place[0] * S + S / 2})`">
       <rect
-        :x="place[1] * S + S * 0.1"
-        :y="place[0] * S + S * 0.26"
-        :width="S * 0.8"
-        :height="S * 0.48"
-        :rx="S * 0.08"
+        :x="-symbol.half"
+        :y="-symbol.half"
+        :width="2 * symbol.half"
+        :height="2 * symbol.half"
+        :rx="symbol.rx"
         :fill="trainColor(index)" />
-      <g :transform="`translate(${place[1] * S + S / 2} ${place[0] * S - S * 0.35})`" class="label">
-        <rect
-          :x="-labelWidth(train.name) / 2"
-          :y="-S * 0.25"
-          :width="labelWidth(train.name)"
-          :height="S * 0.5"
-          :rx="S * 0.1" />
-        <text :font-size="S * 0.32" dominant-baseline="central">
-          {{ train.name ?? train.id_train }}
-        </text>
-      </g>
+      <path v-if="symbol.runs" :d="symbol.heading" class="heading" />
+      <text
+        :x="symbol.runs ? symbol.textX : 0"
+        :y="0"
+        :font-size="symbol.fontSize"
+        dominant-baseline="central">
+        {{ train.name ?? train.id_train }}
+      </text>
     </g>
   </svg>
 </template>
@@ -66,8 +77,8 @@
 import { computed } from 'vue'
 
 import { trainColor } from '../colors'
-import { piecePath, pieces } from '../grid'
-import { MAIN_ROW, placements, placeStations, placeTrains, sideRuns } from '../linkmap'
+import { cellGrid, cellNumbers, piecePath, pieces, trainSymbol } from '../grid'
+import { lineHeading, MAIN_ROW, placements, placeStations, placeTrains, sideRuns } from '../linkmap'
 import type { Railway } from '../types'
 
 /** Linienansicht: the scenario's line straight in three rows, stations and trains on it (F31). */
@@ -81,8 +92,11 @@ const places = computed(() => placements(linkMap.value))
 const runs = computed(() => sideRuns(linkMap.value))
 const levelRows = computed(() => [...new Set(runs.value.map((run) => run.row))])
 
-// room for the level labels on the left, the train labels above, the station names below
-const viewBox = computed(() => [-S * 2.2, -S * 1.2, (width.value + 2.7) * S, 4.9 * S].join(' '))
+// room for the level labels on the left and the station names below
+const viewBox = computed(() => [-S * 2.2, -S * 0.5, (width.value + 2.7) * S, 4.2 * S].join(' '))
+
+const gridLines = computed(() => cellGrid(0, 0, 3, width.value, S))
+const numbers = computed(() => cellNumbers(0, 0, 3, width.value, S))
 
 const straight = (row: number, x: number) =>
   pieces(linkMap.value.grid[row][x]).map((piece) => piecePath([row, x], piece, S))
@@ -104,8 +118,14 @@ const tracks = computed(() =>
 )
 
 const stations = computed(() => placeStations(props.context.infra!.stations, places.value))
-const trains = computed(() => placeTrains(props.context.trains, places.value))
-const labelWidth = (name?: string) => S * (0.3 + 0.2 * (name ?? '').length)
+const trains = computed(() =>
+  placeTrains(props.context.trains, places.value).map((placed) => {
+    const runs = lineHeading(placed.train, places.value)
+    // east (1) or west (3) along the line; without a heading the name stays in the middle
+    const symbol = trainSymbol(runs === -1 ? 3 : 1, placed.train.name ?? placed.train.id_train, S)
+    return { ...placed, symbol: { ...symbol, runs } }
+  })
+)
 </script>
 <style lang="scss">
 .railway-linkmap {
@@ -125,6 +145,20 @@ const labelWidth = (name?: string) => S * (0.3 + 0.2 * (name ?? '').length)
   .rails-gap {
     stroke: var(--color-panel-background, #fff);
   }
+  .cell-numbers text {
+    fill: var(--color-grey-600);
+    &.column {
+      text-anchor: middle;
+    }
+    &.row {
+      text-anchor: end;
+      dominant-baseline: central;
+    }
+  }
+  .grid {
+    stroke: var(--color-grey-300);
+    stroke-width: 0.1;
+  }
   .levels text {
     fill: var(--color-grey-600);
     font-size: 3.2px;
@@ -143,19 +177,19 @@ const labelWidth = (name?: string) => S * (0.3 + 0.2 * (name ?? '').length)
     }
   }
   .train {
-    .label {
-      rect {
-        fill: #333;
-      }
-      text {
-        fill: #fff;
-        text-anchor: middle;
-        font-weight: 600;
-      }
+    .heading {
+      fill: #fff;
     }
-    &.failure > rect,
-    &.failure .label rect {
-      fill: var(--color-red-500);
+    text {
+      fill: #fff;
+      text-anchor: middle;
+      font-weight: 600;
+    }
+    // held by an event or decision: a red frame, the fill keeps the train's colour (as on the
+    // Kartenansicht)
+    &.failure > rect {
+      stroke: var(--color-red-500);
+      stroke-width: 1.2;
     }
   }
 }

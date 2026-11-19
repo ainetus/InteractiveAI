@@ -46,6 +46,24 @@ export function placeTrains<T extends Train>(trains: T[], places: Map<string, Li
     )
 }
 
+/**
+ * Which way a train runs along the straightened line: +1 to the right, -1 to the left, from the
+ * next cell of its route that is placed elsewhere on the line; undefined when its route says
+ * nothing more (the grid heading does not tell it: the line bends on the map).
+ */
+export function lineHeading(train: Train, places: Map<string, LinkPlace>): 1 | -1 | undefined {
+  const here = train.position ? places.get(cellKey(train.position)) : undefined
+  const route = train.route ?? []
+  if (!here || !train.position) return undefined
+  const key = cellKey(train.position)
+  const start = route.findIndex((cell) => cellKey(cell) === key)
+  for (const cell of route.slice(start + 1)) {
+    const place = places.get(cellKey(cell))
+    if (place && place[1] !== here[1]) return place[1] > here[1] ? 1 : -1
+  }
+  return undefined
+}
+
 /** The stations on mapped cells, with their place. */
 export function placeStations(stations: Station[], places: Map<string, LinkPlace>) {
   return stations

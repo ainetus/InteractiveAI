@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { placements, placeStations, placeTrains, sideRuns } from '../linkmap'
+import { lineHeading, placements, placeStations, placeTrains, sideRuns } from '../linkmap'
 import type { LinkMap } from '../types'
 
 // a line of 5 cells in row 7; a siding above it at x 1..2, one cell below at x 4
@@ -85,5 +85,49 @@ describe('link map', () => {
     expect(placed.map(({ station, place }) => [station.name, place])).toEqual([
       ['Station 1', [1, 0]]
     ])
+  })
+})
+
+describe('lineHeading', () => {
+  const places = placements(linkMap)
+
+  it('reads the way along the line from the next placed cell of the route', () => {
+    const route: [number, number][] = [
+      [7, 1],
+      [7, 2],
+      [7, 3],
+      [7, 4]
+    ]
+    expect(lineHeading({ id_train: 'east', position: [7, 2], route }, places)).toBe(1)
+    const back = [...route].reverse()
+    expect(lineHeading({ id_train: 'west', position: [7, 3], route: back }, places)).toBe(-1)
+  })
+
+  it('skips cells off the line and on the same place, e.g. onto the siding above', () => {
+    const route: [number, number][] = [
+      [7, 2],
+      [6, 2],
+      [5, 9],
+      [6, 3]
+    ]
+    // [6, 2] is x 1 as [7, 2]; [5, 9] is not on the line; [6, 3] is x 2: to the right
+    expect(lineHeading({ id_train: 'side', position: [7, 2], route }, places)).toBe(1)
+  })
+
+  it('says nothing at the end of the route or off the line', () => {
+    expect(
+      lineHeading(
+        {
+          id_train: 'end',
+          position: [7, 4],
+          route: [
+            [7, 3],
+            [7, 4]
+          ]
+        },
+        places
+      )
+    ).toBe(undefined)
+    expect(lineHeading({ id_train: 'off', position: [1, 1], route: [] }, places)).toBe(undefined)
   })
 })

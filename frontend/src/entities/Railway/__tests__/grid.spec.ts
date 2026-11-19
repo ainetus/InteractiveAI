@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { piecePath, pieces, trackBounds, trainSymbol,transitions } from '../grid'
+import {
+  cellGrid,
+  cellNumbers,
+  piecePath,
+  pieces,
+  trackBounds,
+  trainSymbol,
+  transitions
+} from '../grid'
 
 // Flatland's own values (flatland.core.grid.rail_env_grid.RailEnvTransitions)
 const HORIZONTAL = 1025 // east-west straight
@@ -74,28 +82,50 @@ describe('trackBounds', () => {
 })
 
 describe('trainSymbol', () => {
-  it('grows with the name and keeps its front at the front edge of the cell', () => {
+  it("fills its cell with a station box's bounds", () => {
     const east = trainSymbol(1, 'S 17', 10)
-    expect(east.length).toBeCloseTo(17.1)
-    expect(east.length).toBeGreaterThan(trainSymbol(1, 'G 3', 10).length)
-    // centre + half the length = the cell's east edge (half a cell from its centre)
-    expect(east.dx + east.length / 2).toBeCloseTo(5)
-    expect([east.rotate, east.front, east.dy]).toEqual([0, 1, 0])
+    expect([east.half, east.rx]).toEqual([4.5, 1])
   })
 
-  it('points the other way on the same axis without turning the name upside down', () => {
-    const west = trainSymbol(3, 'S 17', 10)
-    expect([west.rotate, west.front]).toEqual([0, -1])
-    expect(west.dx - west.length / 2).toBeCloseTo(-5)
+  it('shrinks the font of a long name to fit the cell', () => {
+    expect(trainSymbol(1, 'G', 10).fontSize).toBeCloseTo(3.6)
+    const long = trainSymbol(1, 'IR 35', 10)
+    expect(long.fontSize).toBeLessThan(3.6)
+    // about 0.6 em per character, within 0.68 of the cell
+    expect(long.fontSize * 0.6 * 5).toBeCloseTo(6.8)
   })
 
-  it('stands upright for north and south, the name read bottom to top', () => {
-    const north = trainSymbol(0, 'IC 3', 10)
-    expect([north.rotate, north.front, north.dx]).toEqual([-90, 1, 0])
-    // the front at the cell's north edge: y grows downwards
-    expect(north.dy - north.length / 2).toBeCloseTo(-5)
-    const south = trainSymbol(2, 'IC 3', 10)
-    expect([south.rotate, south.front]).toEqual([-90, -1])
-    expect(south.dy + south.length / 2).toBeCloseTo(5)
+  it('points the triangle the way the train runs, inside the box', () => {
+    // tip first: east, its tip at x 4.2, inside the box's edge at 4.5
+    expect(trainSymbol(1, 'S 17', 10).heading).toBe('M4.2 0L2.8 1.3L2.8 -1.3Z')
+    expect(trainSymbol(3, 'S 17', 10).heading.startsWith('M-4.2 0')).toBe(true)
+    // north is up (y grows downwards)
+    expect(trainSymbol(0, 'S 17', 10).heading.startsWith('M0 -4.2')).toBe(true)
+    expect(trainSymbol(2, 'S 17', 10).heading.startsWith('M0 4.2')).toBe(true)
+  })
+
+  it('moves the name a little away from the triangle', () => {
+    const east = trainSymbol(1, 'S 17', 10)
+    expect([east.textX, east.textY]).toEqual([-0.7, 0])
+    const north = trainSymbol(0, 'S 17', 10)
+    expect([north.textX, north.textY]).toEqual([0, 0.7])
+  })
+})
+
+describe('cellGrid', () => {
+  it('draws a line along every cell boundary', () => {
+    expect(cellGrid(1, 2, 1, 2, 10)).toBe('M20 10H40M20 20H40M20 10V20M30 10V20M40 10V20')
+  })
+})
+
+describe('cellNumbers', () => {
+  it("numbers the grid's real rows and columns, not the margin around them", () => {
+    const { columns, rows } = cellNumbers(-1, 3, 3, 2, 10, 2, 4)
+    // rows -1..1, of which 0 and 1 are real; columns 3..4, of which 3 is real
+    expect(rows.map((n) => [n.text, n.x, n.y])).toEqual([
+      ['0', 28.5, 5],
+      ['1', 28.5, 15]
+    ])
+    expect(columns.map((n) => [n.text, n.x, n.y])).toEqual([['3', 35, -11.5]])
   })
 })

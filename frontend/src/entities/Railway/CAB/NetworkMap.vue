@@ -5,6 +5,17 @@
     preserveAspectRatio="xMidYMid meet"
     role="img"
     :aria-label="$t('Railway.tab.map')">
+    <!-- the cells' boundaries, the grid the track pieces, stations and trains sit in -->
+    <path class="railway-network-grid" :d="gridLines" />
+    <!-- the cells' row and column numbers, as in the scenario's grid -->
+    <g class="cell-numbers" :font-size="S * 0.28">
+      <text v-for="n of numbers.columns" :key="n.key" :x="n.x" :y="n.y" class="column">
+        {{ n.text }}
+      </text>
+      <text v-for="n of numbers.rows" :key="n.key" :x="n.x" :y="n.y" class="row">
+        {{ n.text }}
+      </text>
+    </g>
     <g class="railway-network-tracks">
       <path
         class="sleepers"
@@ -32,20 +43,21 @@
       class="railway-network-train"
       :class="{ failure: train.failure, highlighted: highlighted?.includes(train.id_train) }"
       :data-train="train.id_train">
-      <g
-        :transform="`translate(${train.x + train.symbol.dx} ${train.y + train.symbol.dy}) rotate(${train.symbol.rotate})`"
-        class="symbol">
+      <!-- the train's cell, with a station box's bounds (F-25) -->
+      <g :transform="`translate(${train.x} ${train.y})`" class="symbol">
         <rect
-          :x="-train.symbol.length / 2"
-          :y="-train.symbol.height / 2"
-          :width="train.symbol.length"
-          :height="train.symbol.height"
-          :rx="train.symbol.height / 2"
+          :x="-train.symbol.half"
+          :y="-train.symbol.half"
+          :width="2 * train.symbol.half"
+          :height="2 * train.symbol.half"
+          :rx="train.symbol.rx"
           :fill="train.color" />
-        <path
-          :d="`M${train.symbol.front * (train.symbol.length / 2 - S * 0.12)} 0L${train.symbol.front * (train.symbol.length / 2 - S * 0.36)} ${-S * 0.17}L${train.symbol.front * (train.symbol.length / 2 - S * 0.36)} ${S * 0.17}Z`"
-          class="heading" />
-        <text :x="-train.symbol.front * S * 0.17" :font-size="S * 0.36" dominant-baseline="central">
+        <path :d="train.symbol.heading" class="heading" />
+        <text
+          :x="train.symbol.textX"
+          :y="train.symbol.textY"
+          :font-size="train.symbol.fontSize"
+          dominant-baseline="central">
           {{ train.label }}
         </text>
       </g>
@@ -56,7 +68,15 @@
 import { computed } from 'vue'
 
 import { trainColor } from '../colors'
-import { edgePoint, piecePath, pieces, trackBounds, trainSymbol } from '../grid'
+import {
+  cellGrid,
+  cellNumbers,
+  edgePoint,
+  piecePath,
+  pieces,
+  trackBounds,
+  trainSymbol
+} from '../grid'
 import type { Cell, Railway } from '../types'
 
 /** Kartenansicht: the scenario's track network and the trains, from the latest context (F7–F11). */
@@ -70,11 +90,35 @@ const S = 10 // cell size in drawing units; the SVG scales to the panel
 
 const infra = computed(() => props.context.infra!)
 
-const viewBox = computed(() => {
+// the drawn cells: the track's bounds and up to two cells of margin, within the scenario's grid
+// (no row above row 0, no column left of column 0); below the last row and on the right at least
+// one cell, for the station names under the stations at the edge
+const area = computed(() => {
   const { top, left, bottom, right } = trackBounds(infra.value.grid)
-  // two cells of margin, for a train symbol reaching back beyond the last track cell, and the
-  // station names below
-  return [(left - 2) * S, (top - 2) * S, (right - left + 5) * S, (bottom - top + 5) * S].join(' ')
+  const [gridRows, gridCols] = [infra.value.grid.length, infra.value.grid[0]?.length ?? 0]
+  const first = { r: Math.max(0, top - 2), c: Math.max(0, left - 2) }
+  const last = {
+    r: Math.max(bottom + 1, Math.min(gridRows - 1, bottom + 2)),
+    c: Math.max(right + 1, Math.min(gridCols - 1, right + 2))
+  }
+  return { top: first.r, left: first.c, rows: last.r - first.r + 1, cols: last.c - first.c + 1 }
+})
+
+const viewBox = computed(() => {
+  const { top, left, rows, cols } = area.value
+  const numbers = S * 0.6
+  return [left * S - numbers, top * S - numbers, cols * S + numbers, rows * S + numbers].join(' ')
+})
+
+const gridLines = computed(() => {
+  const { top, left, rows, cols } = area.value
+  return cellGrid(top, left, rows, cols, S)
+})
+
+const numbers = computed(() => {
+  const { top, left, rows, cols } = area.value
+  const grid = infra.value.grid
+  return cellNumbers(top, left, rows, cols, S, grid.length, grid[0]?.length ?? 0)
 })
 
 const tracks = computed(() =>
@@ -135,6 +179,20 @@ const trains = computed(() =>
   path {
     fill: none;
   }
+  .cell-numbers text {
+    fill: var(--color-grey-600);
+    &.column {
+      text-anchor: middle;
+    }
+    &.row {
+      text-anchor: end;
+      dominant-baseline: central;
+    }
+  }
+  .railway-network-grid {
+    stroke: var(--color-grey-300);
+    stroke-width: 0.1;
+  }
   .sleepers {
     stroke: #b39572;
   }
@@ -172,8 +230,11 @@ const trains = computed(() =>
       text-anchor: middle;
       font-weight: 600;
     }
+    // held by an event or decision: a red frame; the fill keeps the train's colour, as in the
+    // train table and the ZWL diagram
     &.failure .symbol rect {
-      fill: var(--color-red-500);
+      stroke: var(--color-red-500);
+      stroke-width: 1.2;
     }
     &.highlighted .symbol rect {
       stroke: var(--color-orange-500);

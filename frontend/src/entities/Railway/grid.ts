@@ -81,20 +81,78 @@ export function trackBounds(grid: number[][]) {
 }
 
 /**
- * A train's symbol on the Kartenansicht: a pill along the track with the name inside and a "▶" at
- * its front. The front sits at the front edge of the train's cell, the pill reaches back along the
- * heading as far as the name needs (about 2–3 cells). Returned in the pill's own frame: `x` is the
- * centre's shift from the cell centre, `rotate` turns the frame (0 east-west, -90 north-south, so
- * the name always reads left to right or bottom to top), `front` is +1 when the front is at the
- * frame's +x end and -1 when at its -x end.
+ * A train's symbol on the Kartenansicht: its own cell's box, with the bounds of a station's dashed
+ * box (0.05 of a cell inside each edge, F-25), filled in the train's colour. The name sits in the
+ * middle, its font shrunk to fit a long name into the cell; a "▶" at the box's edge points the way
+ * the train runs. Everything relative to the cell's centre: `half` and `rx` of the box, `heading`
+ * the triangle's path, `textX`/`textY` the name's centre (moved a little away from the triangle),
+ * `fontSize`.
  */
 export function trainSymbol(direction: number, label: string, size: number) {
   const heading = (((direction % 4) + 4) % 4) as Edge
-  const length = size * (0.75 + 0.24 * label.length)
-  const front = heading === 0 || heading === 1 ? 1 : -1
-  const vertical = heading === 0 || heading === 2
-  // centre: from the cell's front edge half a pill back
-  const along = size / 2 - length / 2
-  const [dx, dy] = vertical ? [0, -front * along] : [front * along, 0]
-  return { length, height: size * 0.62, front, rotate: vertical ? -90 : 0, dx, dy }
+  // unit vector of the heading; y grows downwards (north is up)
+  const [ux, uy] = [
+    [0, -1],
+    [1, 0],
+    [0, 1],
+    [-1, 0]
+  ][heading]
+  // the triangle: its tip just inside the box's front edge, its base a bit further in
+  const tip = size * 0.42
+  const base = size * 0.28
+  const wing = size * 0.13
+  // rounded, and without -0, so the path stays short and stable
+  const round = (value: number) => Math.round(value * 1000) / 1000 + 0
+  const point = (along: number, across: number) =>
+    `${round(ux * along - uy * across)} ${round(uy * along + ux * across)}`
+  const path = `M${point(tip, 0)}L${point(base, wing)}L${point(base, -wing)}Z`
+  // about 0.6 em per character; the name keeps within 0.68 of the cell
+  const fontSize = Math.min(size * 0.36, (size * 0.68) / (0.6 * Math.max(label.length, 1)))
+  const shift = size * 0.07
+  return {
+    half: size * 0.45,
+    rx: size * 0.1,
+    heading: path,
+    textX: round(-ux * shift),
+    textY: round(-uy * shift),
+    fontSize
+  }
+}
+
+/**
+ * The cells' boundaries as one path: a line along every boundary of the `rows` × `cols` cells from
+ * cell (`top`, `left`), the grid the track pieces, stations and trains sit in.
+ */
+export function cellGrid(top: number, left: number, rows: number, cols: number, size: number) {
+  const [x0, x1, y0, y1] = [left * size, (left + cols) * size, top * size, (top + rows) * size]
+  const lines: string[] = []
+  for (let r = 0; r <= rows; r++) lines.push(`M${x0} ${(top + r) * size}H${x1}`)
+  for (let c = 0; c <= cols; c++) lines.push(`M${(left + c) * size} ${y0}V${y1}`)
+  return lines.join('')
+}
+
+/**
+ * The numbers of the rows and columns drawn by `cellGrid()`, small outside its top and left edge:
+ * each column's number above it, each row's on its left. Only real cells get one: `gridRows` and
+ * `gridCols` are the size of the scenario's grid, so the margin cells around it stay unnumbered.
+ */
+export function cellNumbers(
+  top: number,
+  left: number,
+  rows: number,
+  cols: number,
+  size: number,
+  gridRows = Infinity,
+  gridCols = Infinity
+) {
+  const inside = (index: number, count: number) => index >= 0 && index < count
+  const columns = [...Array(cols).keys()]
+    .map((i) => left + i)
+    .filter((c) => inside(c, gridCols))
+    .map((c) => ({ key: `c${c}`, x: (c + 0.5) * size, y: top * size - size * 0.15, text: `${c}` }))
+  const rowNumbers = [...Array(rows).keys()]
+    .map((i) => top + i)
+    .filter((r) => inside(r, gridRows))
+    .map((r) => ({ key: `r${r}`, x: left * size - size * 0.15, y: (r + 0.5) * size, text: `${r}` }))
+  return { columns, rows: rowNumbers }
 }
