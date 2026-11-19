@@ -72,6 +72,22 @@ def test_scenario5_option0_holds_both_trains():
     assert p.affected_trains == ["Train_1", "Train_2"]
 
 
+@pytest.mark.parametrize("opt", [0, 1, 2])
+def test_a_slow_train_is_not_affected_without_an_event(opt):
+    """F-10: G 3 (Train_0, speed 0.5) waits every other step, but nothing holds it in scenario 3."""
+    p = ScenarioPlayer(ALL_SCENARIOS["scenario3"])
+    waits = 0
+    while p.state != COMPLETE:
+        if p.state == PAUSED:
+            assert p.affected_trains == []          # the decision's highlighted trains
+            p.apply_decision(opt)
+        before = p.frame()["0"]["position"]
+        p.step()
+        waits += before is not None and p.frame()["0"]["position"] == before
+        assert p.affected_trains == []
+    assert waits > 10                               # the speed holds still stop it
+
+
 def test_normalize_holds_formats():
     assert normalize_holds({"holds": {"Train_0": 5}}) == {"Train_0": 5}
     assert normalize_holds({"hold_trains": ["Train_1", "Train_2"], "hold_steps": 10}) == {"Train_1": 10, "Train_2": 10}

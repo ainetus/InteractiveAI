@@ -22,6 +22,12 @@ send a context, ...). They are called synchronously.
 Behaviour per step is unchanged against the old threaded player (positions
 identical in every scenario/option except scenario 5 option 0, see
 decisions.normalize_holds).
+
+Change against the handover's player: the holds of slow trains (speed < 1) are kept apart from
+the holds of events and decisions (_speed_holds), so affected_trains names only trains that an
+event or decision holds; a slow train was named there every other step (F-10). The steps are
+unchanged: an event or decision hold still replaces a running speed hold, and no speed hold
+starts while one of them runs.
 """
 
 import copy
@@ -82,7 +88,8 @@ class ScenarioPlayer:
 
         self._scripted_actions: Optional[Dict[str, List[int]]] = None
         self._scripted_step = 0
-        self._holds: Dict[str, int] = {}          # {"Train_i": steps remaining}
+        self._holds: Dict[str, int] = {}          # {"Train_i": steps remaining}, events and decisions
+        self._speed_holds: Dict[str, int] = {}    # the same for slow trains (speed < 1)
         self._speed_factors: Dict[str, float] = {}
         self._prev_positions: Dict[str, Optional[tuple]] = {}
 
@@ -144,7 +151,7 @@ class ScenarioPlayer:
         option = options[option_index]
         outcome = option.get("outcome", {})
         for train, steps in normalize_holds(outcome).items():
-            self._holds[train] = steps
+            self._hold(train, steps)
         if outcome.get("scripted_actions"):
             self._scripted_actions = outcome["scripted_actions"]
             self._scripted_step = 0
@@ -190,20 +197,27 @@ class ScenarioPlayer:
 
     def _fire_event(self, event: dict):
         if event.get("type") == "train_delay" and event.get("train") and event.get("duration", 0) > 0:
-            self._holds[event["train"]] = event["duration"]
+            self._hold(event["train"], event["duration"])
         if self.hooks.on_event:
             self.hooks.on_event(self, event)
+
+    def _hold(self, train: str, steps: int):
+        """An event's or decision's hold; it replaces the train's speed hold."""
+        self._holds[train] = steps
+        self._speed_holds.pop(train, None)
 
     def _build_actions(self, step: int) -> Dict[int, int]:
         """Dispatcher actions, then holds (STOP_MOVING), then scripted actions on top."""
         actions = self.dispatcher.get_actions(step)
         for agent in self.env.agents:
             train = f"Train_{agent.handle}"
-            if self._holds.get(train, 0) > 0:
-                actions[agent.handle] = STOP_MOVING
-                self._holds[train] -= 1
-                if self._holds[train] <= 0:
-                    del self._holds[train]
+            for holds in (self._holds, self._speed_holds):
+                if holds.get(train, 0) > 0:
+                    actions[agent.handle] = STOP_MOVING
+                    holds[train] -= 1
+                    if holds[train] <= 0:
+                        del holds[train]
+                    break
         if self._scripted_actions is not None:
             for train, seq in self._scripted_actions.items():
                 if self._scripted_step < len(seq):
@@ -221,8 +235,9 @@ class ScenarioPlayer:
             if train not in self._speed_factors or agent.position is None:
                 continue
             pos = tuple(agent.position)
-            if pos != self._prev_positions.get(train) and train not in self._holds:
+            if pos != self._prev_positions.get(train) and train not in self._holds \
+                    and train not in self._speed_holds:
                 hold = round(1.0 / self._speed_factors[train]) - 1
                 if hold > 0:
-                    self._holds[train] = hold
+                    self._speed_holds[train] = hold
             self._prev_positions[train] = pos
