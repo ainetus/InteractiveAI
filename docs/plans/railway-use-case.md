@@ -102,8 +102,9 @@ labels are used in the step tables. All texts are German as quoted.
 - **REQ-17** Header of an open decision: badge "⚠ Entscheidung erforderlich", the scenario name, the
   decision description.
 - **REQ-18 Empfehlungsmodus:** the platform's recommendation cards, one per option ("R0: <option
-  label>", …), and below them Railway's KPI table, one column per recommendation, with the rows
-  "Lokale Verspätung", "Gesamtverspätung", "Energie", "Anschlüsse" (Q-17 b); the platform's apply
+  label>", …), and below them Railway's KPI table, one column per recommendation (Q-17 b), with the
+  KPIs the simulator computes ahead (Q-33 a), F-21): "Verspätung" summed over all trains, then one row
+  per train ("– S 17", …), then "Energie (Zugschritte im Netz)"; the platform's apply
   and confirmation, in German from Railway's locales (S-7). Not the screenshot's table ("Option A",
   …, values with units and colours). The two modes are compared in §1.1.5.2.
 - **REQ-19 Ko-Lernen:** "Zug auswählen:" (one button per train, label from `train_labels`), then
@@ -497,7 +498,9 @@ architecture. Labels `D-1`… are stable (referenced by the steps); the groups o
 The code's own list will be the docstring of `integration/loop.py` (simulator), written in S-4,
 with a `TODO` per limitation that has a fix; the simulator has no `TODO`s today.
 
-- Scenario KPIs and outcomes are hand-written; nothing is computed live (by design of the scenarios).
+- Scenario outcomes (each option's holds and scripted actions) are hand-written. The options' KPIs
+  are computed from them ahead by `compute_kpis.py` (F-21, S-28), not live: after a scenario change,
+  `compute_kpis.py` and `export_recommendations.py` have to run again.
 - Two paths in Railway's `Context.vue`, `Assistant.vue` and `api.ts`, picked by the data (D-20): more
   code, and the old path needs its own tests (the `00-baseline` shot, service tests with today's
   payloads).
