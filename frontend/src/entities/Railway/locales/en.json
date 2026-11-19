@@ -47,6 +47,7 @@
   "Railway.trains.planned_arrival": "Planned arrival",
   "Railway.trains.actual_arrival": "Arrival",
   "Railway.trains.delay": "Delay",
+  "Railway.trains.stopped": "Breakdown delay",
   "Railway.trains.status": "Status",
   "Railway.trains.state.waiting": "waiting",
   "Railway.trains.state.running": "running",

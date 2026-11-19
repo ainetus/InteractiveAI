@@ -54,10 +54,14 @@ describe('StatusBar', () => {
   it("shows each running train's cell and heading", async () => {
     const data = context({ step: 20 })
     data.trains[0].direction = 1
+    data.trains[0].stopped_steps = 3
     const wrapper = mountIn(data)
     await wrapper.find('button.toggle').trigger('click')
     const row = (i: number) => wrapper.findAll('tbody tr')[i]
     expect(row(0).find('td.position').text()).toBe('7, 9 → Ost')
+    // the steps it has stood still so far (F-34); "–" from an older simulator without them
+    expect(row(0).find('td.stopped').text()).toBe('3')
+    expect(row(1).find('td.stopped').text()).toBe('–')
     // not departed yet: no cell, no heading
     expect(row(1).find('td.position').text()).toBe('–')
   })

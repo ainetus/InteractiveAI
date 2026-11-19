@@ -25,6 +25,7 @@
           <th>{{ $t('Railway.trains.planned_arrival') }}</th>
           <th>{{ $t('Railway.trains.actual_arrival') }}</th>
           <th>{{ $t('Railway.trains.delay') }}</th>
+          <th>{{ $t('Railway.trains.stopped') }}</th>
           <th>{{ $t('Railway.trains.status') }}</th>
         </tr>
       </thead>
@@ -43,6 +44,7 @@
           <td>{{ train.planned_arrival ?? '–' }}</td>
           <td>{{ train.actual_arrival ?? '–' }}</td>
           <td>{{ train.delay ?? '–' }}</td>
+          <td class="stopped">{{ train.stopped_steps ?? '–' }}</td>
           <td>{{ $t(`Railway.trains.state.${trainState(train)}`) }}</td>
         </tr>
       </tbody>

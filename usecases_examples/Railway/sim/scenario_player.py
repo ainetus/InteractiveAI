@@ -28,6 +28,10 @@ the holds of events and decisions (_speed_holds), so affected_trains names only 
 event or decision holds; a slow train was named there every other step (F-10). The steps are
 unchanged: an event or decision hold still replaces a running speed hold, and no speed hold
 starts while one of them runs.
+
+Added: stopped_steps counts, per train, the steps it has stood still on the grid so far (its cell
+the same as one step before, for whatever reason: an event, a decision, its slow speed, a train
+ahead), shown as "Breakdown delay" in the train table (F-34).
 """
 
 import copy
@@ -104,6 +108,7 @@ class ScenarioPlayer:
         self.train_names = {f"Train_{i}": d.get("name", f"Train_{i}") for i, d in enumerate(defs)}
 
         self.history: List[dict] = []             # one frame per step (time-distance diagram)
+        self.stopped_steps: Dict[str, int] = {f"Train_{i}": 0 for i in range(len(defs))}
 
     # ── control ───────────────────────────────────────────────────────────
 
@@ -133,6 +138,7 @@ class ScenarioPlayer:
         self._apply_speed_holds()
         self.step_index = step + 1
         self.history.append(self.frame())
+        self._count_stopped()
         if self.hooks.on_step:
             self.hooks.on_step(self)
 
@@ -227,6 +233,16 @@ class ScenarioPlayer:
                 self._scripted_actions = None
                 self._scripted_step = 0
         return actions
+
+    def _count_stopped(self):
+        """A train on the grid in the same cell as after the step before has stood still."""
+        if len(self.history) < 2:
+            return
+        before, now = self.history[-2], self.history[-1]
+        for handle, state in now.items():
+            position = state["position"]
+            if position is not None and position == before[handle]["position"]:
+                self.stopped_steps[f"Train_{handle}"] += 1
 
     def _apply_speed_holds(self):
         """speed < 1: after every move, hold the train round(1/speed) - 1 steps."""

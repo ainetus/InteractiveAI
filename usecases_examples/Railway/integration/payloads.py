@@ -88,6 +88,7 @@ def context_payload(player, session: dict, infra: dict, state: Optional[str] = N
             "actual_departure": s.actual_departure,
             "actual_arrival": s.actual_arrival,
             "delay": s.arrival_delay,
+            "stopped_steps": player.stopped_steps.get(key, 0),   # "Breakdown delay" (F-34)
             "route": [list(c) for c in s.route],
         })
     return {

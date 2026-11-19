@@ -25,6 +25,8 @@ export type Train = {
   actual_departure?: number | null
   actual_arrival?: number | null
   delay?: number
+  // steps it has stood still on the grid so far ("Breakdown delay", F-34)
+  stopped_steps?: number
   route?: Cell[]
 }
 

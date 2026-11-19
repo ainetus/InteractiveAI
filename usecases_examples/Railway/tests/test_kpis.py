@@ -39,3 +39,10 @@ def test_the_scenarios_carry_the_computed_kpis():
                               "energy": 46}
     assert option["kpis_hand_written"]["anschluss"] == 0
     assert "kpis_hand_written" not in RAW_SCENARIOS["scenario6"]["decision_points"][0]["options"][0]
+
+
+def test_stopped_steps_count_a_train_standing_on_the_grid():
+    player = play(RAW_SCENARIOS["scenario3"], {0: 0})
+    # G 3 runs at half speed: it stands every other step
+    assert player.stopped_steps["Train_0"] > 10
+    assert all(steps >= 0 for steps in player.stopped_steps.values())

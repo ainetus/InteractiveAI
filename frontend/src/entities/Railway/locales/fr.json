@@ -42,6 +42,7 @@
   "Railway.trains.planned_arrival": "Arrivée prévue",
   "Railway.trains.actual_arrival": "Arrivée",
   "Railway.trains.delay": "Retard",
+  "Railway.trains.stopped": "Immobilisation",
   "Railway.trains.status": "État",
   "Railway.trains.state.waiting": "en attente",
   "Railway.trains.state.running": "en route",
