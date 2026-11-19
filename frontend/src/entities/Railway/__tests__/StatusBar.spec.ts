@@ -37,7 +37,7 @@ describe('StatusBar', () => {
     expect(running.find('.decision').exists()).toBe(false)
     const paused = mountIn(context({ step: 16, state: 'paused_for_decision', decision_open: true }))
     expect(paused.find('.decision').text()).toContain(
-      'Entscheidung erforderlich – bitte Ereigniskarte öffnen'
+      'Simulation pausiert – Entscheidung erforderlich, bitte Ereigniskarte öffnen'
     )
   })
 

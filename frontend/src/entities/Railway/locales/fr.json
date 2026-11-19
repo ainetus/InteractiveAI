@@ -27,7 +27,7 @@
   "Railway.tab.linkmap": "Vue de la ligne",
   "Railway.linkmap.level": "Niveau {level}",
   "Railway.status.step": "Pas {step}",
-  "Railway.status.decision": "Décision requise – veuillez ouvrir la carte d'événement",
+  "Railway.status.decision": "Simulation en pause – décision requise, veuillez ouvrir la carte d'événement",
   "Railway.status.trains": "Tableau des trains",
   "Railway.trains.name": "Train",
   "Railway.trains.from": "De",

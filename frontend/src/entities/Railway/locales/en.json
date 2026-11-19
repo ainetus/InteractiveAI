@@ -32,7 +32,7 @@
   "Railway.tab.linkmap": "Line view",
   "Railway.linkmap.level": "Level {level}",
   "Railway.status.step": "Step {step}",
-  "Railway.status.decision": "Decision required – please open the event card",
+  "Railway.status.decision": "Simulation paused – decision required, please open the event card",
   "Railway.status.trains": "Train table",
   "Railway.trains.name": "Train",
   "Railway.trains.from": "From",

@@ -113,7 +113,7 @@
   "Railway.tab.linkmap": "Linienansicht",
   "Railway.linkmap.level": "Ebene {level}",
   "Railway.status.step": "Schritt {step}",
-  "Railway.status.decision": "Entscheidung erforderlich – bitte Ereigniskarte öffnen",
+  "Railway.status.decision": "Simulation pausiert – Entscheidung erforderlich, bitte Ereigniskarte öffnen",
   "Railway.status.trains": "Zugtabelle",
   "Railway.trains.name": "Zug",
   "Railway.trains.from": "Von",

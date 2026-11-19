@@ -190,9 +190,10 @@ describe('Railway page', () => {
     startRun('scenario3', 'colearning')
     waitForRun('paused_for_decision')
     cy.contains('.railway-status .step', 'Schritt 16', { timeout: 20000 }).should('be.visible')
-    cy.contains('.railway-status', 'Entscheidung erforderlich – bitte Ereigniskarte öffnen').should(
-      'be.visible'
-    )
+    cy.contains(
+      '.railway-status',
+      'Simulation pausiert – Entscheidung erforderlich, bitte Ereigniskarte öffnen'
+    ).should('be.visible')
     cy.contains('button', 'Zugtabelle').click()
     cy.contains('.railway-trains', 'unterwegs').should('be.visible')
     // origin and destination: scenario 3's trains all run from Station 1 to Station 2
