@@ -24,6 +24,7 @@
 - Railway: in the Kartenansicht each train fills its cell, with the bounds of a station's box, with its name on it and a "▶" pointing the way it runs; the tag above the train is gone. A light grid shows the cells' boundaries.
 - Railway: opening a decision card of the simulator shows its options (Empfehlungsmodus) or the train choice (Ko-Lernen) at once, without "Empfehlung anfordern"; other cards still open on the event view with the button.
 - Railway: the feed marks the cards that open a decision, "⚠ Entscheidung" while it is open and "✓ Entschieden" once it is taken.
+- Railway: in the simulator's runs the feed no longer asks "Event ended, would you like to close the corresponding notifications?" after a decision; the geographic map keeps the question.
 - Railway: the train table shows each train's cell and heading ("7, 9 → Ost") and its standstill so far ("Stillstand", steps stood still on the grid).
 - Railway simulator: the options' KPIs are computed from the simulation (`compute_kpis.py`): the delay summed and per train and the energy (train steps on the grid); they replace the hand-written "Lokale Verspätung", "Gesamtverspätung", "Energie" and "Anschlüsse".
 

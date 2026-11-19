@@ -229,6 +229,8 @@ describe('Railway page', () => {
     cy.contains('button', 'Anwenden').click()
     cy.contains('button', 'Ja').click()
     cy.contains('Lösung angewendet.', { timeout: 20000 }).should('be.visible')
+    // no "Event ended, close the notifications?" question in the simulator's runs (F-32)
+    cy.contains(/Event ended|Événement terminé/).should('not.exist')
     waitForContext('the applied decision', (data) => data.decisions?.length === 1)
     // resumed; with this option scenario 3 may also have run to its end by the next context
     waitForContext('the run resumed', (data) =>
@@ -236,6 +238,7 @@ describe('Railway page', () => {
     )
     // the card's mark turns from open to decided with the next context (F-27)
     cy.contains('[data-decision="decided"]', 'Entschieden', { timeout: 20000 }).should('be.visible')
+    cy.contains(/Event ended|Événement terminé/).should('not.exist')
     cy.contains('.railway-status', 'Entscheidung erforderlich', { timeout: 20000 }).should(
       'not.exist'
     )
