@@ -18,7 +18,7 @@
   </form>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import Avatar from '@/components/atoms/Avatar.vue'
@@ -42,7 +42,9 @@ async function login() {
   // gap before they answer.
   setCognitiveConsent(false)
   appStore.addModal({
-    data: t('modal.consent.cognitive'),
+    // translated live, as the dialog's buttons are: a use case's texts may arrive while it is open
+    // (Railway's de-Railway after the route change), and question and buttons keep one language
+    data: computed(() => t('modal.consent.cognitive')),
     type: 'choice',
     callback: (success: boolean) => setCognitiveConsent(success)
   })

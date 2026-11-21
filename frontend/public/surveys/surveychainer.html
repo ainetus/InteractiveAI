@@ -135,6 +135,13 @@
                 { name: "Reflection on Operator Deskilling (Power Grid)", url: "./ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid.html" },
                 { name: "Predicted Long-Term Adoption", url: "./ai4realnet/long-term-consequences/predicted-long-term-adoption.html" }
             ]
+        },
+        // Railway dispatcher experiment: the reflection questions once, after the
+        // Experiment, in German only (InteractiveAI's own page, see NOTICE.md)
+        Railway: {
+            de: [
+                { name: "Reflexionsfragen", url: "./railway/reflection.html" }
+            ]
         }
     };
 
@@ -168,9 +175,20 @@
             missingIds: "Veuillez saisir l'identifiant du participant et l'identifiant de la condition.",
             thanks: "Merci !",
             chooseLanguage: "Choisissez la langue du questionnaire"
+        },
+        de: {
+            title: "Befragung",
+            intro: "Bitte unten auf 'Starten' drücken",
+            start: "Starten",
+            finish: "Abschließen",
+            progress: (n, total, name) => `Fragebogen ${n} von ${total}: ${name}`,
+            done: "✅ Alle Fragebögen ausgefüllt!",
+            missingIds: "Bitte Teilnehmer-ID und Bedingung eingeben.",
+            thanks: "Vielen Dank!",
+            chooseLanguage: "Wählen Sie die Sprache des Fragebogens"
         }
     };
-    const LANGUAGE_NAMES = { fr: "Français", en: "English" };
+    const LANGUAGE_NAMES = { fr: "Français", en: "English", de: "Deutsch" };
     let text = TEXT.en;
 
     /** Switch the chainer, and the questionnaires it will play, to a language. */

@@ -1,6 +1,38 @@
 # Changelog
 
 
+## Unreleased
+
+### Added
+
+- Railway: the Event and Context services accept the fields of the scripted Railway simulator (scenario, decision, run mode and session in events; session, scenario state, track network, history and decisions in contexts). All are optional, so existing Railway publishers keep working.
+- Railway: the page is in German when the browser is set to German, including the platform texts it shows; English and French stay as before.
+- Railway simulator: plays the six scripted scenarios on the platform. It sends its events and contexts through the Event and Context services, pauses at each decision until the operator's choice arrives, and is started, moved on and stopped through `/railway-simu/` (an Experiment of six runs, or a single run).
+- Railway: "Get recommendation" on a decision card of the simulator shows the scenario's options with their KPIs, or the Ko-Lernen choices of train and action. Other Railway events still get the recommendation catalog.
+- Railway: for the simulator's contexts the centre panel shows the "Kartenansicht": the scenario's track network, its stations and the trains with their direction, held trains in red. Contexts without a track network keep the geographic map.
+- Railway: a "ZWL Diagramm" tab shows each train's distance along the scenario's line against the step, the planned paths dashed and the current step as a line.
+- Railway: a "Linienansicht" tab shows the scenario's line straight, in three rows (the main line and the side tracks above and below it), with its stations and trains.
+- Railway: a status line above the drawing shows the step and, while a decision is open, "Simulation pausiert – Entscheidung erforderlich, bitte Ereigniskarte öffnen" with the held trains highlighted; a train table lists planned and actual departures and arrivals, delays and states.
+- Railway: the operator applies a simulator recommendation from the assistant ("Lösung anwenden"); in Ko-Lernen they pick a train, then an action (actions not offered are greyed out, infeasible ones say why), and propose it. The choice goes to the simulator through the frontend's new `/railway-simu/` nginx proxy (`RAILWAY_SIMU_UPSTREAM`, default `http://host.docker.internal:5124/`), which resumes the run. Catalog recommendations are still applied through `/transport_plan`.
+- Railway: when the simulator is reachable, a start dialog over the page starts the Experiment (six runs, each with its introduction and "Weiter") or a single run, and ends with "Experiment abgeschlossen" and a hint to log out; a bar above the timeline shows "Experiment i/6 · scenario — mode · Schritt N" and "✕ Beenden". Without the simulator the page stays as before.
+- Railway: "Karte ansehen" in the start dialog's "Standalone-Modus" section shows the geographic map for an external simulation (events and trains with GPS positions), as the page was before the start dialog; "▶ Szenario-Loader" in the bar above the timeline goes back.
+- Railway: in the Experiment, the bar above the timeline offers "Szenario beenden", which ends the current scenario early and shows the next introduction, and "✕ Experiment beenden" (formerly "✕ Beenden"); a single run keeps "✕ Beenden". The simulator's new `POST /api/v1/session/end-run` does the ending.
+- Survey: after logging out of Railway, the post-logout survey asks the experiment's reflection questions, in German (`CHAINS.Railway`).
+- Railway simulator: a `Dockerfile` and its own `docker-compose.yml` run it next to the platform, always on and idle until a participant starts the Experiment; the frontend image is built with `VITE_RAILWAY_SIMU=/railway-simu`. The users service loads the `cabProcess` perimeter of the Dispatcher, Planner and Supervisor groups from its config, so `railway_user` gets its cards on a fresh database without `loadTestConf.sh`.
+- Railway: the feed shows only the running scenario's cards, so each scenario of the Experiment starts with an empty feed; cards of other publishers stay. The timeline still lists the earlier runs' cards.
+- Railway: the train table shows where each train comes from and goes to ("Von", "Nach").
+- Railway: in the Kartenansicht each train fills its cell, with the bounds of a station's box, with its name on it and a "▶" pointing the way it runs; the tag above the train is gone. A light grid shows the cells' boundaries.
+- Railway: opening a decision card of the simulator shows its options (Empfehlungsmodus) or the train choice (Ko-Lernen) at once, without "Empfehlung anfordern"; other cards still open on the event view with the button.
+- Railway: the feed marks the cards that open a decision, "⚠ Entscheidung" while it is open and "✓ Entschieden" once it is taken.
+- Railway: in the simulator's runs the feed no longer asks "Event ended, would you like to close the corresponding notifications?" after a decision; the geographic map keeps the question.
+- Railway: the train table shows each train's cell and heading ("7, 9 → Ost") and its standstill so far ("Stillstand", steps stood still on the grid).
+- Railway simulator: an event that holds a train is sent again when its hold runs out, with its end and criticality `ND`: its card turns grey and the Timeline shows its end.
+- Railway simulator: the options' KPIs are computed from the simulation (`compute_kpis.py`): the delay summed and per train and the energy (train steps on the grid); they replace the hand-written "Lokale Verspätung", "Gesamtverspätung", "Energie" and "Anschlüsse".
+
+### Fixed
+
+- Login: in a German browser on the Railway page, the consent question for cognitive data was in English under German buttons; the question now follows the page's language, as the buttons do.
+
 ## 1.5.2 (2026-11-05)
 
 ### Added

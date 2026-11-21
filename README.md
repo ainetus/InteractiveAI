@@ -40,6 +40,8 @@ It is a prototype of a bi-directional virtual assistant, open in terms of indust
 
 As it is designed, the platform is generic, it can be used for different use cases. As an example, the use case of managing **power line** overloads at **PowerGrid** (Réseau de Transport d'Electricité français) is provided. To install and run the PowerGrid simulator, please refer to the detailed guide available in the file PowerGrid simulator's [README](/usecases_examples/PowerGrid/README.md). This guide provides specific instructions for setting up and running the PowerGrid use case.
 
+A second example is the **Railway** dispatcher experiment: six scripted Flatland scenarios, played by a simulator next to the platform, in which a participant resolves dispatching conflicts with the platform's recommendations ("Empfehlungsmodus") or by choosing a train and an action ("Ko-Lernen"). Its simulator, dev stack and deployment are described in the Railway [README](/usecases_examples/Railway/README.md).
+
 The platform uses the project **OperatorFabric** for notification management.
 
 
@@ -83,12 +85,16 @@ Key variables (see `.secrets.example` for all options and per-environment values
 
 - `VITE_POWERGRID_SIMU` — the frontend's simulator endpoint. Use the same-origin proxy
   value `/powergrid-simu` (avoids CORS); set it to `false` to disable the PowerGrid UI.
-  `VITE_RAILWAY_SIMU` / `VITE_ATM_SIMU` are the equivalents for the other use cases.
+  `VITE_RAILWAY_SIMU` / `VITE_ATM_SIMU` are the equivalents for the other use cases; the
+  Railway simulator's proxy value is `/railway-simu`.
 - `POWERGRID_SIMU_UPSTREAM` — where nginx actually forwards `/powergrid-simu/`:
   - Local dev : `http://host.docker.internal:5122/` (simulator container on the host)
   - LAN       : `http://192.168.208.61:5100/`
   - Public/k8s: same variable, set as an env var on the **frontend pod** (see
     `deploy-chart/values.ovh.yaml`).
+- `RAILWAY_SIMU_UPSTREAM` — where nginx forwards `/railway-simu/`, the Railway simulator
+  (default `http://host.docker.internal:5124/`, the simulator's own compose on the same host; see
+  [the Railway README](/usecases_examples/Railway/README.md#3-deployment)).
 - `COGNITIVE_TOKEN` — bearer token for the INESCTEC cognitive API. nginx attaches it to
   every `/cognitive-api/` request, so the frontend never sees it. It used to be
   `VITE_COGNITIVE_TOKEN`, a build-time value inlined into the public JS bundle; that meant
@@ -110,7 +116,7 @@ Key variables (see `.secrets.example` for all options and per-environment values
 > 
 ### How runtime nginx configuration works
 
-`POWERGRID_SIMU_UPSTREAM` and `COGNITIVE_TOKEN` are **runtime** values, not
+`POWERGRID_SIMU_UPSTREAM`, `RAILWAY_SIMU_UPSTREAM` and `COGNITIVE_TOKEN` are **runtime** values, not
 build-time ones. They appear in the nginx config as `__NAME__` placeholders, and
 `frontend/start-webui.sh` substitutes them from the matching env var when the container
 starts. Changing one is: update the env var (or the k8s secret) and restart the
@@ -245,6 +251,9 @@ containers via `host.docker.internal`:
 * PowerGrid simulator (provided example): 5122
 * PowerGrid expert agent API: 5123
 
+The Railway simulator runs the same way, in its own compose on the host:
+* Railway simulator: 5124
+
 ### Authentication data
 
 For a development environment, the system uses predefined initial data for Keycloak setup.
@@ -257,6 +266,9 @@ Some examples of credentials:
 | `admin`          | `test`   |
 | `powergrid_user` | `test`   |
 | `railway_user`   | `test`   |
+
+`railway_user` is also the one login of the Railway experiment's participants: each login's trace
+session id identifies the participant's session (see the Railway [README](/usecases_examples/Railway/README.md#3-deployment)).
 | `atm_user`       | `test`   |
 
 

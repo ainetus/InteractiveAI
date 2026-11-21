@@ -20,3 +20,13 @@ class MetadataSchemaRailway(MetadataSchema):
     longitude = Float(allow_none=True, default=None)
     latitude = Float(allow_none=True, default=None)
     simulation_name = String(allow_none=True, default=None)
+    # Sent by the scripted Railway simulator (usecases_examples/Railway/); optional, so
+    # publishers of the fields above stay valid. scenario_id, decision_index and run_mode are
+    # the key of the recommendations RailwayManager returns; session_id is the Experiment's id.
+    scenario_id = String(required=False, allow_none=True)
+    timestep = Integer(required=False, allow_none=True)
+    decision_index = Integer(required=False, allow_none=True)
+    session_id = String(required=False, allow_none=True)
+    run_mode = String(
+        required=False, allow_none=True, validate=OneOf(["recommendation", "colearning"])
+    )

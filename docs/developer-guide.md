@@ -97,6 +97,16 @@ It is recommended to rebuild and restart the recommendation service for these ch
 
 To run all services on the dev server you can check the steps in the main README file
 
+### Running the Services without Docker (Railway dev stack)
+
+To run the Event, Context, Historic and Recommendation services on one machine without Docker, on
+SQLite and with `AUTH_DISABLED`, behind a gateway that stands in for Keycloak and OperatorFabric, see
+the dev stack in [`usecases_examples/Railway/README.md`](../usecases_examples/Railway/README.md#2-dev-stack-without-docker):
+
+```sh
+usecases_examples/Railway/devstack/start.sh
+```
+
 ## Contributing
 
 Contributions to the InteractiveAI Assistant Platform are welcome! To contribute please make sure to use [developer guide](docs/developer-guide.md)

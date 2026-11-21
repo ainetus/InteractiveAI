@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!--
+  Railway: the reflection questions, once at the end of the Experiment (Q5 d, F24), as the Railway
+  chain of the post-logout survey (CHAINS.Railway in ../surveychainer.html). The questions are
+  railway_sim's five reflection questions, all free text and optional. Part of InteractiveAI
+  (MPL-2.0), not vendored from hmisurveys (see ../NOTICE.md).
+-->
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reflexionsfragen</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 40px;
+      background-color: #fafafa;
+      line-height: 1.5;
+    }
+
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .section {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px 25px;
+      margin-bottom: 35px;
+      background: #eff0f1;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .question {
+      margin: 18px 0;
+    }
+
+    label,
+    p,
+    textarea {
+      font-size: 15px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      margin-top: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    button {
+      display: block;
+      margin: 30px auto;
+      padding: 10px 25px;
+      font-size: 16px;
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Reflexionsfragen</h1>
+  <div class="section">
+    <p>Bitte denken Sie an die Szenarien zurück, die Sie eben gespielt haben, und beantworten Sie
+      die folgenden Fragen in eigenen Worten. Alle Antworten sind freiwillig.</p>
+    <form id="reflection"></form>
+  </div>
+  <button type="button" id="submit">Weiter</button>
+
+  <script>
+    const QUESTIONS = [
+      "Auf welche Logik habe ich mich gestützt?",
+      "Welche Informationen fehlten, die mir geholfen hätten?",
+      "Welche Faktoren habe ich für meine Entscheidung berücksichtigt?",
+      "Was ist die wichtigste Erkenntnis für das nächste Mal?",
+      "Gab es ein Bauchgefühl, das ich ignoriert habe?"
+    ];
+
+    const form = document.getElementById("reflection");
+    QUESTIONS.forEach((question, i) => {
+      const div = document.createElement("div");
+      div.className = "question";
+      const label = document.createElement("label");
+      label.htmlFor = `q${i}`;
+      label.textContent = `${i + 1}. ${question}`;
+      const answer = document.createElement("textarea");
+      answer.id = `q${i}`;
+      answer.placeholder = "Ihre Antwort...";
+      div.append(label, answer);
+      form.append(div);
+    });
+
+    document.getElementById("submit").addEventListener("click", () => {
+      const items = QUESTIONS.map((question, i) => ({
+        item: question,
+        participantResponse: document.getElementById(`q${i}`).value.trim()
+      }));
+      // `parent`, not `top`: the chainer that collects the answers is itself inside an
+      // InteractiveAI iframe
+      window.parent.postMessage({ success: true, resultObj: { success: true, items } }, "*");
+    });
+  </script>
+</body>
+
+</html>

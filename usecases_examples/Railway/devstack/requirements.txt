@@ -1,0 +1,19 @@
+# Dev stack only: what the Event, Context, Historic and Recommendation services import on the
+# Railway path, with the Event Service's pins. Not for deployment: each service's own
+# requirements.txt stays the reference (the Recommendation Service's adds PowerGrid's torch,
+# Grid2Op, ..., which Railway does not import).
+APIFlask==1.3.1
+apispec==6.3.0
+Flask==2.3.2
+Flask-HTTPAuth==4.8.0
+flask-marshmallow==0.15.0
+Flask-Migrate==4.0.0
+Flask-SQLAlchemy==3.0.4
+SQLAlchemy==2.0.16
+marshmallow==3.19.0
+python-jose==3.3.0
+python-keycloak==3.0.0
+requests==2.31.0
+webargs==8.2.0
+Werkzeug==2.3.6
+setuptools<70        # python-keycloak 3.0.0 imports pkg_resources

@@ -1,0 +1,11 @@
+# The simulator (sim/, no PIL) and its platform integration (integration/, app.py).
+# Flatland 4.2.6: the step rules in sim/ were measured on it.
+flatland-rl==4.2.6
+numpy<2
+Flask==2.3.2
+# Flask 2.3 sets no upper bound, but its test client fails with Werkzeug 3 (no __version__)
+Werkzeug<3
+requests
+# tests
+pytest
+requests-mock

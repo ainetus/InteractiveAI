@@ -86,10 +86,12 @@ grep "conf.d" $nginx_conf_path_personal/nginx.conf
 
 # Where nginx forwards /powergrid-simu/. Defaults to a simulator container on the host.
 : "${POWERGRID_SIMU_UPSTREAM:=http://host.docker.internal:5122/}"
+# Where nginx forwards /railway-simu/. Defaults to the Railway simulator on the host.
+: "${RAILWAY_SIMU_UPSTREAM:=http://host.docker.internal:5124/}"
 # Bearer token for the INESCTEC cognitive API, injected into the /cognitive-api/ proxy.
 : "${COGNITIVE_TOKEN:=}"
 
-SUBST_VARS="POWERGRID_SIMU_UPSTREAM COGNITIVE_TOKEN"
+SUBST_VARS="POWERGRID_SIMU_UPSTREAM RAILWAY_SIMU_UPSTREAM COGNITIVE_TOKEN"
 
 # Names that must carry a NON-EMPTY value, space- or comma-separated. An empty required
 # variable aborts startup instead of quietly substituting nothing.

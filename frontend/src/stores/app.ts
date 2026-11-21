@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, type Ref, ref } from 'vue'
 
 import type { Card } from '@/types/cards'
 import { type AppData, ENTITIES, type Entity } from '@/types/entities'
@@ -8,7 +8,8 @@ import { uuid } from '@/utils/utils'
 
 type Modal = {
   id?: UUID
-  data: string
+  /** the text, or a live translation of it (a ref, unwrapped by the store) */
+  data: string | Ref<string>
   type: 'choice' | 'info'
   callback?: (success: boolean) => void
 }
@@ -57,6 +58,8 @@ export const useAppStore = defineStore('app', () => {
     _modals.value.push({
       id,
       ...modal,
+      // a live translation (a Ref) is unwrapped when read from the reactive list
+      data: modal.data as string,
       callback: (success) => {
         modal.callback?.(success)
         _modals.value.splice(

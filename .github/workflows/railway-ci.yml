@@ -1,0 +1,77 @@
+name: Railway CI
+
+# The Railway use case: the scripted simulator's tests and the services' Railway tests (schemas,
+# RailwayManager). The Railway frontend tests run in Frontend CI (Vitest); the Cypress spec needs
+# the dev stack and is run by hand (usecases_examples/Railway/README.md, "Screenshots and video").
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'usecases_examples/Railway/**'
+      - 'backend/*/resources/Railway/**'
+      - 'backend/*/tests/test_railway*.py'
+      - '.github/workflows/railway-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'usecases_examples/Railway/**'
+      - 'backend/*/resources/Railway/**'
+      - 'backend/*/tests/test_railway*.py'
+      - '.github/workflows/railway-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  simulator:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: usecases_examples/Railway
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: usecases_examples/Railway/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # test_sim.py, test_integration.py, and test_recommendations.py, which fails while
+      # recommendations.json or the Recommendation Service's copy differs from the scenario files
+      - name: Run tests
+        run: python -m pytest -q
+
+  services:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: usecases_examples/Railway/devstack/requirements.txt
+
+      # What the services import on the Railway path (without the Recommendation Service's
+      # PowerGrid dependencies), as the dev stack installs it
+      - name: Install dependencies
+        run: |
+          pip install -r usecases_examples/Railway/devstack/requirements.txt
+          pip install pytest pytest-mock
+
+      - name: Run the Railway tests of each service
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend/cab_common
+        run: |
+          for service in event-service context-service recommendation-service; do
+            (cd "backend/$service" && python -m pytest -q tests/test_railway*.py) || exit 1
+          done
