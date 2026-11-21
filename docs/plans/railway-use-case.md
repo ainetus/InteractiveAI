@@ -1097,8 +1097,8 @@ later rows on the commit that added or last changed their shot), by `frontend/cy
 | 19 | End the scenario or the Experiment (REQ-23, F-6) | simulator tests (T-5), Vitest, Cypress | ✅ "Szenario beenden" moves on to the next introduction, "✕ Experiment beenden" ends the session | after: [`17-end-run`](railway-use-case/shots/17-end-run.png) |
 | 20 | Consent question in the page's language (F-8, Q-32) | Cypress login in a German browser | ✅ question and buttons German in a German browser; on `main` the dialog stays English | before: [`iai_consent_q32_before`](railway-use-case/iai_consent_q32_before.png), after: [`iai_consent_q32_after`](railway-use-case/iai_consent_q32_after.png) |
 
-Walk-through: the Cypress run of all 13 tests before S-24–S-27 (4 min), uploaded by hand to the PR description; the
-video stays local (§4.3).
+Walk-through: the Cypress run of all 15 tests at `01629ed` (7 min, 2026-11-21), uploaded by hand to the PR description;
+the video stays local (§4.3).
 
 ### 4.3 Local dev stack and visual checks (T-1–T-4)
 
