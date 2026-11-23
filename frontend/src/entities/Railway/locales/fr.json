@@ -26,7 +26,6 @@
   "Railway.kpis.delay": "Retard",
   "Railway.kpis.best": "Meilleure",
   "railway.journey.title": "Recommandations",
-  "railway.journey.step": "Étape {current} / {total}",
   "railway.journey.mode.basic": "Recommandations expertes",
   "railway.journey.mode.kpi": "Optimisation selon un KPI",
   "railway.journey.mode.kpi-threshold": "KPI avec seuil",
@@ -45,10 +44,14 @@
   "railway.journey.explain.rank": "Classée {rank} sur {count} selon « {kpi} » : {value} (meilleure valeur parmi les recommandations : {best}).",
   "railway.journey.explain.threshold": "Elle respecte le seuil : {value} ≤ {threshold}.",
   "railway.journey.apply": "Appliquer la recommandation",
-  "railway.journey.apply_next": "Appliquer et passer au mode suivant",
   "railway.journey.confirm": "Appliquer {recommendation} ?",
-  "railway.journey.confirm_next": "Appliquer {recommendation} et passer au mode suivant ?",
   "railway.journey.no_reco": "Aucune recommandation ne respecte ce seuil. Le seuil est remis au maximum pour afficher à nouveau toutes les recommandations.",
   "railway.journey.unit.passengers": "{count} voyageur | {count} voyageurs",
-  "railway.journey.restore": "Rétablir la recommandation rejetée | Rétablir les {count} recommandations rejetées"
+  "railway.journey.restore": "Rétablir la recommandation rejetée | Rétablir les {count} recommandations rejetées",
+  "railway.journey.choice.title": "Choisissez la présentation des recommandations",
+  "railway.journey.choice.text": "Ce mode s'applique à toute la session. Vous ne pourrez pas le changer avant de vous déconnecter.",
+  "railway.journey.choice.detail.basic": "Les recommandations des experts, la meilleure en premier",
+  "railway.journey.choice.detail.kpi": "Choisissez un KPI : les recommandations sont triées selon celui-ci",
+  "railway.journey.choice.detail.kpi-threshold": "Choisissez un KPI et une valeur maximale : seules les recommandations en dessous sont proposées, triées selon le KPI",
+  "railway.journey.choice.start": "Commencer la session"
 }

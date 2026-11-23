@@ -1,8 +1,9 @@
 <template>
   <section class="cab-panel">
+    <ModeChoice v-if="!mode" @choose="onModeChoice" />
     <Default>
       <template #title>
-        <template v-if="appStore.tab.assistant === 2 && journey">
+        <template v-if="appStore.tab.assistant === 2 && open">
           {{ $t('railway.journey.title') }}
         </template>
       </template>
@@ -39,19 +40,11 @@
       </Event>
 
       <div
-        v-if="appStore.tab.assistant === 2 && appStore.card('Railway') && journey && mode"
+        v-if="appStore.tab.assistant === 2 && appStore.card('Railway') && open && mode"
         class="railway-journey">
-        <!-- Mode and progress -->
+        <!-- The session's mode -->
         <header class="railway-journey-header">
-          <div class="flex flex-center-y">
-            <strong class="railway-journey-mode">{{ $t(`railway.journey.mode.${mode}`) }}</strong>
-            <span class="railway-journey-badge">
-              {{ $t('railway.journey.step', { current: journey.step + 1, total: journey.order.length }) }}
-            </span>
-          </div>
-          <div class="railway-journey-progress">
-            <div :style="{ width: `${((journey.step + 1) / journey.order.length) * 100}%` }"></div>
-          </div>
+          <strong class="railway-journey-mode">{{ $t(`railway.journey.mode.${mode}`) }}</strong>
         </header>
 
         <!-- KPI (and threshold) choice -->
@@ -71,13 +64,13 @@
           <template v-if="mode === 'kpi-threshold' && kpi && range">
             <div class="railway-journey-threshold">
               <div class="railway-journey-threshold-value">
-                <label :for="`railway-threshold-${journey.step}`">
+                <label for="railway-threshold">
                   {{ $t('railway.journey.threshold') }}
                 </label>
                 <strong>≤ {{ formatThreshold(kpi, thresholdDraft) }}</strong>
               </div>
               <input
-                :id="`railway-threshold-${journey.step}`"
+                id="railway-threshold"
                 v-model.number="thresholdDraft"
                 type="range"
                 :min="range.min"
@@ -165,7 +158,7 @@
             </template>
             <Button class="railway-journey-apply" @click="confirming = true">
               <Check :size="16" />
-              {{ isLastStep ? $t('railway.journey.apply') : $t('railway.journey.apply_next') }}
+              {{ $t('railway.journey.apply') }}
             </Button>
           </template>
         </template>
@@ -173,9 +166,7 @@
     </Default>
 
     <Modal v-if="confirming" type="choice" @close="onConfirm">
-      <i18n-t
-        scope="global"
-        :keypath="isLastStep ? 'railway.journey.confirm' : 'railway.journey.confirm_next'">
+      <i18n-t scope="global" keypath="railway.journey.confirm">
         <template #recommendation>
           <strong style="color: var(--color-primary)">{{ selected?.title }}</strong>
         </template>
@@ -206,22 +197,27 @@ import Modal from '@/components/atoms/Modal.vue'
 import Default from '@/components/organisms/CAB/Assistant.vue'
 import Event from '@/components/organisms/CAB/Assistant/Event.vue'
 import { applyRecommendation } from '@/entities/Railway/api'
+import ModeChoice from '@/entities/Railway/CAB/ModeChoice.vue'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
 import type { Recommendation } from '@/types/services'
-import { recordTraceForSession } from '@/utils/traceSessionExport'
+import {
+  type RailwayMode as Mode,
+  recordTraceForSession,
+  sessionRailwayMode,
+  setSessionRailwayMode
+} from '@/utils/traceSessionExport'
 import { criticalityToColor, getRootCard } from '@/utils/utils'
 
 /**
- * Guided experiment: the operator answers the same event three times, once per
- * way of presenting the recommendations, in a random order. Each choice is
- * applied and traced, so the choices can be compared afterwards.
+ * Human experiment: at the start of the session the operator picks how the
+ * recommendations are presented - the experts' ranking, sorted on a KPI, or
+ * sorted on a KPI under a threshold. The mode holds for the whole session
+ * (reloads included, cleared on logout) and is traced and exported with it.
  */
-type Mode = 'basic' | 'kpi' | 'kpi-threshold'
 type Kpi = 'cost' | 'delay' | 'nb_impacted_passengers' | 'total_cost'
 
-const MODES: Mode[] = ['basic', 'kpi', 'kpi-threshold']
 /** The recommendation service's ordering for each step (see resources/Railway/manager.py) */
 const SERVICE_MODE: Record<Mode, string> = {
   basic: 'basic', // the experts' choice first
@@ -241,9 +237,14 @@ const cardsStore = useCardsStore()
 const servicesStore = useServicesStore()
 const appStore = useAppStore()
 
-const journey = ref<{ order: Mode[]; step: number }>()
-const mode = computed(() => journey.value?.order[journey.value.step])
-const isLastStep = computed(() => !!journey.value && journey.value.step === journey.value.order.length - 1)
+const mode = ref<Mode | undefined>(sessionRailwayMode())
+/** Whether the recommendations of the selected event are open */
+const open = ref(false)
+
+function onModeChoice(choice: Mode) {
+  setSessionRailwayMode(choice)
+  mode.value = choice
+}
 
 /** Every recommendation of the event, to bound the threshold to the values it can take */
 const all = ref<Recommendation<'Railway'>[]>([])
@@ -260,7 +261,7 @@ const thresholdDraft = ref(0)
 const loading = ref(false)
 const confirming = ref(false)
 const noRecommendation = ref(false)
-const stepStartedAt = ref<string>()
+const askedAt = ref<string>()
 const shownAt = ref<string>()
 /** Answers to an older request (a KPI changed in between) are dropped */
 let request = 0
@@ -274,7 +275,7 @@ const range = computed(() => {
 watch(
   () => appStore._card,
   () => {
-    journey.value = undefined
+    open.value = false
     appStore.tab.assistant = 1
   }
 )
@@ -333,52 +334,38 @@ const explanation = computed(() => {
   return text
 })
 
-/** What the analysis needs to know about the step a trace belongs to */
-function stepRecord() {
+/** What the analysis needs to know about how the recommendations were presented */
+function experimentRecord() {
   return {
-    step: journey.value!.step + 1,
-    steps: journey.value!.order.length,
     mode: mode.value!,
-    mode_order: journey.value!.order,
     kpi: kpi.value ?? null,
     threshold: threshold.value ?? null
   }
 }
 
-function shuffle<T>(items: T[]) {
-  const shuffled = [...items]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
-
 async function startJourney() {
+  if (!mode.value) return
   const card = appStore.card('Railway')!
-  journey.value = { order: shuffle(MODES), step: 0 }
-  appStore.tab.assistant = 2
-  loading.value = true
-  const answer = await servicesStore.getRecommendation(card, undefined, undefined, { mode: 'basic' })
-  // No context yet: the store has told the operator and closed the assistant
-  if (!answer) {
-    journey.value = undefined
-    return
-  }
-  all.value = answer
-  startStep()
-}
-
-function startStep() {
   kpi.value = undefined
   threshold.value = undefined
   rejected.value = []
   selected.value = undefined
   recommendations.value = []
-  stepStartedAt.value = new Date().toISOString()
-  // One ask -> shown -> applied cycle per step, so each step gets its own decision time
+  open.value = true
+  appStore.tab.assistant = 2
+  loading.value = true
+  const answer = await servicesStore.getRecommendation(card, undefined, undefined, { mode: 'basic' })
+  // No context yet: the store has told the operator and closed the assistant
+  if (!answer) {
+    open.value = false
+    loading.value = false
+    return
+  }
+  all.value = answer
+  loading.value = false
+  askedAt.value = new Date().toISOString()
   sendTrace({
-    data: { id: appStore.card('Railway')!.id, railway_experiment: stepRecord() },
+    data: { id: appStore.card('Railway')!.id, railway_experiment: experimentRecord() },
     use_case: 'Railway',
     step: 'ASKFORHELP'
   })
@@ -417,7 +404,7 @@ async function fetchRecommendations() {
     date: shownAt.value,
     data: {
       recommendations: recommendations.value.map((recommendation) => recommendation.title),
-      railway_experiment: stepRecord()
+      railway_experiment: experimentRecord()
     }
   })
 }
@@ -458,12 +445,12 @@ function reject(recommendation: Recommendation<'Railway'>) {
     data: {
       action: 'reject_recommendation',
       recommendation: recommendation.title,
-      railway_experiment: stepRecord()
+      railway_experiment: experimentRecord()
     }
   })
 }
 
-/** Brings back every recommendation rejected in this step */
+/** Brings back every recommendation rejected for this event */
 function restoreRejected() {
   recordTraceForSession({
     use_case: 'Railway',
@@ -472,7 +459,7 @@ function restoreRejected() {
     data: {
       action: 'restore_rejected_recommendations',
       recommendations: [...rejected.value],
-      railway_experiment: stepRecord()
+      railway_experiment: experimentRecord()
     }
   })
   rejected.value = []
@@ -480,15 +467,15 @@ function restoreRejected() {
 
 async function onConfirm(success: boolean) {
   confirming.value = false
-  if (!success || !selected.value || !journey.value) return
+  if (!success || !selected.value || !open.value) return
   const card = appStore.card('Railway')!
   const recommendation = selected.value
   const record = {
-    ...stepRecord(),
+    ...experimentRecord(),
     shown: visible.value.map((item) => item.title),
     rejected: [...rejected.value],
     chosen_rank: visible.value.findIndex((item) => item.title === recommendation.title) + 1,
-    step_started_at: stepStartedAt.value,
+    asked_at: askedAt.value,
     shown_at: shownAt.value
   }
   sendTrace({
@@ -502,25 +489,18 @@ async function onConfirm(success: boolean) {
       event_id: getRootCard(card).processInstanceId,
       recommendation: recommendation.title,
       experiment: {
-        step: record.step,
-        steps: record.steps,
         mode: record.mode,
         kpi: record.kpi,
         threshold: record.threshold
       }
     })
   } catch {
-    // http plugin already shows an error modal — stay on this step so the operator can retry
+    // http plugin already shows an error modal — stay here so the operator can retry
     return
   }
-  if (isLastStep.value) {
-    cardsStore.resolveCriticality(card)
-    journey.value = undefined
-    appStore.tab.assistant = 0
-    return
-  }
-  journey.value.step++
-  startStep()
+  cardsStore.resolveCriticality(card)
+  open.value = false
+  appStore.tab.assistant = 0
 }
 </script>
 <style lang="scss">
@@ -531,30 +511,8 @@ async function onConfirm(success: boolean) {
   overflow-y: auto;
   font-size: 0.9em;
 
-  &-header > .flex {
-    justify-content: space-between;
-    margin-bottom: calc(var(--unit) * 0.5);
-  }
   &-mode {
     color: var(--color-primary);
-  }
-  &-badge {
-    font-size: 0.8em;
-    padding: 0 var(--spacing-1);
-    border-radius: var(--radius-circular);
-    background: color-mix(in srgb, var(--color-primary), transparent 85%);
-    color: var(--color-primary);
-  }
-  &-progress {
-    height: calc(var(--unit) * 0.5);
-    border-radius: var(--radius-circular);
-    background: var(--color-grey-300);
-    overflow: hidden;
-    div {
-      height: 100%;
-      background: var(--color-primary);
-      transition: width 0.4s ease;
-    }
   }
 
   &-box {

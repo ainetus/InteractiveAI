@@ -26,7 +26,6 @@
   "Railway.kpis.delay": "Delay",
   "Railway.kpis.best": "Best",
   "railway.journey.title": "Recommendations",
-  "railway.journey.step": "Step {current} / {total}",
   "railway.journey.mode.basic": "Expert recommendations",
   "railway.journey.mode.kpi": "Optimise a KPI",
   "railway.journey.mode.kpi-threshold": "KPI with a threshold",
@@ -45,10 +44,14 @@
   "railway.journey.explain.rank": "Ranked {rank} of {count} on {kpi}: {value} (best value among the recommendations: {best}).",
   "railway.journey.explain.threshold": "It meets the threshold: {value} ≤ {threshold}.",
   "railway.journey.apply": "Apply recommendation",
-  "railway.journey.apply_next": "Apply and try the next mode",
   "railway.journey.confirm": "Apply {recommendation}?",
-  "railway.journey.confirm_next": "Apply {recommendation} and go to the next mode?",
   "railway.journey.no_reco": "No recommendation meets this threshold. The threshold is reset so that every recommendation is shown again.",
   "railway.journey.unit.passengers": "{count} passenger | {count} passengers",
-  "railway.journey.restore": "Restore the rejected recommendation | Restore the {count} rejected recommendations"
+  "railway.journey.restore": "Restore the rejected recommendation | Restore the {count} rejected recommendations",
+  "railway.journey.choice.title": "Choose how recommendations are presented",
+  "railway.journey.choice.text": "This mode applies to the whole session. You can't change it until you log out.",
+  "railway.journey.choice.detail.basic": "The experts' recommendations, best first",
+  "railway.journey.choice.detail.kpi": "Pick a KPI: recommendations are sorted on it",
+  "railway.journey.choice.detail.kpi-threshold": "Pick a KPI and a maximum value: only recommendations under it, sorted on the KPI",
+  "railway.journey.choice.start": "Start the session"
 }

@@ -3,15 +3,13 @@ import type { Action } from '@/types/entities'
 
 /**
  * What the Railway simulator receives when the operator applies a
- * recommendation: its action, the event it answers and, in the guided
- * experiment, which step and ordering it was chosen in.
+ * recommendation: its action, the event it answers and, in the human
+ * experiment, how the recommendations were presented when it was chosen.
  */
 export type TransportPlanRequest = Partial<Action<'Railway'>> & {
   event_id: string
   recommendation?: string
   experiment?: {
-    step: number
-    steps: number
     mode: string
     kpi: string | null
     threshold: number | null

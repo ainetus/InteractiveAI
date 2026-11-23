@@ -28,7 +28,12 @@ type TraceSession = {
   resolvedAt?: Record<string, string>
   /** Recommendation agents the operator chose to work with at the start of the session. */
   agentChoice?: AgentChoice
+  /** How Railway recommendations are presented, chosen by the operator at the start of the session. */
+  railwayMode?: RailwayMode
 }
+
+/** Railway: the experts' ranking, sorted on a KPI, or sorted on a KPI under a threshold */
+export type RailwayMode = 'basic' | 'kpi' | 'kpi-threshold'
 
 export type AgentChoice = {
   ids: string[]
@@ -720,6 +725,7 @@ function buildHtmlSummary(
   html += '<button type="button" class="copy-btn" data-copy="' + escapeHtml(session.sessionId) + '" onclick="copyValue(this)" title="Copy the session id">Copy</button></div>'
   html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">' + formatTime(session.startedAt) + ' &rarr; ' + formatTime(endedAt) + '</div>'
   if (session.agentChoice) html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">Agents: <b>' + escapeHtml(session.agentChoice.names.join(' + ')) + '</b></div>'
+  if (session.railwayMode) html += '<div style="color:#6b7280;font-size:13px;margin-top:4px">Railway mode: <b>' + escapeHtml(session.railwayMode) + '</b></div>'
   html += '</div>'
 
   // KPIs
@@ -901,6 +907,17 @@ export function setSessionAgentChoice(choice: AgentChoice) {
   saveSession(session)
 }
 
+/** The Railway recommendation mode chosen for this session, if the operator has chosen yet. */
+export function sessionRailwayMode(): RailwayMode | undefined {
+  return loadSession()?.railwayMode
+}
+
+export function setSessionRailwayMode(mode: RailwayMode) {
+  const session = loadSession() ?? createSession()
+  session.railwayMode = mode
+  saveSession(session)
+}
+
 export function startTraceSession(userLogin?: string) {
   saveSession(createSession(userLogin))
 }
@@ -1067,6 +1084,7 @@ export function exportTraceSession(format: ExportFormat = 'json', options: Expor
       startedAt: session.startedAt,
       endedAt,
       ...(session.agentChoice && { agents: session.agentChoice.names }),
+      ...(session.railwayMode && { railwayMode: session.railwayMode }),
       kpis,
       traces: structured
     },
