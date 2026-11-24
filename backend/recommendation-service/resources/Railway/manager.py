@@ -37,7 +37,8 @@ class RailwayManager(BaseRecommendationManager):
                       threshold_value (the highest acceptable value of the KPI: a number,
                       or for delay minutes or a delay string e.g. "1h30")
         - "risk": sort all recommendations by KPI ascending via SNCF_risk
-            requires: sort_type
+            requires: sort_types (KPIs in order of importance: sorted on the first,
+                      ties broken by the next ones) or sort_type (a single KPI)
         - "risk_tie_break": sort by primary KPI, break ties with secondary via SNCF_risk_tie_break
             requires: sort_type
             optional: tie_breaker (same values as sort_type)
@@ -63,10 +64,10 @@ class RailwayManager(BaseRecommendationManager):
                 type=sort_type, threshold_value=threshold_value,
             )
         elif mode == "risk":
-            sort_type = event_data.get("sort_type", "cost")
+            sort_types = event_data.get("sort_types") or [event_data.get("sort_type", "cost")]
             recommendations = SNCF_risk(
                 event_json, context_json, RECOMMENDATION_CATALOG,
-                type=sort_type,
+                type=sort_types,
             )
         elif mode == "risk_tie_break":
             sort_type = event_data.get("sort_type", "cost")

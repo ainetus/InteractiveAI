@@ -27,7 +27,7 @@
   "Railway.kpis.best": "Meilleure",
   "railway.journey.title": "Recommandations",
   "railway.journey.mode.basic": "Recommandations expertes",
-  "railway.journey.mode.kpi": "Optimisation selon un KPI",
+  "railway.journey.mode.kpi": "Optimisation selon des KPI",
   "railway.journey.mode.kpi-threshold": "KPI avec seuil",
   "railway.journey.select_kpi": "Choisissez un KPI",
   "railway.journey.select_kpi_hint": "Choisissez un KPI ci-dessus pour afficher les recommandations.",
@@ -51,7 +51,13 @@
   "railway.journey.choice.title": "Choisissez la présentation des recommandations",
   "railway.journey.choice.text": "Ce mode s'applique à toute la session. Vous ne pourrez pas le changer avant de vous déconnecter.",
   "railway.journey.choice.detail.basic": "Les recommandations des experts, la meilleure en premier",
-  "railway.journey.choice.detail.kpi": "Choisissez un KPI : les recommandations sont triées selon celui-ci",
+  "railway.journey.choice.detail.kpi": "Choisissez un ou plusieurs KPI et classez-les : les recommandations sont triées en conséquence",
   "railway.journey.choice.detail.kpi-threshold": "Choisissez un KPI et une valeur maximale : seules les recommandations en dessous sont proposées, triées selon le KPI",
-  "railway.journey.choice.start": "Commencer la session"
+  "railway.journey.choice.start": "Commencer la session",
+  "railway.journey.select_kpis": "Choisissez un ou plusieurs KPI, le plus important en premier",
+  "railway.journey.priorities": "Ordre d'importance",
+  "railway.journey.priorities_hint": "Les recommandations sont triées selon le premier KPI ; les suivants ne servent qu'à départager les égalités.",
+  "railway.journey.priority.up": "Plus important",
+  "railway.journey.priority.down": "Moins important",
+  "railway.journey.explain.priorities": "Classée {rank} sur {count} : les recommandations sont triées selon {kpis}, dans cet ordre d'importance."
 }

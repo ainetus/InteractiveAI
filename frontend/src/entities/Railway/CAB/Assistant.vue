@@ -47,20 +47,54 @@
           <strong class="railway-journey-mode">{{ $t(`railway.journey.mode.${mode}`) }}</strong>
         </header>
 
-        <!-- KPI (and threshold) choice -->
+        <!-- KPI choice: several, in order of importance, or one with a threshold -->
         <div v-if="mode !== 'basic'" class="railway-journey-box">
-          <p class="railway-journey-label">{{ $t('railway.journey.select_kpi') }}</p>
+          <p class="railway-journey-label">
+            {{ mode === 'kpi' ? $t('railway.journey.select_kpis') : $t('railway.journey.select_kpi') }}
+          </p>
           <div class="railway-journey-kpis">
             <button
               v-for="option of KPIS"
               :key="option.id"
               type="button"
               class="railway-journey-chip"
-              :class="{ selected: kpi === option.id }"
-              @click="selectKpi(option.id)">
+              :class="{ selected: priorities.includes(option.id) }"
+              :aria-pressed="priorities.includes(option.id)"
+              @click="mode === 'kpi' ? toggleKpi(option.id) : selectKpi(option.id)">
+              <span v-if="mode === 'kpi' && priorities.includes(option.id)" class="railway-journey-chip-rank">
+                {{ priorities.indexOf(option.id) + 1 }}
+              </span>
               {{ $t(`Railway.kpis.${option.id}`) }}
             </button>
           </div>
+          <template v-if="mode === 'kpi' && priorities.length">
+            <p class="railway-journey-label">{{ $t('railway.journey.priorities') }}</p>
+            <ol class="railway-journey-priorities">
+              <li v-for="(id, index) of priorities" :key="id">
+                <span class="railway-journey-priority-rank">{{ index + 1 }}</span>
+                <span class="railway-journey-priority-name">{{ $t(`Railway.kpis.${id}`) }}</span>
+                <button
+                  type="button"
+                  :disabled="index === 0"
+                  :title="$t('railway.journey.priority.up')"
+                  :aria-label="$t('railway.journey.priority.up')"
+                  @click="moveKpi(index, -1)">
+                  <ChevronUp :size="14" />
+                </button>
+                <button
+                  type="button"
+                  :disabled="index === priorities.length - 1"
+                  :title="$t('railway.journey.priority.down')"
+                  :aria-label="$t('railway.journey.priority.down')"
+                  @click="moveKpi(index, 1)">
+                  <ChevronDown :size="14" />
+                </button>
+              </li>
+            </ol>
+            <p v-if="priorities.length > 1" class="railway-journey-hint">
+              {{ $t('railway.journey.priorities_hint') }}
+            </p>
+          </template>
           <template v-if="mode === 'kpi-threshold' && kpi && range">
             <div class="railway-journey-threshold">
               <div class="railway-journey-threshold-value">
@@ -144,8 +178,13 @@
                   v-for="option of KPIS"
                   :key="option.id"
                   class="railway-journey-metric"
-                  :class="{ chosen: option.id === kpi }">
-                  <span>{{ $t(`Railway.kpis.${option.id}`) }}</span>
+                  :class="{ chosen: priorities.includes(option.id) }">
+                  <span>
+                    <template v-if="mode === 'kpi' && priorities.length > 1 && priorities.includes(option.id)">
+                      {{ priorities.indexOf(option.id) + 1 }}.
+                    </template>
+                    {{ $t(`Railway.kpis.${option.id}`) }}
+                  </span>
                   <span>{{ formatKpi(option.id, kpiValue(selected, option.id)) }}</span>
                 </div>
               </div>
@@ -180,6 +219,8 @@
 <script setup lang="ts">
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   FileText,
   Gauge,
   Lightbulb,
@@ -218,10 +259,10 @@ import { criticalityToColor, getRootCard } from '@/utils/utils'
  */
 type Kpi = 'cost' | 'delay' | 'nb_impacted_passengers' | 'total_cost'
 
-/** The recommendation service's ordering for each step (see resources/Railway/manager.py) */
+/** The recommendation service's ordering for each mode (see resources/Railway/manager.py) */
 const SERVICE_MODE: Record<Mode, string> = {
   basic: 'basic', // the experts' choice first
-  kpi: 'risk', // sorted by the KPI, lowest first
+  kpi: 'risk', // sorted on the chosen KPIs, in their order of importance
   'kpi-threshold': 'deontic' // above the threshold left out, then sorted by the KPI
 }
 /** The service's name for each KPI of the recommendations */
@@ -254,7 +295,12 @@ const visible = computed(() =>
   recommendations.value.filter((recommendation) => !rejected.value.includes(recommendation.title))
 )
 const selected = ref<Recommendation<'Railway'>>()
-const kpi = ref<Kpi>()
+/**
+ * The chosen KPIs, most important first: several in the KPI mode (sorted on
+ * the first, ties broken by the next ones, no weights), one with a threshold
+ */
+const priorities = ref<Kpi[]>([])
+const kpi = computed<Kpi | undefined>(() => priorities.value[0])
 /** The threshold sent to the service, and the slider's value while it moves */
 const threshold = ref<number>()
 const thresholdDraft = ref(0)
@@ -315,6 +361,12 @@ function isBest(recommendation: Recommendation<'Railway'>) {
 
 const explanation = computed(() => {
   if (!selected.value || !kpi.value) return ''
+  if (priorities.value.length > 1)
+    return t('railway.journey.explain.priorities', {
+      rank: visible.value.findIndex((recommendation) => recommendation.title === selected.value!.title) + 1,
+      count: visible.value.length,
+      kpis: priorities.value.map((id) => t(`Railway.kpis.${id}`)).join(' > ')
+    })
   const values = visible.value.map((recommendation) => kpiValue(recommendation, kpi.value!))
   const value = kpiValue(selected.value, kpi.value)
   let text = t('railway.journey.explain.rank', {
@@ -339,6 +391,7 @@ function experimentRecord() {
   return {
     mode: mode.value!,
     kpi: kpi.value ?? null,
+    kpis: [...priorities.value],
     threshold: threshold.value ?? null
   }
 }
@@ -346,7 +399,7 @@ function experimentRecord() {
 async function startJourney() {
   if (!mode.value) return
   const card = appStore.card('Railway')!
-  kpi.value = undefined
+  priorities.value = []
   threshold.value = undefined
   rejected.value = []
   selected.value = undefined
@@ -377,7 +430,10 @@ async function fetchRecommendations() {
   const id = ++request
   loading.value = true
   const overrides: Record<string, unknown> = { mode: SERVICE_MODE[mode.value] }
-  if (kpi.value) overrides.sort_type = KPIS.find((option) => option.id === kpi.value)!.sortType
+  // The chosen KPIs, most important first: the agent sorts on the first, ties broken by the next ones
+  const sortTypes = priorities.value.map((id) => KPIS.find((option) => option.id === id)!.sortType)
+  if (sortTypes.length) overrides.sort_type = sortTypes[0]
+  if (mode.value === 'kpi') overrides.sort_types = sortTypes
   if (mode.value === 'kpi-threshold') overrides.threshold_value = threshold.value
   try {
     const answer = await servicesStore.getRecommendation(
@@ -409,9 +465,34 @@ async function fetchRecommendations() {
   })
 }
 
+/** KPI mode: adds a KPI as the least important one, or takes it out */
+function toggleKpi(id: Kpi) {
+  if (priorities.value.includes(id)) priorities.value = priorities.value.filter((item) => item !== id)
+  else priorities.value = [...priorities.value, id]
+  if (priorities.value.length) fetchRecommendations()
+  else {
+    // Nothing to sort on any more: back to asking for a KPI
+    ++request
+    loading.value = false
+    recommendations.value = []
+    selected.value = undefined
+  }
+}
+
+/** KPI mode: moves a KPI one place up (-1) or down (1) in the order of importance */
+function moveKpi(index: number, direction: -1 | 1) {
+  const target = index + direction
+  if (target < 0 || target >= priorities.value.length) return
+  const order = [...priorities.value]
+  ;[order[index], order[target]] = [order[target], order[index]]
+  priorities.value = order
+  fetchRecommendations()
+}
+
+/** Threshold mode: the one KPI the threshold applies to */
 function selectKpi(id: Kpi) {
   if (kpi.value === id) return
-  kpi.value = id
+  priorities.value = [id]
   if (mode.value === 'kpi-threshold') {
     // Starts with every recommendation allowed; lowering it is the operator's choice
     threshold.value = range.value?.max
@@ -491,6 +572,7 @@ async function onConfirm(success: boolean) {
       experiment: {
         mode: record.mode,
         kpi: record.kpi,
+        kpis: record.kpis,
         threshold: record.threshold
       }
     })
@@ -554,6 +636,67 @@ async function onConfirm(success: boolean) {
       border-color: var(--color-primary);
       color: var(--color-text-inverted);
     }
+    &-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.4em;
+      height: 1.4em;
+      margin-right: calc(var(--unit) * 0.25);
+      border-radius: var(--radius-circular);
+      background: var(--color-text-inverted);
+      color: var(--color-primary);
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+  }
+  &-priorities {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--unit) * 0.5);
+    li {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--unit) * 0.5);
+      padding: calc(var(--unit) * 0.25) calc(var(--unit) * 0.5);
+      border: 1px solid var(--color-grey-300);
+      border-radius: var(--radius-medium);
+    }
+    button {
+      cursor: pointer;
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: calc(var(--unit) * 3);
+      height: calc(var(--unit) * 3);
+      border: 1px solid var(--color-grey-300);
+      border-radius: var(--radius-small, 4px);
+      background: var(--color-background);
+      color: var(--color-text);
+      &:hover:not(:disabled) {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+      }
+      &:disabled {
+        cursor: default;
+        opacity: 0.35;
+      }
+    }
+  }
+  &-priority-rank {
+    flex: none;
+    width: 1.6em;
+    font-weight: bold;
+    color: var(--color-primary);
+    text-align: center;
+  }
+  &-priority-name {
+    flex: 1;
+    min-width: 0;
   }
   // Value above the slider, so a long one ("12 345 voyageurs") never squeezes it
   &-threshold {

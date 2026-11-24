@@ -116,7 +116,11 @@ def SNCF_deontic(event_json, context_json, recommendation_catalog, type="passeng
 
 def SNCF_risk(event_json, context_json, recommendation_catalog, type):
     """
-    Returns all recommendations sorted by a KPI ascending (no threshold filtering).
+    Returns all recommendations sorted ascending (no threshold filtering).
+
+    `type` is a KPI ("passengers", "delay", "cost", "total_cost"), or a list of
+    them in order of importance: sorted on the first, ties broken by the
+    second, and so on. No weights, only the order.
     """
     event = json.loads(event_json)
     id_event = event["data"].get("id_event")
@@ -133,10 +137,11 @@ def SNCF_risk(event_json, context_json, recommendation_catalog, type):
         "total_cost": lambda r: int(json.loads(r)["data"]["kpis"].get("total_cost", 0)),
     }
 
-    if type not in kpi_keys:
-        return [json.dumps({"error": "type must be 'passengers', 'delay', 'cost', or 'total_cost'"})]
+    types = [type] if isinstance(type, str) else list(type or [])
+    if not types or any(t not in kpi_keys for t in types):
+        return [json.dumps({"error": "type must be 'passengers', 'delay', 'cost', or 'total_cost', or a list of them"})]
 
-    return sorted(recos, key=kpi_keys[type])
+    return sorted(recos, key=lambda r: tuple(kpi_keys[t](r) for t in types))
 
 
 def SNCF_risk_tie_break(event_json, context_json, recommendation_catalog, type, tie_breaker=None):

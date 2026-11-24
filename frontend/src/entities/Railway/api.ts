@@ -12,6 +12,8 @@ export type TransportPlanRequest = Partial<Action<'Railway'>> & {
   experiment?: {
     mode: string
     kpi: string | null
+    /** KPI mode: the chosen KPIs, most important first */
+    kpis: string[]
     threshold: number | null
   }
 }
