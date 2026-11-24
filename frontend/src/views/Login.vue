@@ -14,6 +14,8 @@
       type="password"
       class="cab-input mb-2"
       :placeholder="$t('input.placeholder.password')" />
+    <!-- Only here: switching during a session would leave the events already received in the other language -->
+    <LanguageSwitch class="mb-2" />
     <Button type="submit">{{ $t('button.login') }}</Button>
   </form>
 </template>
@@ -23,6 +25,7 @@ import { useI18n } from 'vue-i18n'
 
 import Avatar from '@/components/atoms/Avatar.vue'
 import Button from '@/components/atoms/Button.vue'
+import LanguageSwitch from '@/components/molecules/LanguageSwitch.vue'
 import router from '@/router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'

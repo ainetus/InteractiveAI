@@ -21,13 +21,14 @@ export type TransportPlanRequest = Partial<Action<'Railway'>> & {
 /**
  * Human experiments only (VITE_RAILWAY_SESSION_EVENTS): tells the simulator an
  * operator's session has its first context, so it starts the session's
- * scenario. A real simulator publishes its incidents on its own and has no
+ * scenario, in the operator's language (`lang`: 'en' or 'fr').
+ * A real simulator publishes its incidents on its own and has no
  * such endpoint. Silent: there is nothing for the operator to do about a failure.
  */
-export function startExperimentSession(sessionId: string) {
+export function startExperimentSession(sessionId: string, lang: string) {
   return http.post<{ message: string; published: boolean }>(
     import.meta.env.VITE_RAILWAY_SIMU + '/experiment/start',
-    { session_id: sessionId },
+    { session_id: sessionId, lang },
     { _silent: true }
   )
 }

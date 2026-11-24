@@ -12,8 +12,9 @@ No Railway simulator ships with this repository, so this script plays its part:
            For human experiments, a UI built with VITE_RAILWAY_SESSION_EVENTS=true
            posts <VITE_RAILWAY_SIMU>/experiment/start when it gets its first
            context of a session: the 10 events are then published, once per
-           session. (A real simulator publishes its incidents on its own; the
-           UI only calls this endpoint in experiment builds.)
+           session, in the language the UI sends ("en" or "fr"). (A real
+           simulator publishes its incidents on its own; the UI only calls this
+           endpoint in experiment builds.)
 
 The UI only takes a context published after the operator logged in (an older
 one is treated as stale), and asks for no recommendation without a context:
@@ -26,6 +27,7 @@ Standard library only. Examples:
   python3 railway_mock_simulator.py serve --context-every 0      # receiver only
   python3 railway_mock_simulator.py publish                      # context + events
   python3 railway_mock_simulator.py publish --only 2
+  python3 railway_mock_simulator.py publish --lang fr                # events in French
   python3 railway_mock_simulator.py publish --context-only
 """
 import argparse
@@ -70,6 +72,10 @@ EVENTS = [
         "id_event": "1",
         "title": "Catenary failure near St Pierre des Corps",
         "description": "Traction power lost on track 1; TGV 8501 stopped before the station.",
+        "fr": {
+            "title": "Panne de caténaire près de St Pierre des Corps",
+            "description": "Perte d'alimentation de traction sur la voie 1 ; le TGV 8501 est arrêté avant la gare.",
+        },
         "criticality": "HIGH",
         "event_type": "INFRASTRUCTURE",
         "id_train": "TGV 8501",
@@ -80,6 +86,10 @@ EVENTS = [
         "id_event": "2",
         "title": "Passenger taken ill on board",
         "description": "Medical assistance requested on TGV 8515 near Poitiers.",
+        "fr": {
+            "title": "Malaise d'un voyageur à bord",
+            "description": "Assistance médicale demandée à bord du TGV 8515 près de Poitiers.",
+        },
         "criticality": "MEDIUM",
         "event_type": "PASSENGER",
         "id_train": "TGV 8515",
@@ -90,6 +100,10 @@ EVENTS = [
         "id_event": "3",
         "title": "Rolling stock failure approaching Bordeaux",
         "description": "Brake fault reported by TGV 8533; speed limited to 40 km/h.",
+        "fr": {
+            "title": "Panne de matériel à l'approche de Bordeaux",
+            "description": "Défaut de freinage signalé par le TGV 8533 ; vitesse limitée à 40 km/h.",
+        },
         "criticality": "HIGH",
         "event_type": "HARDWARE",
         "id_train": "TGV 8533",
@@ -100,6 +114,10 @@ EVENTS = [
         "id_event": "4",
         "title": "Signalling failure near Poitiers",
         "description": "Signals out of order over 12 km north of Poitiers; TGV 8541 stopped at a red signal.",
+        "fr": {
+            "title": "Panne de signalisation près de Poitiers",
+            "description": "Signaux hors service sur 12 km au nord de Poitiers ; le TGV 8541 est arrêté à un signal fermé.",
+        },
         "criticality": "HIGH",
         "event_type": "INFRASTRUCTURE",
         "id_train": "TGV 8541",
@@ -110,6 +128,10 @@ EVENTS = [
         "id_event": "5",
         "title": "Fallen tree on the track near Chatellerault",
         "description": "A tree blown down by the wind blocks track 1; TGV 8507 stopped before it.",
+        "fr": {
+            "title": "Arbre tombé sur la voie près de Châtellerault",
+            "description": "Un arbre abattu par le vent obstrue la voie 1 ; le TGV 8507 est arrêté devant.",
+        },
         "criticality": "MEDIUM",
         "event_type": "INFRASTRUCTURE",
         "id_train": "TGV 8507",
@@ -120,6 +142,10 @@ EVENTS = [
         "id_event": "6",
         "title": "Heat-related speed restriction near Angouleme",
         "description": "Track temperature above 50 °C: speed limited to 160 km/h over 20 km for TGV 8547.",
+        "fr": {
+            "title": "Limitation de vitesse due à la chaleur près d'Angoulême",
+            "description": "Température du rail supérieure à 50 °C : vitesse limitée à 160 km/h sur 20 km pour le TGV 8547.",
+        },
         "criticality": "LOW",
         "event_type": "INFRASTRUCTURE",
         "id_train": "TGV 8547",
@@ -130,6 +156,10 @@ EVENTS = [
         "id_event": "7",
         "title": "Pantograph damage, train stranded near Tours",
         "description": "TGV 8555 lost its pantograph and traction power; it cannot move on its own.",
+        "fr": {
+            "title": "Pantographe endommagé, train immobilisé près de Tours",
+            "description": "Le TGV 8555 a perdu son pantographe et sa traction ; il ne peut plus avancer seul.",
+        },
         "criticality": "HIGH",
         "event_type": "HARDWARE",
         "id_train": "TGV 8555",
@@ -140,6 +170,10 @@ EVENTS = [
         "id_event": "8",
         "title": "Door fault at Poitiers station",
         "description": "A door of coach 4 of TGV 8521 does not close; departure blocked.",
+        "fr": {
+            "title": "Porte bloquée en gare de Poitiers",
+            "description": "Une porte de la voiture 4 du TGV 8521 ne se ferme pas ; départ impossible.",
+        },
         "criticality": "LOW",
         "event_type": "HARDWARE",
         "id_train": "TGV 8521",
@@ -150,6 +184,10 @@ EVENTS = [
         "id_event": "9",
         "title": "Unattended baggage at Bordeaux St Jean",
         "description": "Security perimeter set up around platforms 1 to 3; TGV 8537 cannot enter the station.",
+        "fr": {
+            "title": "Bagage abandonné à Bordeaux St Jean",
+            "description": "Périmètre de sécurité autour des voies 1 à 3 ; le TGV 8537 ne peut pas entrer en gare.",
+        },
         "criticality": "MEDIUM",
         "event_type": "PASSENGER",
         "id_train": "TGV 8537",
@@ -160,6 +198,10 @@ EVENTS = [
         "id_event": "10",
         "title": "Delay threatening connections at Bordeaux",
         "description": "TGV 8561 runs 25 min late; 180 passengers risk missing their regional connections.",
+        "fr": {
+            "title": "Retard menaçant les correspondances à Bordeaux",
+            "description": "Le TGV 8561 circule avec 25 min de retard ; 180 voyageurs risquent de manquer leur correspondance régionale.",
+        },
         "criticality": "MEDIUM",
         "event_type": "IMPACT",
         "id_train": "TGV 8561",
@@ -244,21 +286,22 @@ def publish(args):
     post_context(args.url, token)
     print(f"context: {len(TRAINS)} trains")
     if not args.context_only:
-        publish_events(args.url, token, args.only)
+        publish_events(args.url, token, args.only, args.lang)
 
 
-def publish_events(url, token, only=None):
-    """Posts the events (all of them, or those whose id_event is in `only`)."""
+def publish_events(url, token, only=None, lang="en"):
+    """Posts the events (all of them, or those whose id_event is in `only`), in English or French."""
     now = datetime.now(timezone.utc)
     positions = {t[0]: t[1] for t in TRAINS}
     for event in EVENTS:
         if only and event["id_event"] not in only:
             continue
         lat, lng = positions[event["id_train"]]
+        texts = event["fr"] if lang == "fr" else event
         payload = {
             "use_case": "Railway",
-            "title": event["title"],
-            "description": event["description"],
+            "title": texts["title"],
+            "description": texts["description"],
             "criticality": event["criticality"],
             "start_date": now.isoformat(),
             "end_date": (now + timedelta(hours=2)).isoformat(),
@@ -277,7 +320,7 @@ def publish_events(url, token, only=None):
             },
         }
         request("POST", f"{url}/cab_event/api/v1/events", payload, token)
-        print(f"event {event['id_event']}: {event['criticality']:6s} {event['title']}", flush=True)
+        print(f"event {event['id_event']}: {event['criticality']:6s} {texts['title']}", flush=True)
 
 
 class TransportPlanHandler(BaseHTTPRequestHandler):
@@ -309,28 +352,30 @@ class TransportPlanHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length) or b"{}")
         if path == "/experiment/start":
-            answer = self._start_session(str(body.get("session_id") or ""))
+            lang = "fr" if body.get("lang") == "fr" else "en"
+            answer = self._start_session(str(body.get("session_id") or ""), lang)
         else:
             print(time.strftime("%H:%M:%S"), "applied recommendation:", json.dumps(body, ensure_ascii=False), flush=True)
             answer = {"message": "Transport plan received by the mock simulator"}
         self._reply(answer)
 
-    def _start_session(self, session_id):
-        """Publishes the events once per operator session, when its UI gets its first context."""
+    def _start_session(self, session_id, lang="en"):
+        """Publishes the events once per operator session, when its UI gets its first context,
+        in the operator's language."""
         if not session_id:
             return {"message": "session_id missing", "published": False}
         with self.sessions_lock:
             if session_id in self.sessions:
                 return {"message": "Events already published for this session", "published": False}
             self.sessions.add(session_id)
-        print(time.strftime("%H:%M:%S"), f"session {session_id}: publishing the events", flush=True)
-        threading.Thread(target=self._publish_events, args=(session_id,), daemon=True).start()
+        print(time.strftime("%H:%M:%S"), f"session {session_id}: publishing the events ({lang})", flush=True)
+        threading.Thread(target=self._publish_events, args=(session_id, lang), daemon=True).start()
         return {"message": "Events published for this session", "published": True}
 
-    def _publish_events(self, session_id):
+    def _publish_events(self, session_id, lang):
         args = self.args
         try:
-            publish_events(args.url, login(args.url, args.user, args.password))
+            publish_events(args.url, login(args.url, args.user, args.password), lang=lang)
         except (Exception, SystemExit) as err:  # request() exits on HTTP errors
             # Let the UI try again with its next context
             with self.sessions_lock:
@@ -389,6 +434,7 @@ def main():
     pub.add_argument("--user", default="publisher_test")
     pub.add_argument("--password", default="test")
     pub.add_argument("--only", nargs="*", help="id_event to publish (1 to 10); all by default")
+    pub.add_argument("--lang", choices=("en", "fr"), default="en", help="language of the events; en by default")
     pub.add_argument(
         "--context-only",
         action="store_true",

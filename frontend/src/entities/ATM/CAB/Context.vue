@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n'
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
 import type { AirplaneContext, LegacyContext, ContextType, ShapeContext } from '@/entities/ATM/types'
+import { preferredLanguage } from '@/plugins/i18n'
 import { useAppStore } from '@/stores/app'
 import { useMapStore } from '@/stores/components/map'
 import { useServicesStore } from '@/stores/services'
@@ -153,8 +154,7 @@ onBeforeMount(async () => {
 })
 
 onUnmounted(() => {
-  locale.value =
-    window.navigator.language.split('-')[0] || import.meta.env.VITE_DEFAULT_LOCALE || 'en'
+  locale.value = preferredLanguage()
   servicesStore.stopContext()
 })
 </script>

@@ -18,6 +18,7 @@ import { onBeforeMount, onUnmounted, watchEffect } from 'vue'
 import Context from '@/components/organisms/CAB/Context.vue'
 import Map from '@/components/organisms/Map.vue'
 import { startExperimentSession } from '@/entities/Railway/api'
+import { currentLanguage } from '@/plugins/i18n'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useMapStore } from '@/stores/components/map'
@@ -88,7 +89,7 @@ function startSessionEvents() {
   if (!sessionId || !simulator || simulator === 'false') return
   if (localStorage.getItem(SESSION_EVENTS_KEY) === sessionId) return
   localStorage.setItem(SESSION_EVENTS_KEY, sessionId)
-  startExperimentSession(sessionId).catch(() => {
+  startExperimentSession(sessionId, currentLanguage()).catch(() => {
     // Ignored: the operator can't act on it, and `railway_mock_simulator.py publish` can
   })
 }

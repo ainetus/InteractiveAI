@@ -81,5 +81,8 @@
   "survey.skip": "Skip the questionnaire",
   "survey.thanks": "Thank you, your answers have been saved.",
   "survey.title": "Before you log out",
-  "to": "to"
+  "to": "to",
+  "language.label": "Language",
+  "language.en": "English",
+  "language.fr": "Français"
 }

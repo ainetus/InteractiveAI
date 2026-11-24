@@ -1,15 +1,11 @@
 import { format as formatFNS } from 'date-fns'
 import { enUS, fr } from 'date-fns/locale'
 
+import { currentLanguage } from '@/plugins/i18n'
+
 const LOCALES = { fr, en: enUS }
 Object.freeze(LOCALES)
 
+/** Formats in the language being displayed (the navbar's choice) */
 export const format = (date: number | Date, pattern: string) =>
-  formatFNS(date, pattern, {
-    locale:
-      LOCALES[
-        (window.navigator.language.split('-')[0] ||
-          import.meta.env.VITE_DEFAULT_LOCALE ||
-          'en') as keyof typeof LOCALES
-      ]
-  })
+  formatFNS(date, pattern, { locale: LOCALES[currentLanguage()] })

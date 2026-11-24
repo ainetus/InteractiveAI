@@ -225,7 +225,7 @@ Reco33 = json.dumps({
 
 Reco34 = json.dumps({
 "data": {
-                "title": "Supprimer",
+                "title": "Cancel",
                 "description" : "Train services are cancelled. Passengers are advised to postpone their journey.",
                 "use_case": "Railway",
                 "agent_type": "AI",
@@ -393,4 +393,90 @@ RECOMMENDATION_CATALOG = {
     "8": Recos8,
     "9": Recos9,
     "10": Recos10,
+}
+
+
+################################################################
+######### French ###############################################
+################################################################
+# Title and description of each recommendation above, in the same order; the
+# KPIs are shared. The UI sends its language with every request ("lang").
+
+FRENCH = {
+    "1": [
+        ("Rester en gare de St Pierre des Corps", "Retenir le train en gare de St Pierre des Corps jusqu'à la reprise du trafic."),
+        ("Retarder", "Retenir le train sur la voie jusqu'à la reprise du trafic. Prise en charge des voyageurs organisée."),
+        ("Dévier", "Dévier les trains. Les voyageurs à destination et en provenance de Poitiers sont pris en charge."),
+        ("Supprimer", "Les circulations sont supprimées. Les voyageurs sont invités à reporter leur voyage."),
+    ],
+    "2": [
+        ("Rester en gare", "Retenir le train en gare de Poitiers jusqu'à la reprise du trafic."),
+        ("Retarder", "Retenir le train sur la voie jusqu'à la reprise du trafic. Prise en charge des voyageurs organisée."),
+        ("Dévier", "Déviation des trains par la ligne classique entre Angoulême et Poitiers."),
+        ("Supprimer", "Les circulations sont supprimées. Les voyageurs sont invités à reporter leur voyage."),
+    ],
+    "3": [
+        ("Attendre en gare de Bordeaux", "Retenir le train en gare jusqu'à la reprise du trafic."),
+        ("Retarder", "Retenir le train sur la voie jusqu'à la reprise du trafic. Prise en charge des voyageurs organisée."),
+        ("Dévier de Bordeaux vers Angoulême", "Déviation des trains par la ligne classique entre Angoulême et Poitiers."),
+        ("Supprimer", "Les circulations sont supprimées. Les voyageurs sont invités à reporter leur voyage."),
+    ],
+    "4": [
+        ("Marche à vue dans la section", "Traverser la section en dérangement à vitesse réduite, sur autorisation écrite de l'aiguilleur."),
+        ("Dévier par la ligne classique", "Quitter la ligne à grande vitesse au prochain raccordement et emprunter la ligne classique Tours - Poitiers."),
+        ("Attendre à Poitiers la réparation", "S'arrêter à Poitiers en attendant que l'équipe de maintenance rétablisse la signalisation."),
+        ("Terminus à Poitiers, relais par cars", "Le train s'arrête à Poitiers ; les voyageurs allant au-delà poursuivent en car."),
+    ],
+    "5": [
+        ("Dégager la voie puis repartir", "Envoyer l'équipe de la voie retirer l'arbre, puis repartir à vitesse normale après inspection."),
+        ("Revenir à Châtellerault et attendre", "Ramener le train en gare de Châtellerault, où les voyageurs peuvent être pris en charge, jusqu'à la réouverture de la ligne."),
+        ("Voie unique temporaire sur la voie contiguë", "Basculer sur l'autre voie et y faire circuler les deux sens pour contourner l'obstacle."),
+        ("Transborder les voyageurs dans le train suivant", "Les voyageurs pour Poitiers et au-delà montent dans le TGV suivant, qui circule sur la voie contiguë."),
+    ],
+    "6": [
+        ("Circuler à 160 km/h dans la zone limitée", "Respecter la limitation temporaire de vitesse et maintenir l'horaire des autres arrêts."),
+        ("Recaler les sillons des trains suivants", "Décaler les trains qui suivent pour que la limitation ne se propage pas sur la ligne."),
+        ("Supprimer l'arrêt d'Angoulême", "Traverser Angoulême sans s'arrêter ; ses voyageurs sont réacheminés par le train suivant."),
+        ("Attendre l'inspection de la voie", "Arrêter le train jusqu'à l'inspection de la voie et la levée de la limitation."),
+    ],
+    "7": [
+        ("Locomotive de secours jusqu'à St Pierre des Corps", "Une locomotive diesel de secours remorque le train jusqu'à St Pierre des Corps, où les voyageurs changent de train."),
+        ("Évacuer dans un train de relève", "Un train de relève vient se placer sur la voie contiguë et les voyageurs y passent, aidés par le personnel."),
+        ("Atteler le TGV suivant et pousser", "Le TGV suivant s'attelle au train en panne et le pousse jusqu'à la gare suivante."),
+        ("Supprimer et réacheminer", "Le train est supprimé une fois remorqué ; les voyageurs sont remboursés et réacheminés sur des trains ultérieurs."),
+    ],
+    "8": [
+        ("Condamner la porte et partir", "Isoler la porte, la signaler sur le quai et partir avec les autres portes."),
+        ("Réparer à quai", "Le technicien d'astreinte répare la porte avant le départ."),
+        ("Changer de rame", "Les voyageurs passent dans la rame de réserve qui attend à Poitiers."),
+        ("Condamner la porte, agent dans la voiture", "Isoler la porte et laisser un agent dans la voiture jusqu'au prochain arrêt."),
+    ],
+    "9": [
+        ("Attendre à l'extérieur de la gare", "S'arrêter avant la gare jusqu'à la levée de l'alerte par la police."),
+        ("Dévier vers un quai hors périmètre", "Entrer sur un quai éloigné du périmètre de sécurité ; les voyageurs sortent par l'accès latéral."),
+        ("Terminus à Libourne, navettes en car", "Le train s'arrête à Libourne ; des cars emmènent les voyageurs jusqu'à Bordeaux."),
+        ("Arrêt à Cenon, tram vers le centre", "Ajouter un arrêt à Cenon ; les voyageurs pour le centre de Bordeaux continuent en tram."),
+    ],
+    "10": [
+        ("Retenir les trains en correspondance", "Demander aux trains régionaux au départ de Bordeaux d'attendre les voyageurs en correspondance du TGV."),
+        ("Laisser partir les correspondances, réacheminer", "Les trains en correspondance partent à l'heure ; les voyageurs qui les manquent sont réacheminés et pris en charge."),
+        ("Rattraper du temps sur les arrêts", "Raccourcir les arrêts à Poitiers et Angoulême pour rattraper une partie du retard."),
+        ("Vitesse de ligne, sans arrêt à Angoulême", "Supprimer l'arrêt d'Angoulême pour arriver à l'heure ; ses voyageurs prennent le train suivant."),
+    ],
+}
+
+
+def _translated(reco_json, title, description):
+    reco = json.loads(reco_json)
+    reco["data"]["title"] = title
+    reco["data"]["description"] = description
+    return json.dumps(reco)
+
+
+RECOMMENDATION_CATALOGS = {
+    "en": RECOMMENDATION_CATALOG,
+    "fr": {
+        event: [_translated(reco, *FRENCH[event][i]) for i, reco in enumerate(recos)]
+        for event, recos in RECOMMENDATION_CATALOG.items()
+    },
 }

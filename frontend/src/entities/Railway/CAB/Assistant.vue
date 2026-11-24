@@ -260,6 +260,7 @@ import Default from '@/components/organisms/CAB/Assistant.vue'
 import Event from '@/components/organisms/CAB/Assistant/Event.vue'
 import { applyRecommendation } from '@/entities/Railway/api'
 import ModeChoice from '@/entities/Railway/CAB/ModeChoice.vue'
+import { currentLanguage } from '@/plugins/i18n'
 import { useAppStore } from '@/stores/app'
 import { useCardsStore } from '@/stores/cards'
 import { useServicesStore } from '@/stores/services'
@@ -428,7 +429,10 @@ async function startJourney() {
   open.value = true
   appStore.tab.assistant = 2
   loading.value = true
-  const answer = await servicesStore.getRecommendation(card, undefined, undefined, { mode: 'basic' })
+  const answer = await servicesStore.getRecommendation(card, undefined, undefined, {
+    mode: 'basic',
+    lang: currentLanguage()
+  })
   // No context yet: the store has told the operator and closed the assistant
   if (!answer) {
     open.value = false
@@ -450,7 +454,8 @@ async function fetchRecommendations() {
   if (!mode.value || (mode.value !== 'basic' && !kpi.value)) return
   const id = ++request
   loading.value = true
-  const overrides: Record<string, unknown> = { mode: SERVICE_MODE[mode.value] }
+  // Titles and descriptions come in the language being displayed
+  const overrides: Record<string, unknown> = { mode: SERVICE_MODE[mode.value], lang: currentLanguage() }
   // The chosen KPIs, most important first: the agent sorts on the first, ties broken by the next ones
   const sortTypes = priorities.value.map((id) => KPIS.find((option) => option.id === id)!.sortType)
   if (sortTypes.length) overrides.sort_type = sortTypes[0]

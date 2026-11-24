@@ -1,7 +1,7 @@
 # backend/recommendation-service/resources/Railway/manager.py
 import json
 from api.manager.base_manager import BaseRecommendationManager
-from .mockRecommendations.mockRecommendations import RECOMMENDATION_CATALOG
+from .mockRecommendations.mockRecommendations import RECOMMENDATION_CATALOGS
 from .sncf_recommender import SNCF_RECO3, SNCF_deontic, SNCF_risk, SNCF_risk_tie_break
 
 import logging
@@ -29,6 +29,8 @@ class RailwayManager(BaseRecommendationManager):
         """
         Return recommendations for a Railway event.
 
+        Titles and descriptions are in request_data["event"]["lang"] ("en" by default, or "fr").
+
         Supports four modes controlled by request_data["event"]["mode"]:
 
         - "basic": best-first ordering via SNCF_RECO3
@@ -54,30 +56,33 @@ class RailwayManager(BaseRecommendationManager):
         context_json = json.dumps({"data": context_data})
 
         mode = event_data.get("mode", "deontic")
-        logger.info(f"Railway recommendation — event_id: {event_for_sncf['id_event']}, mode: {mode}")
+        # The UI's language ("en" or "fr"): titles and descriptions come in it
+        lang = event_data.get("lang", "en")
+        catalog = RECOMMENDATION_CATALOGS.get(lang, RECOMMENDATION_CATALOGS["en"])
+        logger.info(f"Railway recommendation — event_id: {event_for_sncf['id_event']}, mode: {mode}, lang: {lang}")
 
         if mode == "deontic":
             sort_type = event_data.get("sort_type", "cost")
             threshold_value = event_data.get("threshold_value")
             recommendations = SNCF_deontic(
-                event_json, context_json, RECOMMENDATION_CATALOG,
+                event_json, context_json, catalog,
                 type=sort_type, threshold_value=threshold_value,
             )
         elif mode == "risk":
             sort_types = event_data.get("sort_types") or [event_data.get("sort_type", "cost")]
             recommendations = SNCF_risk(
-                event_json, context_json, RECOMMENDATION_CATALOG,
+                event_json, context_json, catalog,
                 type=sort_types,
             )
         elif mode == "risk_tie_break":
             sort_type = event_data.get("sort_type", "cost")
             tie_breaker = event_data.get("tie_breaker")
             recommendations = SNCF_risk_tie_break(
-                event_json, context_json, RECOMMENDATION_CATALOG,
+                event_json, context_json, catalog,
                 type=sort_type, tie_breaker=tie_breaker,
             )
         else:  # "basic" or any unrecognised mode
-            recommendations = SNCF_RECO3(event_json, context_json, RECOMMENDATION_CATALOG)
+            recommendations = SNCF_RECO3(event_json, context_json, catalog)
 
         # Surface catalog errors as an empty list rather than crashing downstream.
         # The SNCF functions return JSON strings, errors included ({"error": ...}).
