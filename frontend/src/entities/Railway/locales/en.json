@@ -59,5 +59,7 @@
   "railway.journey.priorities_hint": "Recommendations are sorted on the first KPI; the next ones only break ties.",
   "railway.journey.priority.up": "More important",
   "railway.journey.priority.down": "Less important",
-  "railway.journey.explain.priorities": "Ranked {rank} of {count}: recommendations are sorted on {kpis}, in this order of importance."
+  "railway.journey.explain.priorities": "Ranked {rank} of {count}: recommendations are sorted on {kpis}, in this order of importance.",
+  "railway.journey.priority.remove": "Remove this KPI",
+  "railway.journey.threshold_same": "Every recommendation has the same {kpi} ({value}): choosing one or another will not change it, so there is no threshold to set."
 }

@@ -59,5 +59,7 @@
   "railway.journey.priorities_hint": "Les recommandations sont triées selon le premier KPI ; les suivants ne servent qu'à départager les égalités.",
   "railway.journey.priority.up": "Plus important",
   "railway.journey.priority.down": "Moins important",
-  "railway.journey.explain.priorities": "Classée {rank} sur {count} : les recommandations sont triées selon {kpis}, dans cet ordre d'importance."
+  "railway.journey.explain.priorities": "Classée {rank} sur {count} : les recommandations sont triées selon {kpis}, dans cet ordre d'importance.",
+  "railway.journey.priority.remove": "Retirer ce KPI",
+  "railway.journey.threshold_same": "Toutes les recommandations ont la même valeur pour « {kpi} » ({value}) : elle ne changera pas, quelle que soit la recommandation choisie. Il n'y a donc pas de seuil à régler."
 }

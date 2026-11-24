@@ -2,16 +2,16 @@
 
 No Railway simulator ships with this repository, so this script plays its part:
 
-  publish  Logs in as the simulator account, posts a context (3 TGVs on the
-           Paris - Bordeaux high-speed line) and 3 events. Their `id_event`
-           ("1", "2", "3") are the keys of the Railway recommendation catalog
+  publish  Logs in as the simulator account, posts a context (10 TGVs on the
+           Paris - Bordeaux high-speed line) and 10 events, one per train. Their
+           `id_event` ("1" to "10") are the keys of the Railway recommendation catalog
            (backend/recommendation-service/resources/Railway/mockRecommendations).
   serve    Listens for the recommendation the operator applies
            (POST <VITE_RAILWAY_SIMU>/transport_plan) and prints it, and
            republishes the context every 10 s like a running simulator.
            For human experiments, a UI built with VITE_RAILWAY_SESSION_EVENTS=true
            posts <VITE_RAILWAY_SIMU>/experiment/start when it gets its first
-           context of a session: the 3 events are then published, once per
+           context of a session: the 10 events are then published, once per
            session. (A real simulator publishes its incidents on its own; the
            UI only calls this endpoint in experiment builds.)
 
@@ -42,6 +42,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 STATIONS = {
     "Paris Montparnasse": (48.8412, 2.3203),
     "St Pierre des Corps": (47.3857, 0.7231),
+    "Chatellerault": (46.8178, 0.5466),
     "Poitiers": (46.5823, 0.3333),
     "Angouleme": (45.6535, 0.1650),
     "Bordeaux St Jean": (44.8256, -0.5562),
@@ -52,10 +53,18 @@ TRAINS = [
     ("TGV 8501", (47.40, 0.74), 468, 0, True),
     ("TGV 8515", (46.60, 0.35), 398, 0, False),
     ("TGV 8533", (44.86, -0.52), 512, 40, True),
+    ("TGV 8541", (46.66, 0.40), 455, 0, False),
+    ("TGV 8507", (46.90, 0.58), 380, 0, False),
+    ("TGV 8547", (46.10, 0.25), 502, 160, False),
+    ("TGV 8555", (47.55, 0.90), 430, 0, True),
+    ("TGV 8521", (46.583, 0.334), 289, 0, True),
+    ("TGV 8537", (44.88, -0.49), 520, 0, False),
+    ("TGV 8561", (45.70, 0.18), 410, 220, False),
 ]
 
-# One event per catalog entry. The titles match what the catalog proposes for
-# each one (hold at St Pierre des Corps, generic hold, hold at Bordeaux).
+# One event per catalog entry, each on its own train. The titles match what the
+# catalog proposes for each one; criticalities and types vary so that the
+# operator has to prioritise.
 EVENTS = [
     {
         "id_event": "1",
@@ -86,6 +95,76 @@ EVENTS = [
         "id_train": "TGV 8533",
         "delay": 60,
         "route": ["Paris Montparnasse", "Angouleme", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "4",
+        "title": "Signalling failure near Poitiers",
+        "description": "Signals out of order over 12 km north of Poitiers; TGV 8541 stopped at a red signal.",
+        "criticality": "HIGH",
+        "event_type": "INFRASTRUCTURE",
+        "id_train": "TGV 8541",
+        "delay": 45,
+        "route": ["Paris Montparnasse", "St Pierre des Corps", "Poitiers", "Angouleme", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "5",
+        "title": "Fallen tree on the track near Chatellerault",
+        "description": "A tree blown down by the wind blocks track 1; TGV 8507 stopped before it.",
+        "criticality": "MEDIUM",
+        "event_type": "INFRASTRUCTURE",
+        "id_train": "TGV 8507",
+        "delay": 35,
+        "route": ["Paris Montparnasse", "Chatellerault", "Poitiers", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "6",
+        "title": "Heat-related speed restriction near Angouleme",
+        "description": "Track temperature above 50 °C: speed limited to 160 km/h over 20 km for TGV 8547.",
+        "criticality": "LOW",
+        "event_type": "INFRASTRUCTURE",
+        "id_train": "TGV 8547",
+        "delay": 15,
+        "route": ["Paris Montparnasse", "Poitiers", "Angouleme", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "7",
+        "title": "Pantograph damage, train stranded near Tours",
+        "description": "TGV 8555 lost its pantograph and traction power; it cannot move on its own.",
+        "criticality": "HIGH",
+        "event_type": "HARDWARE",
+        "id_train": "TGV 8555",
+        "delay": 120,
+        "route": ["Paris Montparnasse", "St Pierre des Corps", "Poitiers", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "8",
+        "title": "Door fault at Poitiers station",
+        "description": "A door of coach 4 of TGV 8521 does not close; departure blocked.",
+        "criticality": "LOW",
+        "event_type": "HARDWARE",
+        "id_train": "TGV 8521",
+        "delay": 10,
+        "route": ["Paris Montparnasse", "Poitiers", "Angouleme", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "9",
+        "title": "Unattended baggage at Bordeaux St Jean",
+        "description": "Security perimeter set up around platforms 1 to 3; TGV 8537 cannot enter the station.",
+        "criticality": "MEDIUM",
+        "event_type": "PASSENGER",
+        "id_train": "TGV 8537",
+        "delay": 40,
+        "route": ["Paris Montparnasse", "Poitiers", "Angouleme", "Bordeaux St Jean"],
+    },
+    {
+        "id_event": "10",
+        "title": "Delay threatening connections at Bordeaux",
+        "description": "TGV 8561 runs 25 min late; 180 passengers risk missing their regional connections.",
+        "criticality": "MEDIUM",
+        "event_type": "IMPACT",
+        "id_train": "TGV 8561",
+        "delay": 25,
+        "route": ["Paris Montparnasse", "Poitiers", "Angouleme", "Bordeaux St Jean"],
     },
 ]
 
@@ -309,7 +388,7 @@ def main():
     pub.add_argument("--url", default="http://localhost:3200", help="InteractiveAI frontend URL")
     pub.add_argument("--user", default="publisher_test")
     pub.add_argument("--password", default="test")
-    pub.add_argument("--only", nargs="*", help="id_event to publish (1, 2, 3); all by default")
+    pub.add_argument("--only", nargs="*", help="id_event to publish (1 to 10); all by default")
     pub.add_argument(
         "--context-only",
         action="store_true",

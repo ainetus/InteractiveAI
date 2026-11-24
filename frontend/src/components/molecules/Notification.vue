@@ -49,4 +49,15 @@ withDefaults(
     gap: var(--spacing-1);
   }
 }
+
+// The incident being handled (NotificationTreeNode sets `active`): stands out
+// from the others, so the operator still knows which one is open. The outline
+// is drawn inside the card, the scrolling list would clip it otherwise.
+.cab-notification.active {
+  outline: calc(var(--unit) * 0.75) solid var(--color-primary);
+  outline-offset: calc(var(--unit) * -0.75);
+  .cab-card-inner {
+    --color-card-inner: color-mix(in srgb, var(--color-primary), var(--color-grey-100) 82%);
+  }
+}
 </style>

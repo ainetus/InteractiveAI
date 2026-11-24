@@ -36,7 +36,8 @@ watchEffect(() => {
   for (const train of cardsStore.cards('Railway'))
     if (train.data.metadata.latitude && train.data.metadata.longitude)
       mapStore.addWaypoint({
-        id: train.data.metadata.event_type,
+        // Also the marker's tooltip; the train tells apart two incidents of the same type
+        id: `${train.data.metadata.event_type} · ${train.data.metadata.id_train}`,
         lat: train.data.metadata.latitude,
         lng: train.data.metadata.longitude,
         category: 'EVENT',

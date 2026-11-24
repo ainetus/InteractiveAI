@@ -89,13 +89,32 @@
                   @click="moveKpi(index, 1)">
                   <ChevronDown :size="14" />
                 </button>
+                <button
+                  type="button"
+                  :title="$t('railway.journey.priority.remove')"
+                  :aria-label="$t('railway.journey.priority.remove')"
+                  @click="toggleKpi(id)">
+                  <X :size="14" />
+                </button>
               </li>
             </ol>
             <p v-if="priorities.length > 1" class="railway-journey-hint">
               {{ $t('railway.journey.priorities_hint') }}
             </p>
           </template>
-          <template v-if="mode === 'kpi-threshold' && kpi && range">
+          <!-- Every recommendation has the same value: there is nothing to set a threshold on -->
+          <p
+            v-if="mode === 'kpi-threshold' && kpi && range && range.min === range.max"
+            class="railway-journey-hint railway-journey-same">
+            <Info :size="14" />
+            {{
+              $t('railway.journey.threshold_same', {
+                kpi: $t(`Railway.kpis.${kpi}`),
+                value: formatThreshold(kpi, range.max)
+              })
+            }}
+          </p>
+          <template v-else-if="mode === 'kpi-threshold' && kpi && range">
             <div class="railway-journey-threshold">
               <div class="railway-journey-threshold-value">
                 <label for="railway-threshold">
@@ -223,11 +242,13 @@ import {
   ChevronUp,
   FileText,
   Gauge,
+  Info,
   Lightbulb,
   RotateCcw,
   Star,
   Target,
-  ThumbsDown
+  ThumbsDown,
+  X
 } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -718,6 +739,16 @@ async function onConfirm(success: boolean) {
         color: var(--color-primary);
         text-align: right;
       }
+    }
+  }
+
+  &-same {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(var(--unit) * 0.5);
+    .lucide {
+      flex: none;
+      margin-top: 0.2em;
     }
   }
 
