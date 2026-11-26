@@ -48,6 +48,9 @@
         }
         .btn:hover { background: #005fa3; }
         #progress { margin-bottom: 15px; font-weight: bold; }
+        #languageChoice { display: flex; justify-content: center; gap: 16px; margin-bottom: 15px; }
+        #languageChoice.hidden { display: none; }
+        #languageChoice .btn { margin-top: 0; min-width: 140px; }
     </style>
 </head>
 <body>
@@ -64,6 +67,9 @@
         <label for="cond"><strong>Condition ID:</strong></label>
         <input type="text" id="cond" placeholder="e.g. C_AutoAI">
     </div>
+
+    <!-- Language choice, shown when the use case's chain exists in several languages -->
+    <div id="languageChoice" class="hidden"></div>
 
     <iframe id="surveyFrame" src="" allow="clipboard-write"></iframe>
 
@@ -110,23 +116,36 @@
     // entity name: PowerGrid, ATM, Railway); the others play the default chain.
     // Add one with its questionnaires, e.g. ATM: [{ name: "...", url: "./workload/nasa_tlx.html" }].
     const CHAINS = {
-        // AI4REALNET power grid evaluation, in French: the chain of
-        // ai4realnet/ai4realnet-user-studies/power-grid-evaluation-fr.html
-        PowerGrid: [
-            { name: "ATAI", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html" },
-            { name: "Score d’adhésion (Réseau électrique)", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid-fr.html" },
-            { name: "Importance des modifications humaines (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid-fr.html" },
-            { name: "Originalité des recommandations (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid-fr.html" },
-            { name: "Déqualification des opérateurs (Réseau électrique)", url: "./ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid-fr.html" },
-            { name: "Adoption à long terme", url: "./ai4realnet/long-term-consequences/predicted-long-term-adoption-fr.html" }
-        ]
+        // AI4REALNET power grid evaluation, in the language the operator picks:
+        // the chains of ai4realnet/ai4realnet-user-studies/power-grid-evaluation[-fr].html
+        PowerGrid: {
+            fr: [
+                { name: "ATAI", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/atai-fr.html" },
+                { name: "Score d’adhésion (Réseau électrique)", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid-fr.html" },
+                { name: "Importance des modifications humaines (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid-fr.html" },
+                { name: "Originalité des recommandations (Réseau électrique)", url: "./ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid-fr.html" },
+                { name: "Déqualification des opérateurs (Réseau électrique)", url: "./ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid-fr.html" },
+                { name: "Adoption à long terme", url: "./ai4realnet/long-term-consequences/predicted-long-term-adoption-fr.html" }
+            ],
+            en: [
+                { name: "ATAI", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/atai.html" },
+                { name: "Agreement Score (Power Grid)", url: "./ai4realnet/ai-acceptability-trust-trustworthiness/agreement-score-power-grid.html" },
+                { name: "Significance of Human Revisions (Power Grid)", url: "./ai4realnet/social-technical-decision-quality/significance-human-revisions-power-grid.html" },
+                { name: "Perceived Decision Novelty (Power Grid)", url: "./ai4realnet/social-technical-decision-quality/perceived-decision-novelty-power-grid.html" },
+                { name: "Reflection on Operator Deskilling (Power Grid)", url: "./ai4realnet/long-term-consequences/reflection-on-operator-deskilling-power-grid.html" },
+                { name: "Predicted Long-Term Adoption", url: "./ai4realnet/long-term-consequences/predicted-long-term-adoption.html" }
+            ]
+        }
     };
 
-    const surveys = CHAINS[prefill.condition] || DEFAULT_CHAIN;
+    // A chain is a list of questionnaires, or one list per language
+    // ({ fr: [...], en: [...] }), in which case the operator picks the language
+    // first. A single list is in English.
+    const chain = CHAINS[prefill.condition] || DEFAULT_CHAIN;
+    const languages = Array.isArray(chain) ? ["en"] : Object.keys(chain);
+    let surveys = [];
 
-    // The chainer speaks the language of its questionnaires (French wording
-    // taken from power-grid-evaluation-fr.html); English otherwise.
-    const CHAIN_LANG = { PowerGrid: "fr" };
+    // The chainer speaks the language of its questionnaires
     const TEXT = {
         en: {
             title: "Survey Session",
@@ -136,7 +155,8 @@
             progress: (n, total, name) => `Survey ${n} of ${total}: ${name}`,
             done: "✅ All surveys completed!",
             missingIds: "Please enter both Participant ID and Condition ID.",
-            thanks: "Thank you!"
+            thanks: "Thank you!",
+            chooseLanguage: "Choose the language of the questionnaire"
         },
         fr: {
             title: "Session d'enquête",
@@ -146,15 +166,52 @@
             progress: (n, total, name) => `Enquête ${n} sur ${total} : ${name}`,
             done: "✅ Tous les questionnaires sont remplis !",
             missingIds: "Veuillez saisir l'identifiant du participant et l'identifiant de la condition.",
-            thanks: "Merci !"
+            thanks: "Merci !",
+            chooseLanguage: "Choisissez la langue du questionnaire"
         }
     };
-    const text = TEXT[CHAIN_LANG[prefill.condition]] || TEXT.en;
-    document.documentElement.lang = CHAIN_LANG[prefill.condition] || "en";
-    document.querySelector("#part1 h1").textContent = text.title;
-    document.getElementById("progress").textContent = text.intro;
-    document.getElementById("startBtn").textContent = text.start;
-    document.getElementById("downloadBtn").textContent = text.finish;
+    const LANGUAGE_NAMES = { fr: "Français", en: "English" };
+    let text = TEXT.en;
+
+    /** Switch the chainer, and the questionnaires it will play, to a language. */
+    function useLanguage(lang) {
+        text = TEXT[lang] || TEXT.en;
+        surveys = Array.isArray(chain) ? chain : chain[lang];
+        // Recorded with the answers, so they can be told apart by language
+        participantData.language = lang;
+        allResults.language = lang;
+        document.documentElement.lang = lang;
+        document.querySelector("#part1 h1").textContent = text.title;
+        document.getElementById("progress").textContent = text.intro;
+        document.getElementById("startBtn").textContent = text.start;
+        document.getElementById("downloadBtn").textContent = text.finish;
+    }
+
+    /** Several languages: ask first (in all of them), then show Start. */
+    function setUpLanguage() {
+        if (languages.length === 1) {
+            useLanguage(languages[0]);
+            return;
+        }
+        document.querySelector("#part1 h1").textContent = languages.map((l) => TEXT[l].title).join(" / ");
+        document.getElementById("progress").textContent = languages.map((l) => TEXT[l].chooseLanguage).join(" / ");
+        startBtn.classList.add("hidden");
+        const choice = document.getElementById("languageChoice");
+        choice.classList.remove("hidden");
+        for (const lang of languages) {
+            const button = document.createElement("button");
+            button.className = "btn";
+            button.type = "button";
+            button.lang = lang;
+            button.textContent = LANGUAGE_NAMES[lang] || lang;
+            button.addEventListener("click", () => {
+                choice.classList.add("hidden");
+                useLanguage(lang);
+                startBtn.classList.remove("hidden");
+            });
+            choice.appendChild(button);
+        }
+    }
 
     // =============================================================
     // === STATE ====================================================
@@ -211,6 +268,8 @@
 
     // =============================================================
     // === SURVEY FLOW ==============================================
+    setUpLanguage();
+
     startBtn.addEventListener("click", () => {
         startBtn.classList.add("hidden");
         current = 0;

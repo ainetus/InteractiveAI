@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predicted Long-Term Adoption</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 40px;
+      background-color: #fafafa;
+      line-height: 1.5;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .section {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px 25px;
+      margin-bottom: 35px;
+      background: #eff0f1;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .question {
+      margin: 18px 0;
+    }
+
+    label,
+    p,
+    select,
+    textarea {
+      font-size: 15px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      margin-top: 8px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      padding: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    .likert label {
+      margin-right: 12px;
+      cursor: pointer;
+    }
+
+    .slider-output {
+      margin-left: 10px;
+      font-weight: bold;
+    }
+
+    .submit-btn {
+      display: block;
+      margin: 30px auto;
+      font-size: 16px;
+      padding: 10px 22px;
+      border: none;
+      background: #0077cc;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .submit-btn:hover {
+      background: #005fa3;
+    }
+
+    /* Results page styling */
+    #resultsPage {
+      display: none;
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    table.results {
+      border-collapse: collapse;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    table.results th,
+    table.results td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+    }
+
+    table.results th {
+      background: #eee;
+    }
+
+    /* Likert table styling */
+    table.likert-table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    table.likert-table th,
+    table.likert-table td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    table.likert-table th:first-child,
+    table.likert-table td:first-child {
+      text-align: left;
+      width: 55%;
+    }
+
+    /* === Ranking question styling === */
+    .rank-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .rank-list li {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      margin: 4px 0;
+      cursor: grab;
+      border-radius: 4px;
+    }
+
+    .rank-list li.dragging {
+      opacity: 0.6;
+      background: #cce5ff;
+    }
+
+    /* === Visual analog scale === */
+    .vas-container {
+      position: relative;
+      height: 30px;
+      margin-top: 10px;
+    }
+
+    .vas-line {
+      width: 100%;
+      height: 4px;
+      background: #ccc;
+      position: absolute;
+      top: 12px;
+    }
+
+    .vas-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+
+    .vas-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      background: #0077cc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .vas-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    input[type="range"][list] {
+      accent-color: #0077cc;
+    }
+
+    datalist option {
+      display: inline;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Predicted Long-Term Adoption</h1>
+
+  <div id="surveyPage">
+    <p>
+      Original AI4REALNET questionnaire.
+    </p>
+
+    <!-- Participant info fields (shown only if ParticipantID == true) -->
+    <div id="participantInfo"
+      style="display:none; margin-bottom:20px; padding:10px; background:#eef; border-radius:6px;">
+      <label for="pid"><strong>Participant ID:</strong></label>
+      <input type="text" id="pid" placeholder="e.g. P001" style="margin-right:15px;">
+
+      <label for="cond"><strong>Condition ID:</strong></label>
+      <input type="text" id="cond" placeholder="e.g. C_AutoAI">
+    </div>
+
+    <div id="survey"></div>
+    <button class="submit-btn" id="submit">Submit Survey</button>
+  </div>
+
+  <div id="resultsPage">
+    <h2>Survey Results</h2>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    // ===============================================================
+    // === CONFIGURATION =============================================
+    // ===============================================================
+
+    // === Global options ===
+    const fileDownload = false;       // Set to true to auto-download JSON
+    const ParticipantID = false;      // Set to true to show Participant/Condition fields
+
+    const surveyConfig = [
+      {
+        section: "Predicted Long-Term Adoption",
+        description: "Please rate your agreement with each statement.",
+        items: [
+          {
+            id: "predicted_long_term_adoption_table",
+            type: "likert-table",
+            scaleType: 11,
+            statements: [
+              { text: "The benefits of the proposed AI assistant are likely to outweigh the risks/issues for end-users in the long term.", reverse: false },
+              { text: "The proposed AI assistant is likely to be adopted by end-users in the long term.", reverse: false },
+              { text: "The overall methodology and technology (not necessarily the proposed AI assistant) are likely to be adopted by end-users in the long term.", reverse: false }
+            ]
+          }
+        ]
+      }
+    ];
+
+
+    // ===============================================================
+    // === GENERATE SURVEY ===========================================
+    // ===============================================================
+
+    // === Show participant fields if enabled ===
+    if (ParticipantID) {
+      document.getElementById("participantInfo").style.display = "block";
+    }
+
+    const surveyContainer = document.getElementById("survey");
+
+    surveyConfig.forEach((section, idx) => {
+      const secDiv = document.createElement("div");
+      secDiv.className = "section";
+
+      const title = document.createElement("h2");
+      title.textContent = `${idx + 1}. ${section.section}`;
+      secDiv.appendChild(title);
+
+      if (section.description) {
+        const desc = document.createElement("p");
+        desc.textContent = section.description;
+        secDiv.appendChild(desc);
+      }
+
+      section.items.forEach(item => {
+        const qDiv = document.createElement("div");
+        qDiv.className = "question";
+        qDiv.id = `q_${item.id}`;
+
+        const qLabel = document.createElement("label");
+        qLabel.textContent = item.text;
+        qDiv.appendChild(qLabel);
+        qDiv.appendChild(document.createElement("br"));
+
+        // === Likert Table ===================================
+        if (item.type === "likert-table") {
+          const isNumeric = item.label === "numeric";  // ✅ new per-table option
+          let scaleLabels;
+
+          if (isNumeric) {
+            const numericScaleLabelOptions = {
+              5: ["1<br>Very<br>Low", "2", "3<br>Neutral", "4", "5<br>Very<br>High"],
+              7: ["1<br>Very<br>Low", "2", "3", "4<br>Neutral", "5", "6", "7<br>Very<br>High"],
+              9: ["1<br>Very<br>Low", "2", "3", "4", "5<br>Neutral", "6", "7", "8", "9<br>Very<br>High"],
+              11: ["1<br>Very<br>Low", "2", "3", "4", "5", "6<br>Neutral", "7", "8", "9", "10", "11<br>Very<br>High"]
+            };
+
+            if (item.scaleType in numericScaleLabelOptions) {
+              scaleLabels = numericScaleLabelOptions[item.scaleType];
+            } else {
+              console.error(`Scale labels not found for ${item}`);
+            }
+
+          } else {
+
+            const textualScaleLabelOptions = {
+              5: ["1<br>Strongly<br>Disagree", "2", "3<br>Neutral", "4", "5<br>Strongly<br>Agree"],
+              7: ["1<br>Strongly<br>Disagree", "2", "3", "4<br>Neutral", "5", "6", "7<br>Strongly<br>Agree"],
+              9: ["1<br>Strongly<br>Disagree", "2", "3", "4", "5<br>Neutral", "6", "7", "8", "9<br>Strongly<br>Agree"],
+              11: ["1<br>Strongly<br>Disagree", "2", "3", "4", "5", "6<br>Neutral", "7", "8", "9", "10", "11<br>Strongly<br>Agree"]
+            };
+
+            if (item.scaleType in textualScaleLabelOptions) {
+              scaleLabels = textualScaleLabelOptions[item.scaleType];
+            } else {
+              console.error(`Scale labels not found for ${item}`);
+            }
+          }
+
+          const table = document.createElement("table");
+          table.className = "likert-table";
+          const thead = document.createElement("thead");
+          let thRow = "<tr><th>Statement</th>";
+          scaleLabels.forEach(l => thRow += `<th>${l}</th>`);
+          thRow += "</tr>";
+          thead.innerHTML = thRow;
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          item.statements.forEach((statement, si) => {
+            const tr = document.createElement("tr");
+            const tdLabel = document.createElement("td");
+            tdLabel.innerHTML = statement.text || statement; // support object or string
+            tr.appendChild(tdLabel);
+            const n = scaleLabels.length;
+            for (let v = 1; v <= n; v++) {
+              const td = document.createElement("td");
+              const radio = document.createElement("input");
+              radio.type = "radio";
+              radio.name = `${item.id}_${si}`;
+              radio.value = v;
+              td.appendChild(radio);
+              tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          qDiv.appendChild(table);
+        }
+        if (item.type === "likert") {
+          const isNumeric = item.label === "numeric";  // ✅ new per-question setting
+          let scaleOptions;
+
+          if (isNumeric) {
+            // === Numeric-labeled version ===
+            const numericScaleOptions = {
+              5: ["Very Low", "Low", "Neutral", "High", "Very High"],
+              7: ["Very Low", "Low", "Somewhat Low", "Neutral", "Somewhat High", "High", "Very High"],
+              9: ["Very Low", "Low", "Moderately Low", "Somewhat Low", "Neutral", "Somewhat High", "Moderately High", "High", "Very High"],
+              11: ["Very Low", "Substantially Low", "Low", "Moderately Low", "Somewhat Low", "Neutral", "Somewhat High", "Moderately High", "High", "Substantially High", "Very High"]
+            };
+
+            if (item.scaleType in numericScaleOptions) {
+              scaleOptions = numericScaleOptions[item.scaleType];
+            } else {
+              console.error(`Scale labels not found for ${item}`);
+            }
+
+          } else {
+            // === Textual-labeled version ===
+            const textualScaleOptions = {
+              5: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"],
+              7: ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Neutral", "Somewhat Agree", "Agree", "Strongly Agree"],
+              9: ["Strongly Disagree", "Disagree", "Moderately Disagree", "Somewhat Disagree", "Neutral", "Somewhat Agree", "Moderately Agree", "Agree", "Strongly Agree"],
+              11: ["Strongly Disagree", "Rather Strongly Disagree", "Disagree", "Moderately Disagree", "Somewhat Disagree", "Neutral", "Somewhat Agree", "Moderately Agree", "Agree", "Rather Strongly Agree", "Strongly Agree"]
+            };
+
+            if (item.scaleType in textualScaleOptions) {
+              scaleOptions = textualScaleOptions[item.scaleType];
+            } else {
+              console.error(`Scale labels not found for ${item}`);
+            }
+          }
+
+          const scaleDiv = document.createElement("div");
+          scaleDiv.className = "likert";
+
+          scaleOptions.forEach((option, i) => {
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = item.id;
+            input.value = String(i + 1);        // numeric scoring always 1–N
+            input.dataset.label = option;       // store the label for reference
+            input.id = `${item.id}_${i}`;
+
+            const label = document.createElement("label");
+            label.htmlFor = input.id;
+            label.textContent = option;
+            scaleDiv.appendChild(input);
+            scaleDiv.appendChild(label);
+          });
+          qDiv.appendChild(scaleDiv);
+        }
+        else if (item.type === "slider") {
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = item.min;
+          slider.max = item.max;
+          slider.value = item.default;
+          slider.step = 1;
+          slider.name = item.id;
+
+          const output = document.createElement("span");
+          output.className = "slider-output";
+          output.textContent = `${item.default}${item.unit ? ' ' + item.unit : ''}`;
+          slider.addEventListener("input", () => {
+            output.textContent = `${slider.value}${item.unit ? ' ' + item.unit : ''}`;
+          });
+          qDiv.appendChild(slider);
+          qDiv.appendChild(output);
+
+        } else if (item.type === "dropdown") {
+          const select = document.createElement("select");
+          select.name = item.id;
+          const defaultOpt = document.createElement("option");
+          defaultOpt.textContent = "-- Select an answer --";
+          defaultOpt.value = "";
+          select.appendChild(defaultOpt);
+          item.options.forEach(opt => {
+            const o = document.createElement("option");
+            o.value = opt;
+            o.textContent = opt;
+            select.appendChild(o);
+          });
+          qDiv.appendChild(select);
+
+        } else if (item.type === "truefalse") {
+          const yes = document.createElement("input");
+          yes.type = "radio";
+          yes.name = item.id;
+          yes.value = "True";
+          const no = document.createElement("input");
+          no.type = "radio";
+          no.name = item.id;
+          no.value = "False";
+          qDiv.appendChild(yes); qDiv.appendChild(document.createTextNode(" True "));
+          qDiv.appendChild(no); qDiv.appendChild(document.createTextNode(" False "));
+
+        } else if (item.type === "text") {
+          const textarea = document.createElement("textarea");
+          textarea.name = item.id;
+          qDiv.appendChild(textarea);
+        }
+        // === Rank Question ===========================================
+        else if (item.type === "rank") {
+          const ul = document.createElement("ul");
+          ul.className = "rank-list";
+          item.options.forEach(opt => {
+            const li = document.createElement("li");
+            li.textContent = opt;
+            li.draggable = true;
+            ul.appendChild(li);
+          });
+
+          // Enable drag and drop reordering
+          let dragged;
+          ul.addEventListener("dragstart", e => {
+            dragged = e.target;
+            e.target.classList.add("dragging");
+          });
+          ul.addEventListener("dragend", e => e.target.classList.remove("dragging"));
+          ul.addEventListener("dragover", e => {
+            e.preventDefault();
+            const afterElement = Array.from(ul.children).find(
+              el => e.clientY <= el.getBoundingClientRect().top + el.offsetHeight / 2
+            );
+            if (afterElement == null) ul.appendChild(dragged);
+            else ul.insertBefore(dragged, afterElement);
+          });
+
+          qDiv.appendChild(ul);
+        }
+        // === Multiple Selection ======================================
+        else if (item.type === "multi") {
+          item.options.forEach(opt => {
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.name = item.id;
+            checkbox.value = opt;
+            const label = document.createElement("label");
+            label.textContent = opt;
+            qDiv.appendChild(checkbox);
+            qDiv.appendChild(label);
+            qDiv.appendChild(document.createElement("br"));
+          });
+        }
+        // === Visual Analog Scale (VAS) =====================================
+        else if (item.type === "vas") {
+          const container = document.createElement("div");
+          container.className = "vas-container";
+
+          // === Configurable range ===
+          const min = item.min ?? 0;
+          const max = item.max ?? 100;
+          const step = item.step ?? 1;
+          const defaultVal = item.default ?? (min + max) / 2;
+          const showTicks = item.showTicks ?? true;
+
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.name = item.id;
+          slider.className = "vas-slider";
+          slider.min = min;
+          slider.max = max;
+          slider.step = step;
+          slider.value = defaultVal;
+          slider.style.width = "100%";
+          if (showTicks) slider.setAttribute("list", `${item.id}_ticks`);
+
+          // === Dynamic value indicator ===
+          const valueLabel = document.createElement("span");
+          valueLabel.textContent = `${defaultVal}`;
+          valueLabel.style.marginLeft = "10px";
+          valueLabel.style.fontWeight = "bold";
+
+          slider.addEventListener("input", () => {
+            valueLabel.textContent = slider.value;
+          });
+
+          // === Add tick marks ===
+          if (showTicks) {
+            const datalist = document.createElement("datalist");
+            datalist.id = `${item.id}_ticks`;
+            for (let v = min; v <= max; v += step) {
+              const option = document.createElement("option");
+              option.value = v;
+              datalist.appendChild(option);
+            }
+            container.appendChild(datalist);
+          }
+
+          // === Scale line and labels ===
+          const line = document.createElement("div");
+          line.className = "vas-line";
+
+          const labels = document.createElement("div");
+          labels.className = "vas-labels";
+          labels.innerHTML = `<span>${item.leftLabel || min}</span><span>${item.rightLabel || max}</span>`;
+
+          container.appendChild(line);
+          container.appendChild(slider);
+          qDiv.appendChild(container);
+          qDiv.appendChild(valueLabel);
+          qDiv.appendChild(labels);
+        }
+        secDiv.appendChild(qDiv);
+      });
+
+      surveyContainer.appendChild(secDiv);
+    });
+
+    // ===============================================================
+    // === SUBMIT & RESULTS ==========================================
+    // ===============================================================
+
+    document.getElementById("submit").addEventListener("click", () => {
+      const results = [];
+      let valid = true;
+
+      surveyConfig.forEach(section => {
+        const sectionResult = { section: section.section, responses: {} };
+        section.items.forEach(item => {
+
+          // === Handle Likert Table responses ===
+          if (item.type === "likert-table") {
+            const tableRes = {};
+            const scores = [];
+
+            item.statements.forEach((st, si) => {
+              const text = typeof st === "string" ? st : st.text;
+              const el = document.querySelector(`input[name="${item.id}_${si}"]:checked`);
+              if (el) {
+                const raw = parseInt(el.value);
+                const reversed = (typeof st === "object" && st.reverse) ? (item.scaleType + 1 - raw) : raw;
+                tableRes[text] = { raw, score: reversed };
+                scores.push(reversed);
+              } else valid = false;
+            });
+
+            const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+            sectionResult.responses[item.id] = { items: tableRes, mean: mean.toFixed(2) };
+            return; // skip rest for this item
+          }
+
+          let val = null;
+          if (["likert", "truefalse"].includes(item.type)) {
+            const el = document.querySelector(`input[name="${item.id}"]:checked`);
+            if (el) {
+              if (item.type === "likert") {
+                val = { value: parseInt(el.value, 10), label: el.dataset.label }; // ✅ numeric + text
+              } else {
+                val = el.value; // true/false unchanged
+              }
+            }
+          } else if (item.type === "dropdown") {
+            const el = document.querySelector(`select[name="${item.id}"]`);
+            if (el) val = el.value;
+          } else if (item.type === "slider") {
+            const el = document.querySelector(`input[name="${item.id}"]`);
+            if (el) val = el.value;
+          } else if (item.type === "text") {
+            const el = document.querySelector(`textarea[name="${item.id}"]`);
+            if (el) val = el.value.trim();
+          }
+          else if (item.type === "rank") {
+            const lis = Array.from(document.querySelectorAll(`#q_${item.id} li`));
+            val = lis.map(li => li.textContent);
+          }
+          else if (item.type === "multi") {
+            const checked = Array.from(document.querySelectorAll(`input[name="${item.id}"]:checked`))
+              .map(c => c.value);
+            val = checked.length ? checked : null;
+          }
+          else if (item.type === "vas") {
+            const el = document.querySelector(`input[name="${item.id}"]`);
+            if (el) val = el.value;
+          }
+          if (val === null || val === "") valid = false;
+          sectionResult.responses[item.id] = val;
+        });
+        results.push(sectionResult);
+      });
+
+      if (!valid) {
+        alert("Please answer all questions before submitting.");
+        return;
+      }
+
+      // === Capture optional participant info ===
+      let participantData = {};
+      if (ParticipantID) {
+        participantData.id = document.getElementById("pid")?.value.trim() || "anon";
+        participantData.condition = document.getElementById("cond")?.value.trim() || "none";
+      }
+
+      if (ParticipantID && (participantData.id === "anon" || participantData.condition === "none")) {
+        alert("Please enter both Participant ID and Condition ID.");
+        return;
+      }
+
+      displayResults(results);
+
+      window.parent.postMessage({ success: true, participantData, results }, "*");
+
+      if (fileDownload) downloadResultsJSON({ success: true, participantData, results });
+
+    });
+
+    function displayResults(results) {
+      document.getElementById("surveyPage").style.display = "none";
+      const resultsDiv = document.getElementById("results");
+      const resultsPage = document.getElementById("resultsPage");
+      resultsPage.style.display = "block";
+
+      if (!fileDownload) {
+        let html = "";
+        results.forEach(sec => {
+          html += `<h3>${sec.section}</h3>`;
+          html += `<table class='results'><tr><th>Question ID</th><th>Response</th></tr>`;
+          for (const [id, val] of Object.entries(sec.responses)) {
+            if (typeof val === "object" && val.items) {
+              html += `<tr><td colspan="2"><strong>${id}</strong> (Mean score: ${val.mean})</td></tr>`;
+              for (const [st, v] of Object.entries(val.items)) {
+                html += `<tr><td>${st}</td><td>Raw: ${v.raw}, Scored: ${v.score}</td></tr>`;
+              }
+            } else {
+              if (val && typeof val === "object" && "value" in val && "label" in val) {
+                html += `<tr><td>${id}</td><td>${val.value} (${val.label})</td></tr>`;
+              } else {
+                html += `<tr><td>${id}</td><td>${val}</td></tr>`;
+              }
+            }
+          }
+          html += `</table><br>`;
+        });
+        resultsDiv.innerHTML = html;
+      }
+      else
+        document.getElementById("resultsPage").outerText = "Thank you!";
+    }
+
+    // === Optional local JSON file download ===
+    function downloadResultsJSON(results) {
+      const pid = results.participantData?.id || "anon";
+      const cond = results.participantData?.condition || "none";
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `general_${pid}_${cond}_${timestamp}.json`;
+      const json = JSON.stringify(results, null, 2);
+
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+
+</html>
