@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import numpy as np
 from config.config import logging, set_pause, get_pause_status
 from app.models.recommendation_store import store as recommendation_store
+from app.models.failure_forecast import build_failure_forecast_event
 
 class Communicate:
     """
@@ -273,6 +274,7 @@ class Communicate:
             obs: The current observation of the network.
             scn_first_step: First step of the scenario.
         """
+        response_payload = None
         try:
             # Payload updating for same events detected
             try:
@@ -301,6 +303,7 @@ class Communicate:
                     # logging.info("FULL EVENT : %s", self.payload)
                     # print(response.text)
                     response.raise_for_status()
+                    response_payload = response.json()
                 text = self.payload["title"]
 
                 if self.cab_api_on is True:
@@ -325,6 +328,7 @@ class Communicate:
         except Exception as e:
             logging.error(e)
             logging.info("The event's follow-up is not working")
+        return response_payload
 
     def send_event_online(self,
                           context_date,
@@ -357,6 +361,7 @@ class Communicate:
             case_anticip: Flag for anticipation case (default is False).
             case_line_lost: Flag for line lost case (default is False).
         """
+        event_response = None
         if zone is None:
             zone = []
         if line is None:
@@ -388,7 +393,9 @@ class Communicate:
 
                 payload = json.dumps(payload_dict)
                 # print(f"Overload description: {payload}")
-                self.send_payload_and_store_it(payload, obs, scn_first_step)
+                event_response = self.send_payload_and_store_it(
+                    payload, obs, scn_first_step
+                )
             except Exception as e:
                 logging.error(e)
 
@@ -502,6 +509,28 @@ class Communicate:
                 self.send_payload_and_store_it(payload, obs, scn_first_step)
             except Exception as e:
                 logging.error(e)
+
+        return event_response
+
+    def send_failure_forecast_event(self,
+                                    context_date,
+                                    scn_first_step,
+                                    forecast,
+                                    parent_event_id,
+                                    obs,
+                                    line_name,
+                                    img_b64=None):
+        """Send a failure forecast linked to its overload parent event."""
+        payload_dict = build_failure_forecast_event(
+            context_date,
+            forecast,
+            parent_event_id,
+            line_name,
+            img_b64,
+        )
+        return self.send_payload_and_store_it(
+            json.dumps(payload_dict), obs, scn_first_step
+        )
 
     def issues_follow_up(self):
         """
